@@ -42,7 +42,13 @@ impl Filesystem for Storage {
     }
 
     async fn set_file_contents(&self, relative_path: &Path, contents: &str) -> Result<()> {
-        fs::write(&self.base_directory.join(relative_path), contents).await?;
+        let full_path = self.base_directory.join(relative_path);
+
+        if let Some(parent) = full_path.parent() {
+            fs::create_dir_all(parent).await?;
+        }
+
+        fs::write(&full_path, contents).await?;
 
         Ok(())
     }

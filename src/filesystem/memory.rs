@@ -12,6 +12,14 @@ pub struct Memory {
     files: DashMap<String, String>,
 }
 
+impl Default for Memory {
+    fn default() -> Self {
+        Memory {
+            files: DashMap::new(),
+        }
+    }
+}
+
 #[async_trait]
 impl Filesystem for Memory {
     async fn read_all_files(&self) -> Result<Vec<FileEntry>> {

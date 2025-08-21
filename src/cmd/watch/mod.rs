@@ -60,6 +60,7 @@ impl Handler for Watch {
                                 files_changed_tx
                                     .send(())
                                     .expect("Failed to send file change notification");
+
                                 break;
                             }
                             _ => {}

@@ -7,6 +7,29 @@
   },
   "version": "0.1.0",
   "devDependencies": {
-    "prettier-plugin-organize-imports": "^4.2.0"
+    "@types/hotwired__turbo": "^8.0.4",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "esbuild": "^0.25.9",
+    "eslint": "^9.33.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "jarmuz": "^0.4.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "recommended": "^0.0.7",
+    "tempy": "^3.1.0",
+    "tsimp": "^2.0.12",
+    "tslib": "^2.8.1",
+    "typed-css-modules": "^0.9.1",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.40.0"
+  },
+  "dependencies": {
+    "@hotwired/stimulus": "^3.2.2",
+    "clsx": "^2.1.1",
+    "nanoid": "^5.1.5",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "wouter": "^3.7.1"
   }
 }

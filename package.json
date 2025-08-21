@@ -1,0 +1,12 @@
+{
+  "license": "Apache-2.0",
+  "name": "poet",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/intentee/poet.git"
+  },
+  "version": "0.1.0",
+  "devDependencies": {
+    "prettier-plugin-organize-imports": "^4.2.0"
+  }
+}

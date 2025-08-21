@@ -1,5 +1,6 @@
 mod file_entry;
 pub mod memory;
+mod read_file_contents_result;
 pub mod storage;
 
 use std::path::Path;
@@ -8,16 +9,20 @@ use anyhow::Result;
 use async_trait::async_trait;
 
 use self::file_entry::FileEntry;
+use self::read_file_contents_result::ReadFileContentsResult;
 
 #[async_trait]
 pub trait Filesystem {
     async fn read_all_files(&self) -> Result<Vec<FileEntry>>;
+
+    async fn read_file_contents(&self, path: &Path) -> Result<ReadFileContentsResult>;
 
     async fn set_file_contents(&self, path: &Path, content: &str) -> Result<()>;
 }
 
 #[cfg(test)]
 mod tests {
+    use anyhow::anyhow;
     use tempfile::tempdir;
 
     use super::*;
@@ -50,24 +55,59 @@ mod tests {
             "test/3.txt"
         );
         assert_eq!(files[0].contents, "Hello, World! 3");
+        match filesystem
+            .read_file_contents(Path::new("test/3.txt"))
+            .await?
+        {
+            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 3"),
+            ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
+        }
 
         assert_eq!(
             files[1].path.to_path_buf().display().to_string(),
             "test/4/5/6.txt"
         );
         assert_eq!(files[1].contents, "Hello, World! 456");
+        match filesystem
+            .read_file_contents(Path::new("test/4/5/6.txt"))
+            .await?
+        {
+            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 456"),
+            ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
+        }
 
         assert_eq!(
             files[2].path.to_path_buf().display().to_string(),
             "test.txt"
         );
         assert_eq!(files[2].contents, "Hello, World! 1");
+        match filesystem.read_file_contents(Path::new("test.txt")).await? {
+            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 1"),
+            ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
+        }
 
         assert_eq!(
             files[3].path.to_path_buf().display().to_string(),
             "test2.txt"
         );
         assert_eq!(files[3].contents, "Hello, World! 2");
+        match filesystem
+            .read_file_contents(Path::new("test2.txt"))
+            .await?
+        {
+            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 2"),
+            ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
+        }
+
+        match filesystem
+            .read_file_contents(Path::new("test_not_found.txt"))
+            .await?
+        {
+            ReadFileContentsResult::Found(contents) => {
+                return Err(anyhow!("File should not be found: {contents}"));
+            }
+            ReadFileContentsResult::NotFound => {}
+        }
 
         Ok(())
     }

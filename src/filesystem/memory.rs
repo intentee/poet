@@ -7,6 +7,7 @@ use dashmap::DashMap;
 
 use super::Filesystem;
 use super::file_entry::FileEntry;
+use super::read_file_contents_result::ReadFileContentsResult;
 
 pub struct Memory {
     files: DashMap<String, String>,
@@ -33,6 +34,18 @@ impl Filesystem for Memory {
             .collect();
 
         Ok(file_entries)
+    }
+
+    async fn read_file_contents(&self, relative_path: &Path) -> Result<ReadFileContentsResult> {
+        let path_str = relative_path
+            .to_str()
+            .ok_or_else(|| anyhow!("Unable to stringify path"))?;
+
+        if let Some(contents) = self.files.get(path_str) {
+            Ok(ReadFileContentsResult::Found(contents.value().to_owned()))
+        } else {
+            Ok(ReadFileContentsResult::NotFound)
+        }
     }
 
     async fn set_file_contents(&self, path: &Path, contents: &str) -> Result<()> {

@@ -7,6 +7,7 @@ use tokio::fs;
 
 use super::Filesystem;
 use super::file_entry::FileEntry;
+use super::read_file_contents_result::ReadFileContentsResult;
 
 pub struct Storage {
     pub base_directory: PathBuf,
@@ -39,6 +40,18 @@ impl Filesystem for Storage {
         }
 
         Ok(files)
+    }
+
+    async fn read_file_contents(&self, relative_path: &Path) -> Result<ReadFileContentsResult> {
+        let full_path = self.base_directory.join(relative_path);
+
+        if !full_path.exists() {
+            return Ok(ReadFileContentsResult::NotFound);
+        }
+
+        let contents = fs::read_to_string(&full_path).await?;
+
+        Ok(ReadFileContentsResult::Found(contents))
     }
 
     async fn set_file_contents(&self, relative_path: &Path, contents: &str) -> Result<()> {

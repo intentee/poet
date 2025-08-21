@@ -55,7 +55,7 @@ impl Handler for Watch {
                     for event in &events {
                         match event.kind {
                             EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
-                                log::info!("Source file change detected");
+                                info!("Source file change detected");
 
                                 files_changed_tx
                                     .send(())

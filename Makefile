@@ -34,3 +34,8 @@ prettier: node_modules
 	# 	jarmuz \
 	# 	resources \
 	# 	*.mjs \
+
+.PHONY: watch
+watch: node_modules
+	./jarmuz-watch.mjs
+

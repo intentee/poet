@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+use anyhow::Context as _;
 use anyhow::Result;
 use async_trait::async_trait;
 use tokio::fs;
@@ -15,8 +16,11 @@ pub struct Storage {
 
 #[async_trait]
 impl Filesystem for Storage {
-    async fn read_all_files(&self) -> Result<Vec<FileEntry>> {
-        let mut to_visit = vec![self.base_directory.clone()];
+    async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
+        let mut to_visit: Vec<PathBuf> = vec![
+            self.base_directory.join("content"),
+            self.base_directory.join("shortcodes"),
+        ];
         let mut files = Vec::new();
 
         while let Some(current) = to_visit.pop() {
@@ -32,7 +36,9 @@ impl Filesystem for Storage {
                     let relative_path = path.strip_prefix(&self.base_directory)?.to_path_buf();
 
                     files.push(FileEntry {
-                        contents: fs::read_to_string(&path).await?,
+                        contents: fs::read_to_string(&path)
+                            .await
+                            .context(format!("Failed to read file: {}", path.display()))?,
                         path: relative_path,
                     });
                 }

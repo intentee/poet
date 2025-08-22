@@ -23,7 +23,7 @@ impl Default for Memory {
 
 #[async_trait]
 impl Filesystem for Memory {
-    async fn read_all_files(&self) -> Result<Vec<FileEntry>> {
+    async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
         let file_entries = self
             .files
             .iter()

@@ -7,7 +7,7 @@ excerpts:
   - type: description
     content: >
       Chat templates are ...
-layout: poet/docs/page
+layout: poet/LayoutDocsPage
 references: 
   - buffered-requests
 truth_source_for: 

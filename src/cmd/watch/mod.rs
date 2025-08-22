@@ -74,7 +74,14 @@ impl Handler for Watch {
             },
         )?;
 
-        debouncer.watch(self.source_directory.clone(), RecursiveMode::Recursive)?;
+        debouncer.watch(
+            self.source_directory.join("content"),
+            RecursiveMode::Recursive,
+        )?;
+        debouncer.watch(
+            self.source_directory.join("shortcodes"),
+            RecursiveMode::Recursive,
+        )?;
 
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
 

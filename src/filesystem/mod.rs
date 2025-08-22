@@ -1,4 +1,4 @@
-mod file_entry;
+pub mod file_entry;
 pub mod memory;
 pub mod read_file_contents_result;
 pub mod storage;
@@ -13,7 +13,7 @@ use self::read_file_contents_result::ReadFileContentsResult;
 
 #[async_trait]
 pub trait Filesystem {
-    async fn read_all_files(&self) -> Result<Vec<FileEntry>>;
+    async fn read_project_files(&self) -> Result<Vec<FileEntry>>;
 
     async fn read_file_contents(&self, path: &Path) -> Result<ReadFileContentsResult>;
 
@@ -44,7 +44,7 @@ mod tests {
             .set_file_contents(Path::new("test/4/5/6.txt"), "Hello, World! 456")
             .await?;
 
-        let mut files = filesystem.read_all_files().await?;
+        let mut files = filesystem.read_project_files().await?;
 
         files.sort_by(|a, b| a.path.cmp(&b.path));
 

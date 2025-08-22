@@ -51,9 +51,17 @@ impl TryFrom<i32> for ParserState {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use anyhow::Result;
-    use rhai::{Dynamic, Engine, EvalContext, EvalAltResult, ImmutableString, LexError, ParseErrorType, Position};
+    use rhai::Dynamic;
+    use rhai::Engine;
+    use rhai::EvalAltResult;
+    use rhai::EvalContext;
+    use rhai::ImmutableString;
+    use rhai::LexError;
+    use rhai::ParseErrorType;
+    use rhai::Position;
+
+    use super::*;
 
     #[test]
     fn test_docs_parser() -> Result<()> {
@@ -73,23 +81,30 @@ mod tests {
             // The return type is 'Option<ImmutableString>' to allow common text strings
             // to be interned and shared easily, reducing allocations during parsing.
             |symbols, look_ahead, state| {
-                println!("Symbols: {:?}, look_ahead: {:?}, state: {:?}, tag: {:?}", symbols, look_ahead, state, state.tag());
+                println!(
+                    "Symbols: {:?}, look_ahead: {:?}, state: {:?}, tag: {:?}",
+                    symbols,
+                    look_ahead,
+                    state,
+                    state.tag()
+                );
 
-                let push_to_state = |state: &mut Dynamic, value: TemplateNode| {
-                    match state.as_array_mut() {
+                let push_to_state =
+                    |state: &mut Dynamic, value: TemplateNode| match state.as_array_mut() {
                         Ok(mut array) => {
                             array.push(Dynamic::from(value));
 
                             Ok(())
-                        },
-                        Err(err) => {
-                            Err(LexError::ImproperSymbol(
-                                symbols.last().unwrap().to_string(),
-                                format!("Invalid state array {err} at token: {}", symbols.last().unwrap())
-                            ).into_err(Position::NONE))
                         }
-                    }
-                };
+                        Err(err) => Err(LexError::ImproperSymbol(
+                            symbols.last().unwrap().to_string(),
+                            format!(
+                                "Invalid state array {err} at token: {}",
+                                symbols.last().unwrap()
+                            ),
+                        )
+                        .into_err(Position::NONE)),
+                    };
 
                 match ParserState::try_from(state.tag()) {
                     Ok(current_state) => match current_state {
@@ -98,121 +113,124 @@ mod tests {
                             state.set_tag(ParserState::ComponentName as i32);
 
                             Ok(Some("$ident$".into()))
-                        },
-                        ParserState::ComponentName => {
-                            match look_ahead {
-                                "(" => {
-                                    state.set_tag(ParserState::ParamsOpeningBracket as i32);
+                        }
+                        ParserState::ComponentName => match look_ahead {
+                            "(" => {
+                                state.set_tag(ParserState::ParamsOpeningBracket as i32);
 
-                                    Ok(Some("(".into()))
-                                }
-                                "()" => {
-                                    state.set_tag(ParserState::EmptyParams as i32);
-
-                                    Ok(Some("()".into()))
-                                },
-                                _ => Err(LexError::ImproperSymbol(
-                                    look_ahead.to_string(),
-                                    format!("Expected '(' after component name, found: {look_ahead}")
-                                ).into_err(Position::NONE))
+                                Ok(Some("(".into()))
                             }
+                            "()" => {
+                                state.set_tag(ParserState::EmptyParams as i32);
+
+                                Ok(Some("()".into()))
+                            }
+                            _ => Err(LexError::ImproperSymbol(
+                                look_ahead.to_string(),
+                                format!("Expected '(' after component name, found: {look_ahead}"),
+                            )
+                            .into_err(Position::NONE)),
                         },
-                        ParserState::ParamsOpeningBracket => {
-                            match look_ahead {
-                                ")" => {
-                                    state.set_tag(ParserState::ParamsClosingBracket as i32);
+                        ParserState::ParamsOpeningBracket => match look_ahead {
+                            ")" => {
+                                state.set_tag(ParserState::ParamsClosingBracket as i32);
 
-                                    Ok(Some(")".into()))
-                                },
-                                _ => {
-                                    state.set_tag(ParserState::ParamsArgumentIdent as i32);
+                                Ok(Some(")".into()))
+                            }
+                            _ => {
+                                state.set_tag(ParserState::ParamsArgumentIdent as i32);
 
-                                    Ok(Some("$ident$".into()))
-                                }
+                                Ok(Some("$ident$".into()))
                             }
                         },
                         ParserState::EmptyParams => {
                             state.set_tag(ParserState::BodyOpeningBracket as i32);
 
                             Ok(Some("{".into()))
-                        },
-                        ParserState::ParamsArgumentIdent => {
-                            match look_ahead {
-                                "," => {
-                                    state.set_tag(ParserState::ParamsArgumentSeparator as i32);
+                        }
+                        ParserState::ParamsArgumentIdent => match look_ahead {
+                            "," => {
+                                state.set_tag(ParserState::ParamsArgumentSeparator as i32);
 
-                                    Ok(Some(",".into()))
-                                },
-                                ")" => {
-                                    state.set_tag(ParserState::ParamsClosingBracket as i32);
-
-                                    Ok(Some(")".into()))
-                                },
-                                _ => Err(LexError::ImproperSymbol(
-                                    look_ahead.to_string(),
-                                    format!("Expected ',' or ')' after parameter name, found: {look_ahead}")
-                                ).into_err(Position::NONE))
+                                Ok(Some(",".into()))
                             }
+                            ")" => {
+                                state.set_tag(ParserState::ParamsClosingBracket as i32);
+
+                                Ok(Some(")".into()))
+                            }
+                            _ => Err(LexError::ImproperSymbol(
+                                look_ahead.to_string(),
+                                format!(
+                                    "Expected ',' or ')' after parameter name, found: {look_ahead}"
+                                ),
+                            )
+                            .into_err(Position::NONE)),
                         },
-                        ParserState::ParamsArgumentSeparator => {
-                            match look_ahead {
-                                ")" => {
-                                    state.set_tag(ParserState::ParamsClosingBracket as i32);
+                        ParserState::ParamsArgumentSeparator => match look_ahead {
+                            ")" => {
+                                state.set_tag(ParserState::ParamsClosingBracket as i32);
 
-                                    Ok(Some(")".into()))
-                                },
-                                _ => {
-                                    state.set_tag(ParserState::ParamsArgumentIdent as i32);
+                                Ok(Some(")".into()))
+                            }
+                            _ => {
+                                state.set_tag(ParserState::ParamsArgumentIdent as i32);
 
-                                    Ok(Some("$ident$".into()))
-                                },
+                                Ok(Some("$ident$".into()))
                             }
                         },
                         ParserState::ParamsClosingBracket => {
                             state.set_tag(ParserState::BodyOpeningBracket as i32);
 
                             Ok(Some("{".into()))
-                        },
-                        ParserState::BodyOpeningBracket => {
-                            match look_ahead {
-                                "}" => {
-                                    state.set_tag(ParserState::BodyClosingBracket as i32);
+                        }
+                        ParserState::BodyOpeningBracket => match look_ahead {
+                            "}" => {
+                                state.set_tag(ParserState::BodyClosingBracket as i32);
 
-                                    Ok(Some("}".into()))
-                                },
-                                _ => {
-                                    push_to_state(state, TemplateNode::BodyText(look_ahead.to_string()))?;
-                                    state.set_tag(ParserState::BodyText as i32);
+                                Ok(Some("}".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    TemplateNode::BodyText(look_ahead.to_string()),
+                                )?;
+                                state.set_tag(ParserState::BodyText as i32);
 
-                                    Ok(Some(look_ahead.into()))
-                                }
+                                Ok(Some(look_ahead.into()))
                             }
                         },
-                        ParserState::BodyText | ParserState::BodyExpressionBlock | ParserState::TagClosingBracket => {
-                            match look_ahead {
-                                "<" => {
-                                    push_to_state(state, TemplateNode::TagContent(look_ahead.to_string()))?;
-                                    state.set_tag(ParserState::TagOpeningBracket as i32);
+                        ParserState::BodyText
+                        | ParserState::BodyExpressionBlock
+                        | ParserState::TagClosingBracket => match look_ahead {
+                            "<" => {
+                                push_to_state(
+                                    state,
+                                    TemplateNode::TagContent(look_ahead.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagOpeningBracket as i32);
 
-                                    Ok(Some(look_ahead.into()))
-                                },
-                                "{" => {
-                                    push_to_state(state, TemplateNode::BodyExpressionBlock)?;
-                                    state.set_tag(ParserState::BodyExpressionBlock as i32);
+                                Ok(Some(look_ahead.into()))
+                            }
+                            "{" => {
+                                push_to_state(state, TemplateNode::BodyExpressionBlock)?;
+                                state.set_tag(ParserState::BodyExpressionBlock as i32);
 
-                                    Ok(Some("$block$".into()))
-                                },
-                                "}" => {
-                                    state.set_tag(ParserState::BodyClosingBracket as i32);
+                                Ok(Some("$block$".into()))
+                            }
+                            "}" => {
+                                state.set_tag(ParserState::BodyClosingBracket as i32);
 
-                                    Ok(Some("}".into()))
-                                },
-                                _ => {
-                                    push_to_state(state, TemplateNode::BodyText(look_ahead.to_string()))?;
-                                    state.set_tag(ParserState::BodyText as i32);
+                                Ok(Some("}".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    TemplateNode::BodyText(look_ahead.to_string()),
+                                )?;
+                                state.set_tag(ParserState::BodyText as i32);
 
-                                    Ok(Some(look_ahead.into()))
-                                }
+                                Ok(Some(look_ahead.into()))
                             }
                         },
                         ParserState::TagOpeningBracket => {
@@ -223,39 +241,48 @@ mod tests {
                                     state.set_tag(ParserState::TagClosingBracket as i32);
 
                                     Ok(Some(look_ahead.into()))
-                                },
+                                }
                                 _ => {
                                     state.set_tag(ParserState::TagContent as i32);
 
                                     Ok(Some(look_ahead.into()))
                                 }
                             }
-                        },
-                        ParserState::TagContent => {
-                            push_to_state(state, TemplateNode::TagContent(look_ahead.to_string()))?;
+                        }
+                        ParserState::TagContent => match look_ahead {
+                            ">" => {
+                                push_to_state(
+                                    state,
+                                    TemplateNode::TagContent(look_ahead.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagClosingBracket as i32);
 
-                            match look_ahead {
-                                ">" => {
-                                    state.set_tag(ParserState::TagClosingBracket as i32);
+                                Ok(Some(look_ahead.into()))
+                            }
+                            "{" => {
+                                push_to_state(state, TemplateNode::BodyExpressionBlock)?;
+                                state.set_tag(ParserState::BodyExpressionBlock as i32);
 
-                                    Ok(Some(look_ahead.into()))
-                                },
-                                _ => {
-                                    state.set_tag(ParserState::TagContent as i32);
+                                Ok(Some("$block$".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    TemplateNode::TagContent(look_ahead.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagContent as i32);
 
-                                    Ok(Some(look_ahead.into()))
-                                }
+                                Ok(Some(look_ahead.into()))
                             }
                         },
-                        ParserState::BodyClosingBracket => {
-                            Ok(None)
-                        },
+                        ParserState::BodyClosingBracket => Ok(None),
                     },
                     Err(_) => {
                         return Err(LexError::ImproperSymbol(
                             symbols.last().unwrap().to_string(),
-                            format!("Invalid parser state at token: {}", symbols.last().unwrap())
-                        ).into_err(Position::NONE));
+                            format!("Invalid parser state at token: {}", symbols.last().unwrap()),
+                        )
+                        .into_err(Position::NONE));
                     }
                 }
             },
@@ -263,31 +290,34 @@ mod tests {
             true,
             |context, inputs, state| {
                 // let cmd = inputs.last().unwrap().get_string_value().unwrap();
-                println!("Inputs: {:#?}, state: {:#?}, tag: {:?}", inputs, state, state.tag());
+                println!(
+                    "Inputs: {:#?}, state: {:#?}, tag: {:?}",
+                    inputs,
+                    state,
+                    state.tag()
+                );
 
                 for node in state.as_array_ref()?.iter() {
                     match node.clone().try_cast::<TemplateNode>().unwrap() {
                         TemplateNode::BodyExpressionBlock => {
                             println!("  Expression Block");
-                        },
+                        }
                         TemplateNode::TagContent(content) => {
-                            println!("  Opening Tag Content: {content}");
-                        },
+                            println!("  Tag Content: {content}");
+                        }
                         TemplateNode::BodyText(text) => {
                             println!("  Text: {text}");
-                        },
+                        }
                     }
                 }
 
                 Err(Box::new(EvalAltResult::ErrorParsing(
-                    ParseErrorType::BadInput(
-                        LexError::UnexpectedInput(
-                            format!("Unexpected command result")
-                        ),
-                    ),
-                    Position::NONE
+                    ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
+                        "Unexpected command result"
+                    ))),
+                    Position::NONE,
                 )))
-            }
+            },
         );
 
         // println!("{:?}", engine.eval::<String>(r#"
@@ -301,9 +331,16 @@ mod tests {
         //         <div>xd</div>
         //     }
         // "#)?);
-        println!("{:?}", engine.eval::<String>(r#"
+        println!(
+            "{:?}",
+            engine.eval::<String>(
+                r#"
             component Admonition2(content, type) {
                 Hellow worldz!
+                Hello world !
+                Foo bar.
+                Foo bar .
+                http://example.com
                 <div alt={type}>
                   Foo
                   {content}
@@ -311,7 +348,9 @@ mod tests {
                   Bar
                 </div>
             }
-        "#)?);
+        "#
+            )?
+        );
 
         assert!(false);
 
@@ -344,8 +383,11 @@ mod tests {
                     "hello" => Ok(Some("world".into())),
                     "update" | "check" | "add" | "remove" => Ok(Some("$ident$".into())),
                     "cleanup" => Ok(Some("$$cleanup".into())),
-                    cmd => Err(LexError::ImproperSymbol(symbols[1].to_string(), format!("Improper command: {cmd}"))
-                               .into_err(Position::NONE)),
+                    cmd => Err(LexError::ImproperSymbol(
+                        symbols[1].to_string(),
+                        format!("Improper command: {cmd}"),
+                    )
+                    .into_err(Position::NONE)),
                 },
                 // perform command arg ...
                 3 => match (symbols[1].as_str(), symbols[2].as_str()) {
@@ -354,16 +396,20 @@ mod tests {
                     ("update", arg) => match arg {
                         "system" => Ok(Some("$$update-system".into())),
                         "client" => Ok(Some("$$update-client".into())),
-                        _ => Err(LexError::ImproperSymbol(symbols[1].to_string(), format!("Cannot update {arg}"))
-                                 .into_err(Position::NONE))
+                        _ => Err(LexError::ImproperSymbol(
+                            symbols[1].to_string(),
+                            format!("Cannot update {arg}"),
+                        )
+                        .into_err(Position::NONE)),
                     },
                     ("check", arg) => Ok(Some("$$check".into())),
                     ("add", arg) => Ok(Some("$$add".into())),
                     ("remove", arg) => Ok(Some("$$remove".into())),
                     (cmd, arg) => Err(LexError::ImproperSymbol(
                         symbols[2].to_string(),
-                        format!("Invalid argument for command {cmd}: {arg}")
-                    ).into_err(Position::NONE)),
+                        format!("Invalid argument for command {cmd}: {arg}"),
+                    )
+                    .into_err(Position::NONE)),
                 },
                 _ => unreachable!(),
             },
@@ -383,15 +429,13 @@ mod tests {
                     "$$add" => Ok(Dynamic::from("add")),
                     "$$remove" => Ok(Dynamic::from("remove")),
                     _ => Err(Box::new(EvalAltResult::ErrorParsing(
-                        ParseErrorType::BadInput(
-                            LexError::UnexpectedInput(
-                                format!("Unexpected command result: {cmd}")
-                            ),
-                        ),
-                        Position::NONE
-                    )))
+                        ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
+                            "Unexpected command result: {cmd}"
+                        ))),
+                        Position::NONE,
+                    ))),
                 }
-            }
+            },
         );
 
         // let result = engine.eval::<i64>("inc(41)")?;

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::sync::RwLock;
 
 use anyhow::Result;
@@ -9,7 +10,7 @@ pub struct OutputFilesystemHolder<TFilesystem>
 where
     TFilesystem: Filesystem,
 {
-    output_filesystem: RwLock<Option<TFilesystem>>,
+    output_filesystem: RwLock<Option<Arc<TFilesystem>>>,
     update_notifier: watch::Sender<()>,
 }
 
@@ -17,7 +18,16 @@ impl<TFilesystem> OutputFilesystemHolder<TFilesystem>
 where
     TFilesystem: Filesystem,
 {
-    pub fn set_output_filesystem(&self, filesystem: TFilesystem) -> Result<()> {
+    pub fn get_output_filesystem(&self) -> Result<Option<Arc<TFilesystem>>> {
+        let output_filesystem = self
+            .output_filesystem
+            .read()
+            .expect("Failed to acquire read lock on output filesystem");
+
+        Ok(output_filesystem.clone())
+    }
+
+    pub fn set_output_filesystem(&self, filesystem: Arc<TFilesystem>) -> Result<()> {
         {
             let mut output_filesystem = self
                 .output_filesystem

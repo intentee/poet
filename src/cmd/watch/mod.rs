@@ -1,8 +1,10 @@
+mod app_data;
 mod http_route;
 mod output_filesystem_holder;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use actix_web::App;
@@ -20,6 +22,7 @@ use notify_debouncer_full::new_debouncer;
 use notify_debouncer_full::notify::RecursiveMode;
 use tokio::sync::watch;
 
+use self::app_data::AppData;
 use self::output_filesystem_holder::OutputFilesystemHolder;
 use super::Handler;
 use super::value_parser::parse_socket_addr;
@@ -43,8 +46,8 @@ impl Handler for Watch {
         let source_filesystem = Storage {
             base_directory: self.source_directory.clone(),
         };
-        let output_filesystem_holder: OutputFilesystemHolder<Memory> =
-            OutputFilesystemHolder::default();
+        let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
+            Arc::new(OutputFilesystemHolder::default());
         let (files_changed_tx, mut files_changed_rx) = watch::channel(());
 
         let mut debouncer = new_debouncer(
@@ -73,12 +76,14 @@ impl Handler for Watch {
 
         debouncer.watch(self.source_directory.clone(), RecursiveMode::Recursive)?;
 
+        let output_filesystem_holder_clone = output_filesystem_holder.clone();
+
         rt::spawn(async move {
             loop {
                 match build_project(&source_filesystem).await {
                     Ok(memory_filesystem) => {
-                        if let Err(err) =
-                            output_filesystem_holder.set_output_filesystem(memory_filesystem)
+                        if let Err(err) = output_filesystem_holder_clone
+                            .set_output_filesystem(Arc::new(memory_filesystem))
                         {
                             error!("Failed to set output filesystem: {err}");
                         }
@@ -92,11 +97,15 @@ impl Handler for Watch {
             }
         });
 
+        let app_data = Data::new(AppData {
+            output_filesystem_holder,
+        });
+
         HttpServer::new(move || {
             App::new()
-                // .app_data(app_data.clone())
+                .app_data(app_data.clone())
                 .configure(http_route::favicon::register)
-            // .configure(http_route::static_files::register)
+                .configure(http_route::static_files::register)
         })
         .bind(self.addr)
         .expect("Unable to bind server to address")

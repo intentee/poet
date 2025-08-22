@@ -1,6 +1,6 @@
 mod file_entry;
 pub mod memory;
-mod read_file_contents_result;
+pub mod read_file_contents_result;
 pub mod storage;
 
 use std::path::Path;
@@ -59,6 +59,9 @@ mod tests {
             .read_file_contents(Path::new("test/3.txt"))
             .await?
         {
+            ReadFileContentsResult::Directory => {
+                return Err(anyhow!("Expected file, got directory"));
+            }
             ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 3"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
@@ -72,6 +75,9 @@ mod tests {
             .read_file_contents(Path::new("test/4/5/6.txt"))
             .await?
         {
+            ReadFileContentsResult::Directory => {
+                return Err(anyhow!("Expected file, got directory"));
+            }
             ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 456"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
@@ -82,6 +88,9 @@ mod tests {
         );
         assert_eq!(files[2].contents, "Hello, World! 1");
         match filesystem.read_file_contents(Path::new("test.txt")).await? {
+            ReadFileContentsResult::Directory => {
+                return Err(anyhow!("Expected file, got directory"));
+            }
             ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 1"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
@@ -95,6 +104,9 @@ mod tests {
             .read_file_contents(Path::new("test2.txt"))
             .await?
         {
+            ReadFileContentsResult::Directory => {
+                return Err(anyhow!("Expected file, got directory"));
+            }
             ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 2"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
@@ -103,6 +115,9 @@ mod tests {
             .read_file_contents(Path::new("test_not_found.txt"))
             .await?
         {
+            ReadFileContentsResult::Directory => {
+                return Err(anyhow!("Expected file, got directory"));
+            }
             ReadFileContentsResult::Found(contents) => {
                 return Err(anyhow!("File should not be found: {contents}"));
             }

@@ -14,14 +14,40 @@ truth_source_for:
   - chat-templates
 ---
 
-# Chat Templates
+- `one
+- two`
 
-Once we figured out [@/docs/buffered-requests], we can move on to...
+***
+---
+___
 
-Something else...
+# foo
+## foo
+### foo
+#### foo
+##### foo
+###### foo
 
-Just a single paragraph....
+Foo *bar*
+=========
 
-## Something else
+> foo
+bar
+===
 
-testdocuments
+```
+<
+ >
+```
+
+Something else... <poetry:/docs/internals/index#something?reshape>
+
+<p>test</p>
+
+<Admonition type="note">
+  hi
+</Admonition>
+
+<Figure alt="something" path="http://example.jpg" />
+
+{wow}

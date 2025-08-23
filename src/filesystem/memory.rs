@@ -29,7 +29,7 @@ impl Filesystem for Memory {
             .iter()
             .map(|entry| FileEntry {
                 contents: entry.value().clone(),
-                path: entry.key().into(),
+                relative_path: entry.key().into(),
             })
             .collect();
 

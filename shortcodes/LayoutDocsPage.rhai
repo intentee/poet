@@ -1,9 +1,9 @@
-import "LayoutHomepage";
+import "LayoutHomepage" as homepage_layout;
 
 fn template(assets, content, props) {
     assets.styles.add("resources/css/page-docs.css");
 
-    LayoutHomepage::template(assets, `
+    homepage_layout::template(assets, `
         <div>
             Hello! :D
             ${content}

@@ -4,12 +4,13 @@ use anyhow::Result;
 use rhai::Dynamic;
 use rhai::Engine;
 use rhai::Func;
-use rhai::Map;
 use rhai::OptimizationLevel;
 use rhai::module_resolvers::FileModuleResolver;
 
 use crate::asset_manager::AssetManager;
 use crate::filesystem::file_entry::FileEntry;
+
+pub type ShortcodeRenderer = dyn Fn(AssetManager, Dynamic, Dynamic) -> Result<String>;
 
 pub struct RhaiContext {
     scripts_directory: PathBuf,
@@ -20,10 +21,7 @@ impl RhaiContext {
         Self { scripts_directory }
     }
 
-    pub fn compile_template_file(
-        &self,
-        file: &FileEntry,
-    ) -> Result<Box<dyn Fn(AssetManager, Dynamic, Dynamic) -> Result<String>>> {
+    pub fn compile_shortcode_file(&self, file: &FileEntry) -> Result<Box<ShortcodeRenderer>> {
         let renderer = Func::<(AssetManager, Dynamic, Dynamic), String>::create_from_script(
             // closure consumes the engine
             self.create_engine(),
@@ -36,13 +34,6 @@ impl RhaiContext {
                 Ok(renderer(assets, content, props)?)
             },
         ))
-        //
-        // let content = Dynamic::from("This is a sample content.");
-        // let props = Dynamic::from_map(Map::new());
-        //
-        // let result: String = template_renderer("World", content, props)?;
-        //
-        // Ok(result)
     }
 
     fn create_engine(&self) -> Engine {

@@ -1,18 +1,21 @@
----
-collections:
-  - name: documents
-    after: internals/buffered-requests
-created_at: 2025-08-25
-excerpts:
-  - type: description
-    content: >
-      Chat templates are ...
-layout: poet/LayoutDocsPage
-references: 
-  - buffered-requests
-truth_source_for: 
-  - chat-templates
----
++++
+created_at = 2025-08-25
+layout = "LayoutDocsPage"
+references = ["buffered-requests"]
+truth_source_for = ["chat-templates"]
+
+[[collection]]
+name = "documents"
+after = "internals/buffered-requests"
+
+[[excerpt]]
+type = "description"
+content = "Chat templates are ..."
+
+[[excerpt]]
+type = "blog_post_summary"
+content = "Chat templates are ..."
++++
 
 - `one
 - two`

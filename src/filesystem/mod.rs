@@ -46,12 +46,12 @@ mod tests {
 
         let mut files = filesystem.read_project_files().await?;
 
-        files.sort_by(|a, b| a.path.cmp(&b.path));
+        files.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
 
         assert_eq!(files.len(), 4);
 
         assert_eq!(
-            files[0].path.to_path_buf().display().to_string(),
+            files[0].relative_path.to_path_buf().display().to_string(),
             "test/3.txt"
         );
         assert_eq!(files[0].contents, "Hello, World! 3");
@@ -67,7 +67,7 @@ mod tests {
         }
 
         assert_eq!(
-            files[1].path.to_path_buf().display().to_string(),
+            files[1].relative_path.to_path_buf().display().to_string(),
             "test/4/5/6.txt"
         );
         assert_eq!(files[1].contents, "Hello, World! 456");
@@ -83,7 +83,7 @@ mod tests {
         }
 
         assert_eq!(
-            files[2].path.to_path_buf().display().to_string(),
+            files[2].relative_path.to_path_buf().display().to_string(),
             "test.txt"
         );
         assert_eq!(files[2].contents, "Hello, World! 1");
@@ -96,7 +96,7 @@ mod tests {
         }
 
         assert_eq!(
-            files[3].path.to_path_buf().display().to_string(),
+            files[3].relative_path.to_path_buf().display().to_string(),
             "test2.txt"
         );
         assert_eq!(files[3].contents, "Hello, World! 2");

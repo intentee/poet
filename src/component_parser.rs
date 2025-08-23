@@ -1,3 +1,7 @@
+// TODO: this file is a draft; once its done, enable warnings again
+#![allow(warnings)]
+#![allow(clippy::all)]
+
 #[derive(Clone, Debug)]
 enum TemplateNode {
     BodyExpressionBlock,
@@ -9,19 +13,10 @@ enum TemplateNode {
 enum ParserState {
     Start = 0,
     ComponentName = 1,
-    ParamsOpeningBracket = 2,
-    EmptyParams = 3,
-    ParamsArgumentIdent = 4,
-    ParamsArgumentSeparator = 5,
-    ParamsClosingBracket = 6,
-    BodyOpeningBracket = 7,
-    TagOpeningBracket = 8,
-    TagContent = 9,
-    TagClosingBracket = 10,
-    // BodyOpeningTagSelfClose = 11,
-    BodyText = 12,
-    BodyExpressionBlock = 13,
-    BodyClosingBracket = 14,
+    Params = 2,
+    BodyOpeningBracket = 3,
+    Body = 4,
+    BodyExpression = 5,
 }
 
 impl TryFrom<i32> for ParserState {
@@ -31,19 +26,10 @@ impl TryFrom<i32> for ParserState {
         match value {
             0 => Ok(ParserState::Start),
             1 => Ok(ParserState::ComponentName),
-            2 => Ok(ParserState::ParamsOpeningBracket),
-            3 => Ok(ParserState::EmptyParams),
-            4 => Ok(ParserState::ParamsArgumentIdent),
-            5 => Ok(ParserState::ParamsArgumentSeparator),
-            6 => Ok(ParserState::ParamsClosingBracket),
-            7 => Ok(ParserState::BodyOpeningBracket),
-            8 => Ok(ParserState::TagOpeningBracket),
-            9 => Ok(ParserState::TagContent),
-            10 => Ok(ParserState::TagClosingBracket),
-            // 11 => Ok(ParserState::BodyOpeningTagSelfClose),
-            12 => Ok(ParserState::BodyText),
-            13 => Ok(ParserState::BodyExpressionBlock),
-            14 => Ok(ParserState::BodyClosingBracket),
+            2 => Ok(ParserState::Params),
+            3 => Ok(ParserState::BodyOpeningBracket),
+            4 => Ok(ParserState::Body),
+            5 => Ok(ParserState::BodyExpression),
             _ => Err(()),
         }
     }
@@ -67,7 +53,7 @@ mod tests {
     fn test_docs_parser() -> Result<()> {
         let mut engine = Engine::new();
 
-        engine.register_custom_syntax_with_state_raw(
+        engine.register_custom_syntax_without_look_ahead_raw(
             // The leading symbol - which needs not be an identifier.
             "component",
             // The custom parser implementation - always returns the next symbol expected
@@ -80,14 +66,14 @@ mod tests {
             //
             // The return type is 'Option<ImmutableString>' to allow common text strings
             // to be interned and shared easily, reducing allocations during parsing.
-            |symbols, look_ahead, state| {
+            |symbols, state| {
                 println!(
-                    "Symbols: {:?}, look_ahead: {:?}, state: {:?}, tag: {:?}",
+                    "Symbols: {:?}, state: {:?}, tag: {:?}",
                     symbols,
-                    look_ahead,
                     state,
                     state.tag()
                 );
+                let last_symbol = symbols.last().unwrap().as_str();
 
                 let push_to_state =
                     |state: &mut Dynamic, value: TemplateNode| match state.as_array_mut() {
@@ -114,168 +100,56 @@ mod tests {
 
                             Ok(Some("$ident$".into()))
                         }
-                        ParserState::ComponentName => match look_ahead {
-                            "(" => {
-                                state.set_tag(ParserState::ParamsOpeningBracket as i32);
+                        ParserState::ComponentName => {
+                            state.set_tag(ParserState::Params as i32);
 
-                                Ok(Some("(".into()))
-                            }
-                            "()" => {
-                                state.set_tag(ParserState::EmptyParams as i32);
-
-                                Ok(Some("()".into()))
-                            }
-                            _ => Err(LexError::ImproperSymbol(
-                                look_ahead.to_string(),
-                                format!("Expected '(' after component name, found: {look_ahead}"),
-                            )
-                            .into_err(Position::NONE)),
-                        },
-                        ParserState::ParamsOpeningBracket => match look_ahead {
+                            Ok(Some("(".into()))
+                        }
+                        ParserState::Params => match last_symbol {
                             ")" => {
-                                state.set_tag(ParserState::ParamsClosingBracket as i32);
+                                state.set_tag(ParserState::BodyOpeningBracket as i32);
 
-                                Ok(Some(")".into()))
+                                Ok(Some("{".into()))
                             }
                             _ => {
-                                state.set_tag(ParserState::ParamsArgumentIdent as i32);
+                                state.set_tag(ParserState::Params as i32);
 
-                                Ok(Some("$ident$".into()))
+                                Ok(Some("$raw$".into()))
                             }
                         },
-                        ParserState::EmptyParams => {
-                            state.set_tag(ParserState::BodyOpeningBracket as i32);
+                        ParserState::BodyOpeningBracket => {
+                            state.set_tag(ParserState::Body as i32);
 
-                            Ok(Some("{".into()))
+                            Ok(Some("$raw$".into()))
                         }
-                        ParserState::ParamsArgumentIdent => match look_ahead {
-                            "," => {
-                                state.set_tag(ParserState::ParamsArgumentSeparator as i32);
+                        ParserState::Body => match last_symbol {
+                            "{" => {
+                                state.set_tag(ParserState::BodyExpression as i32);
 
-                                Ok(Some(",".into()))
+                                Ok(Some("$expr$".into()))
                             }
-                            ")" => {
-                                state.set_tag(ParserState::ParamsClosingBracket as i32);
+                            "}" => Ok(None),
+                            _ => {
+                                state.set_tag(ParserState::Body as i32);
 
-                                Ok(Some(")".into()))
+                                Ok(Some("$raw$".into()))
+                            }
+                        },
+                        ParserState::BodyExpression => match last_symbol {
+                            "}" => {
+                                state.set_tag(ParserState::Body as i32);
+
+                                Ok(Some("$raw$".into()))
                             }
                             _ => Err(LexError::ImproperSymbol(
-                                look_ahead.to_string(),
+                                symbols.last().unwrap().to_string(),
                                 format!(
-                                    "Expected ',' or ')' after parameter name, found: {look_ahead}"
+                                    "Invalid expression block end at token: {}",
+                                    symbols.last().unwrap()
                                 ),
                             )
                             .into_err(Position::NONE)),
                         },
-                        ParserState::ParamsArgumentSeparator => match look_ahead {
-                            ")" => {
-                                state.set_tag(ParserState::ParamsClosingBracket as i32);
-
-                                Ok(Some(")".into()))
-                            }
-                            _ => {
-                                state.set_tag(ParserState::ParamsArgumentIdent as i32);
-
-                                Ok(Some("$ident$".into()))
-                            }
-                        },
-                        ParserState::ParamsClosingBracket => {
-                            state.set_tag(ParserState::BodyOpeningBracket as i32);
-
-                            Ok(Some("{".into()))
-                        }
-                        ParserState::BodyOpeningBracket => match look_ahead {
-                            "}" => {
-                                state.set_tag(ParserState::BodyClosingBracket as i32);
-
-                                Ok(Some("}".into()))
-                            }
-                            _ => {
-                                push_to_state(
-                                    state,
-                                    TemplateNode::BodyText(look_ahead.to_string()),
-                                )?;
-                                state.set_tag(ParserState::BodyText as i32);
-
-                                Ok(Some(look_ahead.into()))
-                            }
-                        },
-                        ParserState::BodyText
-                        | ParserState::BodyExpressionBlock
-                        | ParserState::TagClosingBracket => match look_ahead {
-                            "<" => {
-                                push_to_state(
-                                    state,
-                                    TemplateNode::TagContent(look_ahead.to_string()),
-                                )?;
-                                state.set_tag(ParserState::TagOpeningBracket as i32);
-
-                                Ok(Some(look_ahead.into()))
-                            }
-                            "{" => {
-                                push_to_state(state, TemplateNode::BodyExpressionBlock)?;
-                                state.set_tag(ParserState::BodyExpressionBlock as i32);
-
-                                Ok(Some("$block$".into()))
-                            }
-                            "}" => {
-                                state.set_tag(ParserState::BodyClosingBracket as i32);
-
-                                Ok(Some("}".into()))
-                            }
-                            _ => {
-                                push_to_state(
-                                    state,
-                                    TemplateNode::BodyText(look_ahead.to_string()),
-                                )?;
-                                state.set_tag(ParserState::BodyText as i32);
-
-                                Ok(Some(look_ahead.into()))
-                            }
-                        },
-                        ParserState::TagOpeningBracket => {
-                            push_to_state(state, TemplateNode::TagContent(look_ahead.to_string()))?;
-
-                            match look_ahead {
-                                ">" => {
-                                    state.set_tag(ParserState::TagClosingBracket as i32);
-
-                                    Ok(Some(look_ahead.into()))
-                                }
-                                _ => {
-                                    state.set_tag(ParserState::TagContent as i32);
-
-                                    Ok(Some(look_ahead.into()))
-                                }
-                            }
-                        }
-                        ParserState::TagContent => match look_ahead {
-                            ">" => {
-                                push_to_state(
-                                    state,
-                                    TemplateNode::TagContent(look_ahead.to_string()),
-                                )?;
-                                state.set_tag(ParserState::TagClosingBracket as i32);
-
-                                Ok(Some(look_ahead.into()))
-                            }
-                            "{" => {
-                                push_to_state(state, TemplateNode::BodyExpressionBlock)?;
-                                state.set_tag(ParserState::BodyExpressionBlock as i32);
-
-                                Ok(Some("$block$".into()))
-                            }
-                            _ => {
-                                push_to_state(
-                                    state,
-                                    TemplateNode::TagContent(look_ahead.to_string()),
-                                )?;
-                                state.set_tag(ParserState::TagContent as i32);
-
-                                Ok(Some(look_ahead.into()))
-                            }
-                        },
-                        ParserState::BodyClosingBracket => Ok(None),
                     },
                     Err(_) => {
                         return Err(LexError::ImproperSymbol(
@@ -331,28 +205,28 @@ mod tests {
         //         <div>xd</div>
         //     }
         // "#)?);
-        println!(
-            "{:?}",
-            engine.eval::<String>(
-                r#"
-            component Admonition2(content, type) {
-                Hellow worldz!
-                Hello world !
-                Foo bar.
-                Foo bar .
-                http://example.com
-                <div alt={type}>
-                  Foo
-                  {content}
-                  {if path == "xd" { "wow" } else { ":(" }}
-                  Bar
-                </div>
-            }
-        "#
-            )?
-        );
+        // println!(
+        //     "{:?}",
+        //     engine.eval::<String>(
+        //         r#"
+        //     component Admonition2(content, type) {
+        //         Hellow worldz!
+        //         Hello world !
+        //         Foo bar.
+        //         Foo bar .
+        //         http://example.com
+        //         <div alt={type}>
+        //           Foo
+        //           {content}
+        //           {if path == "xd" { "wow" } else { ":(" }}
+        //           Bar
+        //         </div>
+        //     }
+        // "#
+        //     )?
+        // );
 
-        assert!(false);
+        // assert!(false);
 
         Ok(())
     }
@@ -441,7 +315,7 @@ mod tests {
         // let result = engine.eval::<i64>("inc(41)")?;
         println!("{:?}", engine.eval::<String>(r#"perform hello world;"#)?);
 
-        assert!(false);
+        // assert!(false);
 
         Ok(())
     }

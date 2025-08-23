@@ -39,7 +39,7 @@ impl Filesystem for Storage {
                         contents: fs::read_to_string(&path)
                             .await
                             .context(format!("Failed to read file: {}", path.display()))?,
-                        path: relative_path,
+                        relative_path,
                     });
                 }
             }

@@ -1,3 +1,3 @@
----
-layout: poet/LayoutHomepage
----
++++
+layout = "LayoutHomepage"
++++

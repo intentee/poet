@@ -24,6 +24,10 @@ impl Filesystem for Storage {
         let mut files = Vec::new();
 
         while let Some(current) = to_visit.pop() {
+            if !current.exists() {
+                continue;
+            }
+
             let mut entries = fs::read_dir(current).await?;
 
             while let Some(entry) = entries.next_entry().await? {
@@ -67,7 +71,9 @@ impl Filesystem for Storage {
             fs::create_dir_all(parent).await?;
         }
 
-        fs::write(&full_path, contents).await?;
+        fs::write(&full_path, contents)
+            .await
+            .context(format!("Failed to write file: {}", full_path.display()))?;
 
         Ok(())
     }

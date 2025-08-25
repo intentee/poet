@@ -27,36 +27,45 @@ mod tests {
 
     use super::*;
 
-    async fn test_filesystem<TFilesystem>(filesystem: TFilesystem) -> Result<()>
+    async fn test_filesystem<TFilesystem>(log_prefix: &str, filesystem: TFilesystem) -> Result<()>
     where
         TFilesystem: Filesystem,
     {
+        println!("{log_prefix} - Creating 'content/test.txt'");
         filesystem
-            .set_file_contents(Path::new("test.txt"), "Hello, World! 1")
-            .await?;
-        filesystem
-            .set_file_contents(Path::new("test2.txt"), "Hello, World! 2")
-            .await?;
-        filesystem
-            .set_file_contents(Path::new("test/3.txt"), "Hello, World! 3")
-            .await?;
-        filesystem
-            .set_file_contents(Path::new("test/4/5/6.txt"), "Hello, World! 456")
+            .set_file_contents(Path::new("content/test.txt"), "Hello, World! 1")
             .await?;
 
+        println!("{log_prefix} - Creating 'content/test2.txt'");
+        filesystem
+            .set_file_contents(Path::new("content/test2.txt"), "Hello, World! 2")
+            .await?;
+
+        println!("{log_prefix} - Creating 'content/test/3.txt'");
+        filesystem
+            .set_file_contents(Path::new("content/test/3.txt"), "Hello, World! 3")
+            .await?;
+
+        println!("{log_prefix} - Creating 'content/test/4/5/6.txt'");
+        filesystem
+            .set_file_contents(Path::new("content/test/4/5/6.txt"), "Hello, World! 456")
+            .await?;
+
+        println!("{log_prefix} - Reading project files");
         let mut files = filesystem.read_project_files().await?;
 
+        println!("{log_prefix} - Sorting project files");
         files.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
 
         assert_eq!(files.len(), 4);
 
         assert_eq!(
             files[0].relative_path.to_path_buf().display().to_string(),
-            "test/3.txt"
+            "content/test/3.txt"
         );
         assert_eq!(files[0].contents, "Hello, World! 3");
         match filesystem
-            .read_file_contents(Path::new("test/3.txt"))
+            .read_file_contents(Path::new("content/test/3.txt"))
             .await?
         {
             ReadFileContentsResult::Directory => {
@@ -68,11 +77,11 @@ mod tests {
 
         assert_eq!(
             files[1].relative_path.to_path_buf().display().to_string(),
-            "test/4/5/6.txt"
+            "content/test/4/5/6.txt"
         );
         assert_eq!(files[1].contents, "Hello, World! 456");
         match filesystem
-            .read_file_contents(Path::new("test/4/5/6.txt"))
+            .read_file_contents(Path::new("content/test/4/5/6.txt"))
             .await?
         {
             ReadFileContentsResult::Directory => {
@@ -84,10 +93,13 @@ mod tests {
 
         assert_eq!(
             files[2].relative_path.to_path_buf().display().to_string(),
-            "test.txt"
+            "content/test.txt"
         );
         assert_eq!(files[2].contents, "Hello, World! 1");
-        match filesystem.read_file_contents(Path::new("test.txt")).await? {
+        match filesystem
+            .read_file_contents(Path::new("content/test.txt"))
+            .await?
+        {
             ReadFileContentsResult::Directory => {
                 return Err(anyhow!("Expected file, got directory"));
             }
@@ -97,11 +109,11 @@ mod tests {
 
         assert_eq!(
             files[3].relative_path.to_path_buf().display().to_string(),
-            "test2.txt"
+            "content/test2.txt"
         );
         assert_eq!(files[3].contents, "Hello, World! 2");
         match filesystem
-            .read_file_contents(Path::new("test2.txt"))
+            .read_file_contents(Path::new("content/test2.txt"))
             .await?
         {
             ReadFileContentsResult::Directory => {
@@ -129,14 +141,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_files_are_set_and_read() -> Result<()> {
-        test_filesystem(memory::Memory::default()).await?;
+        test_filesystem("Memory", memory::Memory::default()).await?;
 
         {
             let base_directory = tempdir()?;
 
-            test_filesystem(storage::Storage {
-                base_directory: base_directory.path().to_path_buf(),
-            })
+            test_filesystem(
+                "Storage",
+                storage::Storage {
+                    base_directory: base_directory.path().to_path_buf(),
+                },
+            )
             .await?;
         }
 

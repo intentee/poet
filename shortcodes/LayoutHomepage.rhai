@@ -1,12 +1,21 @@
-fn template(assets, content, props) {
+fn template(context, props, content) {
   component {
     <!DOCTYPE html>
     <html lang="en">
         <head>
-            {assets.render()}
+          <title>{
+            let base_title = "Paddler, LLMOps platform";
+
+            if context.front_matter.title.is_empty() {
+              base_title
+            } else {
+              `${content.front_matter.title} - ${base_title}`
+            }
+          }</title>
+          {context.assets.render()}
         </head>
-        <body>
-            {content}
+        <body class={props.extraBodyclass}>
+          {content}
         </body>
     </html>
   }

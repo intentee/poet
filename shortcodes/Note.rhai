@@ -1,4 +1,4 @@
-fn template(assets, content, props) {
+fn template(context, content, props) {
   component {
     <div
       alt={props.alt}

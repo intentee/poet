@@ -3,17 +3,21 @@
 #![allow(clippy::all)]
 
 #[derive(Clone, Debug)]
-enum OutputNode {
-    RhaiBlock,
+enum OutputSymbol {
+    BodyExpression,
     Text(String),
+    TagContent(String),
+    TagExpression,
 }
 
 #[repr(i32)]
 enum ParserState {
     Start = 0,
-    BodyOpeningBracket = 1,
+    OpeningBracket = 1,
     Body = 2,
     BodyExpression = 3,
+    TagContent = 4,
+    TagExpression = 5,
 }
 
 impl TryFrom<i32> for ParserState {
@@ -22,9 +26,11 @@ impl TryFrom<i32> for ParserState {
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(ParserState::Start),
-            1 => Ok(ParserState::BodyOpeningBracket),
+            1 => Ok(ParserState::OpeningBracket),
             2 => Ok(ParserState::Body),
             3 => Ok(ParserState::BodyExpression),
+            4 => Ok(ParserState::TagContent),
+            5 => Ok(ParserState::TagExpression),
             _ => Err(()),
         }
     }
@@ -55,15 +61,14 @@ mod tests {
             "component",
             |symbols, state| {
                 // println!(
-                //     "Symbols: {:?}, state: {:?}, tag: {:?}",
+                //     "Symbols: {:?}, tag: {:?}",
                 //     symbols,
-                //     state,
                 //     state.tag()
                 // );
                 let last_symbol = symbols.last().unwrap().as_str();
 
                 let push_to_state =
-                    |state: &mut Dynamic, value: OutputNode| match state.as_array_mut() {
+                    |state: &mut Dynamic, value: OutputSymbol| match state.as_array_mut() {
                         Ok(mut array) => {
                             array.push(Dynamic::from(value));
 
@@ -83,11 +88,11 @@ mod tests {
                     Ok(current_state) => match current_state {
                         ParserState::Start => {
                             *state = Dynamic::from_array(vec![]);
-                            state.set_tag(ParserState::BodyOpeningBracket as i32);
+                            state.set_tag(ParserState::OpeningBracket as i32);
 
                             Ok(Some("{".into()))
                         }
-                        ParserState::BodyOpeningBracket => {
+                        ParserState::OpeningBracket => {
                             state.set_tag(ParserState::Body as i32);
 
                             Ok(Some("$raw$".into()))
@@ -99,8 +104,17 @@ mod tests {
                                 Ok(Some("$inner$".into()))
                             }
                             "}" => Ok(None),
+                            "<" => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagContent as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
                             _ => {
-                                push_to_state(state, OutputNode::Text(last_symbol.to_string()))?;
+                                push_to_state(state, OutputSymbol::Text(last_symbol.to_string()))?;
                                 state.set_tag(ParserState::Body as i32);
 
                                 Ok(Some("$raw$".into()))
@@ -108,8 +122,51 @@ mod tests {
                         },
                         ParserState::BodyExpression => match last_symbol {
                             "$inner$" => {
-                                push_to_state(state, OutputNode::RhaiBlock)?;
+                                push_to_state(state, OutputSymbol::BodyExpression)?;
+
                                 state.set_tag(ParserState::Body as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            _ => Err(LexError::ImproperSymbol(
+                                symbols.last().unwrap().to_string(),
+                                format!(
+                                    "Invalid expression block end at token: {}",
+                                    symbols.last().unwrap()
+                                ),
+                            )
+                            .into_err(Position::NONE)),
+                        },
+                        ParserState::TagContent => match last_symbol {
+                            ">" => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::Body as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            "{" => {
+                                state.set_tag(ParserState::TagExpression as i32);
+
+                                Ok(Some("$inner$".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagContent as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                        },
+                        ParserState::TagExpression => match last_symbol {
+                            "$inner$" => {
+                                push_to_state(state, OutputSymbol::TagExpression)?;
+
+                                state.set_tag(ParserState::TagContent as i32);
 
                                 Ok(Some("$raw$".into()))
                             }
@@ -137,8 +194,7 @@ mod tests {
             |context, inputs, state| {
                 let mut inputs_deque: VecDeque<&Expression> = inputs.iter().collect();
 
-                // let cmd = inputs.last().unwrap().get_string_value().unwrap();
-                println!("Inputs: {:#?}, tag: {:?}", inputs, state.tag());
+                // println!("Inputs: {:#?}, tag: {:?}", inputs, state.tag());
                 //
                 // let module = context.engine().module_resolver().resolve(
                 //     context.engine(),
@@ -151,8 +207,8 @@ mod tests {
                 let mut result = String::new();
 
                 for node in state.as_array_ref()?.iter() {
-                    match node.clone().try_cast::<OutputNode>().unwrap() {
-                        OutputNode::RhaiBlock => {
+                    match node.clone().try_cast::<OutputSymbol>().unwrap() {
+                        OutputSymbol::BodyExpression | OutputSymbol::TagExpression => {
                             if let Some(expression) = inputs_deque.pop_front() {
                                 result.push_str(
                                     &context.eval_expression_tree(expression)?.into_string()?,
@@ -166,7 +222,10 @@ mod tests {
                                 )));
                             }
                         }
-                        OutputNode::Text(text) => result.push_str(&text),
+                        OutputSymbol::TagContent(text) => {
+                            result.push_str(format!("[{text}]").as_str());
+                        }
+                        OutputSymbol::Text(text) => result.push_str(&text),
                     }
                 }
 
@@ -175,20 +234,16 @@ mod tests {
         );
 
         println!(
-            "WHAT CAME OUT: {:?}",
+            "{:?}",
             engine.eval::<String>(
                 r#"
             fn template(assets, content, props) {
+                assets.scripts.add("resouces/controller_foo.tsx");
+
                 component {
-                    <!DOCTYPE html>
-                    <html lang="en">
-                        <head>
-                            {assets.render()}
-                        </head>
-                        <body>
-                            {component {
-                                <div>nested</div>
-                            }}
+                    <LayoutHomepage>
+                        < div class="myclass" data-foo={props.bar}>
+                            Hello! :D
                             {if content.is_empty() {
                                 component {
                                     <div>No content</div>
@@ -196,37 +251,22 @@ mod tests {
                             } else {
                                 content
                             }}
-                        </body>
-                    </html>
+                        </div>
+                    </LayoutHomepage>
                 }
             }
 
             template(#{
-                render: || "wow"
-            }, "", #{})
+                render: || "wow",
+                scripts: #{
+                    add: |script| script,
+                }
+            }, "", #{
+                bar: "baz"
+            })
         "#
             )?
         );
-        // println!("{:?}", engine.eval::<()>(r#"
-        //     fn template(assets, content, props) {
-        //         assets.styles.add("resources/css/page-docs.css");
-        //
-        //         component {
-        //             <LayoutHomepage>
-        //                 <div>
-        //                     Hello! :D
-        //                     {content}
-        //                     {if content.is_empty() {
-        //                         "No content"
-        //                     } else {
-        //                         "Has content"
-        //                     }}
-        //                     \{content\}
-        //                 </div>
-        //             </LayoutHomepage>
-        //         }
-        //     }
-        // "#)?);
 
         assert!(false);
 

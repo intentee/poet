@@ -1,11 +1,14 @@
-fn template(assets, content, props) {
-    assets.styles.add("resources/css/page-docs.css");
+fn template(context, content, props) {
+    context.assets.add("resources/css/page-docs.css");
 
     component {
-      <LayoutHomepage>
+      <LayoutHomepage extraBodyClass="bar">
         <div>
           Hello! :D
           {content}
+          <Admonition alt="something" type="warn">
+            xDD
+          </Admonition>
         </div>
       </LayoutHomepage>
     }

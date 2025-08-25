@@ -8,6 +8,9 @@ truth_source_for = ["chat-templates"]
 name = "documents"
 after = "internals/buffered-requests"
 
+[[collection]]
+name = "use_cases"
+
 [[excerpt]]
 type = "description"
 content = "Chat templates are ..."
@@ -43,13 +46,13 @@ bar
  >
 ```
 
-Something else... <poetry:/docs/internals/index#something?reshape>
+Something else... <poet:/docs/internals/index#something?reshape>
 
 <p>test</p>
 
-<Admonition type="note">
+<Note type="info">
   hi
-</Admonition>
+</Note>
 
 <Figure alt="something" path="http://example.jpg" />
 

@@ -6,9 +6,9 @@ fn template(context, content, props) {
         <div>
           Hello! :D
           {content}
-          <Admonition alt="something" type="warn">
+          <Note type="warn">
             xDD
-          </Admonition>
+          </Note>
         </div>
       </LayoutHomepage>
     }

@@ -20,12 +20,37 @@ use rhai::Position;
 enum OutputSymbol {
     BodyExpression,
     Text(String),
-    TagOpening(String),
+    TagLeftAnglePlusWhitespace(String),
+    TagCloseBeforeNamePlusWhitespace(String),
     TagName(String),
     TagContent(String),
     TagAttributeName(String),
     TagAttributeValueExpression,
-    TagContentExpression,
+    TagAttributeValueString(String),
+    TagSelfClose,
+    TagRightAngle,
+}
+
+#[derive(Debug)]
+enum OutputCombinedSymbol {
+    Text(String),
+    TagLeftAngle,
+    TagCloseBeforeName,
+    TagName(String),
+    TagAttributeName(String),
+    TagAttributeValue(String),
+    TagSelfClose,
+    TagRightAngle,
+}
+
+enum OutputSemanticSymbol {
+    Tag {
+        attributes: Vec<(String, Option<String>)>,
+        name: String,
+        is_opening: bool,
+        is_self_closing: bool,
+    },
+    Text(String),
 }
 
 #[repr(i32)]
@@ -34,12 +59,14 @@ enum ParserState {
     OpeningBracket = 1,
     Body = 2,
     BodyExpression = 3,
-    TagOpening = 4,
-    TagName = 5,
-    TagContent = 6,
-    TagAttributeName = 7,
-    TagAttributeValue = 8,
-    TagContentExpression = 9,
+    TagLeftAnglePlusWhitespace = 4,
+    TagCloseBeforeNamePlusWhitespace = 5,
+    TagName = 6,
+    TagContent = 7,
+    TagAttributeName = 8,
+    TagAttributeValue = 9,
+    TagAttributeValueString = 10,
+    TagSelfClose = 11,
 }
 
 impl TryFrom<i32> for ParserState {
@@ -51,12 +78,14 @@ impl TryFrom<i32> for ParserState {
             1 => Ok(ParserState::OpeningBracket),
             2 => Ok(ParserState::Body),
             3 => Ok(ParserState::BodyExpression),
-            4 => Ok(ParserState::TagOpening),
-            5 => Ok(ParserState::TagName),
-            6 => Ok(ParserState::TagContent),
-            7 => Ok(ParserState::TagAttributeName),
-            8 => Ok(ParserState::TagAttributeValue),
-            9 => Ok(ParserState::TagContentExpression),
+            4 => Ok(ParserState::TagLeftAnglePlusWhitespace),
+            5 => Ok(ParserState::TagCloseBeforeNamePlusWhitespace),
+            6 => Ok(ParserState::TagName),
+            7 => Ok(ParserState::TagContent),
+            8 => Ok(ParserState::TagAttributeName),
+            9 => Ok(ParserState::TagAttributeValue),
+            10 => Ok(ParserState::TagAttributeValueString),
+            11 => Ok(ParserState::TagSelfClose),
             _ => Err(()),
         }
     }
@@ -85,7 +114,7 @@ pub fn parse_component(
     symbols: &[ImmutableString],
     state: &mut Dynamic,
 ) -> core::result::Result<Option<ImmutableString>, ParseError> {
-    println!("Symbols: {:?}, tag: {:?}", symbols, state.tag());
+    // println!("Symbols: {:?}, tag: {:?}", symbols, state.tag());
 
     let last_symbol = symbols.last().unwrap().as_str();
 
@@ -126,8 +155,11 @@ pub fn parse_component(
                 }
                 "}" => Ok(None),
                 "<" => {
-                    push_to_state(state, OutputSymbol::TagOpening(last_symbol.to_string()))?;
-                    state.set_tag(ParserState::TagOpening as i32);
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagLeftAnglePlusWhitespace(last_symbol.to_string()),
+                    )?;
+                    state.set_tag(ParserState::TagLeftAnglePlusWhitespace as i32);
 
                     Ok(Some("$raw$".into()))
                 }
@@ -155,10 +187,39 @@ pub fn parse_component(
                 )
                 .into_err(Position::NONE)),
             },
-            ParserState::TagOpening => match last_symbol {
+            ParserState::TagLeftAnglePlusWhitespace => match last_symbol {
                 _ if last_symbol.trim().is_empty() => {
-                    push_to_state(state, OutputSymbol::TagOpening(last_symbol.to_string()))?;
-                    state.set_tag(ParserState::TagOpening as i32);
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagLeftAnglePlusWhitespace(last_symbol.to_string()),
+                    )?;
+                    state.set_tag(ParserState::TagLeftAnglePlusWhitespace as i32);
+
+                    Ok(Some("$raw$".into()))
+                }
+                "/" => {
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagCloseBeforeNamePlusWhitespace(last_symbol.to_string()),
+                    )?;
+                    state.set_tag(ParserState::TagCloseBeforeNamePlusWhitespace as i32);
+
+                    Ok(Some("$raw$".into()))
+                }
+                _ => {
+                    push_to_state(state, OutputSymbol::TagName(last_symbol.to_string()))?;
+                    state.set_tag(ParserState::TagName as i32);
+
+                    Ok(Some("$raw$".into()))
+                }
+            },
+            ParserState::TagCloseBeforeNamePlusWhitespace => match last_symbol {
+                _ if last_symbol.trim().is_empty() => {
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagCloseBeforeNamePlusWhitespace(last_symbol.to_string()),
+                    )?;
+                    state.set_tag(ParserState::TagCloseBeforeNamePlusWhitespace as i32);
 
                     Ok(Some("$raw$".into()))
                 }
@@ -171,7 +232,7 @@ pub fn parse_component(
             },
             ParserState::TagName => match last_symbol {
                 ">" => {
-                    push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
+                    push_to_state(state, OutputSymbol::TagRightAngle)?;
                     state.set_tag(ParserState::Body as i32);
 
                     Ok(Some("$raw$".into()))
@@ -190,27 +251,31 @@ pub fn parse_component(
                 }
             },
             ParserState::TagContent => match last_symbol {
-                "$inner$" => {
-                    state.set_tag(ParserState::TagContent as i32);
-
-                    Ok(Some("$raw$".into()))
-                }
                 ">" => {
-                    push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
+                    push_to_state(state, OutputSymbol::TagRightAngle)?;
                     state.set_tag(ParserState::Body as i32);
 
                     Ok(Some("$raw$".into()))
                 }
-                "{" => {
-                    state.set_tag(ParserState::TagContentExpression as i32);
-
-                    Ok(Some("$inner$".into()))
-                }
+                "{" => Err(LexError::ImproperSymbol(
+                    symbols.last().unwrap().to_string(),
+                    format!(
+                        "Invalid expression block start at token: {}",
+                        symbols.last().unwrap()
+                    ),
+                )
+                .into_err(Position::NONE)),
                 _ if last_symbol.trim().is_empty() => {
                     push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
                     state.set_tag(ParserState::TagContent as i32);
 
                     Ok(Some("$raw$".into()))
+                }
+                "/" => {
+                    push_to_state(state, OutputSymbol::TagSelfClose)?;
+                    state.set_tag(ParserState::TagSelfClose as i32);
+
+                    Ok(Some(">".into()))
                 }
                 _ => {
                     push_to_state(
@@ -233,10 +298,16 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 ">" => {
-                    push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
+                    push_to_state(state, OutputSymbol::TagRightAngle)?;
                     state.set_tag(ParserState::Body as i32);
 
                     Ok(Some("$raw$".into()))
+                }
+                "/" => {
+                    push_to_state(state, OutputSymbol::TagSelfClose)?;
+                    state.set_tag(ParserState::TagSelfClose as i32);
+
+                    Ok(Some(">".into()))
                 }
                 _ if last_symbol.trim().is_empty() => {
                     push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
@@ -255,9 +326,19 @@ pub fn parse_component(
                 }
             },
             ParserState::TagAttributeValue => match last_symbol {
+                "$inner$" => {
+                    state.set_tag(ParserState::TagContent as i32);
+
+                    Ok(Some("$raw$".into()))
+                }
+                "\"" => {
+                    state.set_tag(ParserState::TagAttributeValueString as i32);
+
+                    Ok(Some("$raw$".into()))
+                }
                 "{" => {
                     push_to_state(state, OutputSymbol::TagAttributeValueExpression)?;
-                    state.set_tag(ParserState::TagContent as i32);
+                    state.set_tag(ParserState::TagAttributeValue as i32);
 
                     Ok(Some("$inner$".into()))
                 }
@@ -271,18 +352,33 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
             },
-            ParserState::TagContentExpression => match last_symbol {
-                "$inner$" => {
-                    push_to_state(state, OutputSymbol::TagContentExpression)?;
-
+            ParserState::TagAttributeValueString => match last_symbol {
+                "\"" => {
                     state.set_tag(ParserState::TagContent as i32);
+
+                    Ok(Some("$raw$".into()))
+                }
+                _ => {
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagAttributeValueString(last_symbol.to_string()),
+                    )?;
+                    state.set_tag(ParserState::TagAttributeValueString as i32);
+
+                    Ok(Some("$raw$".into()))
+                }
+            },
+            ParserState::TagSelfClose => match last_symbol {
+                ">" => {
+                    push_to_state(state, OutputSymbol::TagRightAngle)?;
+                    state.set_tag(ParserState::Body as i32);
 
                     Ok(Some("$raw$".into()))
                 }
                 _ => Err(LexError::ImproperSymbol(
                     symbols.last().unwrap().to_string(),
                     format!(
-                        "Invalid expression block end at token: {}",
+                        "Invalid self-closing tag end at token: {}",
                         symbols.last().unwrap()
                     ),
                 )
@@ -316,9 +412,8 @@ pub fn eval_component(
     // );
     //
     // println!("Module: {:#?}", module);
-    let mut result = String::new();
 
-    let mut pop_expression = || {
+    let mut pop_expression_tree = || {
         if let Some(expression) = inputs_deque.pop_front() {
             Ok(context.eval_expression_tree(expression)?.into_string()?)
         } else {
@@ -331,23 +426,120 @@ pub fn eval_component(
         }
     };
 
+    let mut combined_symbols: Vec<OutputCombinedSymbol> = vec![];
+
     for node in state.as_array_ref()?.iter() {
         match node.clone().try_cast::<OutputSymbol>().unwrap() {
-            OutputSymbol::BodyExpression | OutputSymbol::TagContentExpression => {
-                result.push_str(&pop_expression()?);
+            OutputSymbol::BodyExpression => {
+                let chunk = pop_expression_tree()?;
+
+                match combined_symbols.last_mut() {
+                    Some(OutputCombinedSymbol::Text(text)) => {
+                        text.push_str(&chunk);
+                    }
+                    _ => {
+                        combined_symbols.push(OutputCombinedSymbol::Text(chunk));
+                    }
+                }
             }
             OutputSymbol::TagAttributeValueExpression => {
-                result.push_str(format!("\"{}\"", escape_html(&pop_expression()?)).as_str());
+                let chunk = pop_expression_tree()?;
+
+                match combined_symbols.last_mut() {
+                    Some(OutputCombinedSymbol::TagAttributeValue(value)) => {
+                        value.push_str(&chunk);
+                    }
+                    _ => {
+                        combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(chunk));
+                    }
+                }
             }
-            OutputSymbol::TagAttributeName(text)
-            | OutputSymbol::TagContent(text)
-            | OutputSymbol::TagName(text)
-            | OutputSymbol::TagOpening(text)
-            | OutputSymbol::Text(text) => result.push_str(&text),
+            OutputSymbol::TagLeftAnglePlusWhitespace(text) => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::TagLeftAngle) => {}
+                _ => {
+                    combined_symbols.push(OutputCombinedSymbol::TagLeftAngle);
+                }
+            },
+            OutputSymbol::TagCloseBeforeNamePlusWhitespace(_text) => {
+                match combined_symbols.last_mut() {
+                    Some(OutputCombinedSymbol::TagCloseBeforeName) => {}
+                    _ => {
+                        combined_symbols.push(OutputCombinedSymbol::TagCloseBeforeName);
+                    }
+                }
+            }
+            OutputSymbol::TagContent(text) => {}
+            OutputSymbol::TagAttributeValueString(text) => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::TagAttributeValue(value)) => {
+                    value.push_str(&text);
+                }
+                _ => {
+                    combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(text));
+                }
+            },
+            OutputSymbol::TagAttributeName(text) => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::TagAttributeName(existing_text)) => {
+                    existing_text.push_str(&text);
+                }
+                _ => {
+                    combined_symbols.push(OutputCombinedSymbol::TagAttributeName(text));
+                }
+            },
+            OutputSymbol::TagName(text) => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::TagName(existing_text)) => {
+                    existing_text.push_str(&text);
+                }
+                _ => {
+                    combined_symbols.push(OutputCombinedSymbol::TagName(text));
+                }
+            },
+            OutputSymbol::TagSelfClose => {
+                combined_symbols.push(OutputCombinedSymbol::TagSelfClose);
+            }
+            OutputSymbol::TagRightAngle => {
+                combined_symbols.push(OutputCombinedSymbol::TagRightAngle);
+            }
+            OutputSymbol::Text(text) => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::Text(existing_text)) => {
+                    existing_text.push_str(&text);
+                }
+                _ => {
+                    combined_symbols.push(OutputCombinedSymbol::Text(text));
+                }
+            },
         }
     }
 
-    Ok(Dynamic::from(result))
+    for output_combined_symbol in combined_symbols {
+        match output_combined_symbol {
+            OutputCombinedSymbol::Text(text) => {
+                println!("Text: [{text}]");
+            }
+            OutputCombinedSymbol::TagLeftAngle => {
+                println!("TagLeftAngle");
+            }
+            OutputCombinedSymbol::TagCloseBeforeName => {
+                println!("TagCloseBeforeName");
+            }
+            OutputCombinedSymbol::TagName(name) => {
+                println!("TagName: {name}");
+            }
+            OutputCombinedSymbol::TagAttributeName(name) => {
+                println!("TagAttributeName: {name}");
+            }
+            OutputCombinedSymbol::TagAttributeValue(value) => {
+                println!("TagAttributeValue: {value}");
+            }
+            OutputCombinedSymbol::TagSelfClose => {
+                println!("TagSelfClose");
+            }
+            OutputCombinedSymbol::TagRightAngle => {
+                println!("TagRightAngle");
+            }
+        }
+    }
+
+    Ok(Dynamic::from(String::new()))
 }
 
 #[cfg(test)]
@@ -373,7 +565,7 @@ mod tests {
                 assets.scripts.add("resouces/controller_foo.tsx");
 
                 component {
-                    <LayoutHomepage>
+                    <LayoutHomepage extraBodyClass="my-extra-class">
                         < button
                             class="myclass"
                             data-foo={props.bar}
@@ -387,6 +579,7 @@ mod tests {
                             }}
                             disabled
                         >
+                            <b><i><u>test</u></i></b>
                             Hello! :D
                             {if content.is_empty() {
                                 component {

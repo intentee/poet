@@ -1,11 +1,13 @@
-fn template(assets, content, props) {`
+fn template(assets, content, props) {
+  component {
     <!DOCTYPE html>
     <html lang="en">
         <head>
-            ${assets.render()}
+            {assets.render()}
         </head>
         <body>
-            ${content}
+            {content}
         </body>
     </html>
-`}
+  }
+}

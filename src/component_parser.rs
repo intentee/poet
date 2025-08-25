@@ -3,20 +3,17 @@
 #![allow(clippy::all)]
 
 #[derive(Clone, Debug)]
-enum TemplateNode {
-    BodyExpressionBlock,
-    TagContent(String),
-    BodyText(String),
+enum OutputNode {
+    RhaiBlock,
+    Text(String),
 }
 
 #[repr(i32)]
 enum ParserState {
     Start = 0,
-    ComponentName = 1,
-    Params = 2,
-    BodyOpeningBracket = 3,
-    Body = 4,
-    BodyExpression = 5,
+    BodyOpeningBracket = 1,
+    Body = 2,
+    BodyExpression = 3,
 }
 
 impl TryFrom<i32> for ParserState {
@@ -25,11 +22,9 @@ impl TryFrom<i32> for ParserState {
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(ParserState::Start),
-            1 => Ok(ParserState::ComponentName),
-            2 => Ok(ParserState::Params),
-            3 => Ok(ParserState::BodyOpeningBracket),
-            4 => Ok(ParserState::Body),
-            5 => Ok(ParserState::BodyExpression),
+            1 => Ok(ParserState::BodyOpeningBracket),
+            2 => Ok(ParserState::Body),
+            3 => Ok(ParserState::BodyExpression),
             _ => Err(()),
         }
     }
@@ -37,11 +32,14 @@ impl TryFrom<i32> for ParserState {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+
     use anyhow::Result;
     use rhai::Dynamic;
     use rhai::Engine;
     use rhai::EvalAltResult;
     use rhai::EvalContext;
+    use rhai::Expression;
     use rhai::ImmutableString;
     use rhai::LexError;
     use rhai::ParseErrorType;
@@ -54,29 +52,18 @@ mod tests {
         let mut engine = Engine::new();
 
         engine.register_custom_syntax_without_look_ahead_raw(
-            // The leading symbol - which needs not be an identifier.
             "component",
-            // The custom parser implementation - always returns the next symbol expected
-            // 'look_ahead' is the next symbol about to be read
-            //
-            // Return symbols starting with '$$' also terminate parsing but allows us
-            // to determine which syntax variant was actually parsed so we can perform the
-            // appropriate action.  This is a convenient short-cut to keeping the value
-            // inside the state.
-            //
-            // The return type is 'Option<ImmutableString>' to allow common text strings
-            // to be interned and shared easily, reducing allocations during parsing.
             |symbols, state| {
-                println!(
-                    "Symbols: {:?}, state: {:?}, tag: {:?}",
-                    symbols,
-                    state,
-                    state.tag()
-                );
+                // println!(
+                //     "Symbols: {:?}, state: {:?}, tag: {:?}",
+                //     symbols,
+                //     state,
+                //     state.tag()
+                // );
                 let last_symbol = symbols.last().unwrap().as_str();
 
                 let push_to_state =
-                    |state: &mut Dynamic, value: TemplateNode| match state.as_array_mut() {
+                    |state: &mut Dynamic, value: OutputNode| match state.as_array_mut() {
                         Ok(mut array) => {
                             array.push(Dynamic::from(value));
 
@@ -96,27 +83,10 @@ mod tests {
                     Ok(current_state) => match current_state {
                         ParserState::Start => {
                             *state = Dynamic::from_array(vec![]);
-                            state.set_tag(ParserState::ComponentName as i32);
+                            state.set_tag(ParserState::BodyOpeningBracket as i32);
 
-                            Ok(Some("$ident$".into()))
+                            Ok(Some("{".into()))
                         }
-                        ParserState::ComponentName => {
-                            state.set_tag(ParserState::Params as i32);
-
-                            Ok(Some("(".into()))
-                        }
-                        ParserState::Params => match last_symbol {
-                            ")" => {
-                                state.set_tag(ParserState::BodyOpeningBracket as i32);
-
-                                Ok(Some("{".into()))
-                            }
-                            _ => {
-                                state.set_tag(ParserState::Params as i32);
-
-                                Ok(Some("$raw$".into()))
-                            }
-                        },
                         ParserState::BodyOpeningBracket => {
                             state.set_tag(ParserState::Body as i32);
 
@@ -126,17 +96,19 @@ mod tests {
                             "{" => {
                                 state.set_tag(ParserState::BodyExpression as i32);
 
-                                Ok(Some("$expr$".into()))
+                                Ok(Some("$inner$".into()))
                             }
                             "}" => Ok(None),
                             _ => {
+                                push_to_state(state, OutputNode::Text(last_symbol.to_string()))?;
                                 state.set_tag(ParserState::Body as i32);
 
                                 Ok(Some("$raw$".into()))
                             }
                         },
                         ParserState::BodyExpression => match last_symbol {
-                            "}" => {
+                            "$inner$" => {
+                                push_to_state(state, OutputNode::RhaiBlock)?;
                                 state.set_tag(ParserState::Body as i32);
 
                                 Ok(Some("$raw$".into()))
@@ -163,159 +135,100 @@ mod tests {
             // variables can be declared/removed by this custom syntax
             true,
             |context, inputs, state| {
+                let mut inputs_deque: VecDeque<&Expression> = inputs.iter().collect();
+
                 // let cmd = inputs.last().unwrap().get_string_value().unwrap();
-                println!(
-                    "Inputs: {:#?}, state: {:#?}, tag: {:?}",
-                    inputs,
-                    state,
-                    state.tag()
-                );
+                println!("Inputs: {:#?}, tag: {:?}", inputs, state.tag());
+                //
+                // let module = context.engine().module_resolver().resolve(
+                //     context.engine(),
+                //     None,
+                //     "xd.rhai",
+                //     Position::NONE,
+                // );
+                //
+                // println!("Module: {:#?}", module);
+                let mut result = String::new();
 
                 for node in state.as_array_ref()?.iter() {
-                    match node.clone().try_cast::<TemplateNode>().unwrap() {
-                        TemplateNode::BodyExpressionBlock => {
-                            println!("  Expression Block");
+                    match node.clone().try_cast::<OutputNode>().unwrap() {
+                        OutputNode::RhaiBlock => {
+                            if let Some(expression) = inputs_deque.pop_front() {
+                                result.push_str(
+                                    &context.eval_expression_tree(expression)?.into_string()?,
+                                );
+                            } else {
+                                return Err(Box::new(EvalAltResult::ErrorParsing(
+                                    ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
+                                        "Exprected expression after component block (got nothing)"
+                                    ))),
+                                    Position::NONE,
+                                )));
+                            }
                         }
-                        TemplateNode::TagContent(content) => {
-                            println!("  Tag Content: {content}");
-                        }
-                        TemplateNode::BodyText(text) => {
-                            println!("  Text: {text}");
-                        }
+                        OutputNode::Text(text) => result.push_str(&text),
                     }
                 }
 
-                Err(Box::new(EvalAltResult::ErrorParsing(
-                    ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
-                        "Unexpected command result"
-                    ))),
-                    Position::NONE,
-                )))
+                Ok(Dynamic::from(result))
             },
         );
 
-        // println!("{:?}", engine.eval::<String>(r#"
-        //     component Nothing() {}
+        println!(
+            "WHAT CAME OUT: {:?}",
+            engine.eval::<String>(
+                r#"
+            fn template(assets, content, props) {
+                component {
+                    <!DOCTYPE html>
+                    <html lang="en">
+                        <head>
+                            {assets.render()}
+                        </head>
+                        <body>
+                            {component {
+                                <div>nested</div>
+                            }}
+                            {if content.is_empty() {
+                                component {
+                                    <div>No content</div>
+                                }
+                            } else {
+                                content
+                            }}
+                        </body>
+                    </html>
+                }
+            }
+
+            template(#{
+                render: || "wow"
+            }, "", #{})
+        "#
+            )?
+        );
+        // println!("{:?}", engine.eval::<()>(r#"
+        //     fn template(assets, content, props) {
+        //         assets.styles.add("resources/css/page-docs.css");
         //
-        //     component Admonition(content, type) {
-        //     }
-        //
-        //     component Admonition2(content, type) {
-        //         Hellow worldz!
-        //         <div>xd</div>
+        //         component {
+        //             <LayoutHomepage>
+        //                 <div>
+        //                     Hello! :D
+        //                     {content}
+        //                     {if content.is_empty() {
+        //                         "No content"
+        //                     } else {
+        //                         "Has content"
+        //                     }}
+        //                     \{content\}
+        //                 </div>
+        //             </LayoutHomepage>
+        //         }
         //     }
         // "#)?);
-        // println!(
-        //     "{:?}",
-        //     engine.eval::<String>(
-        //         r#"
-        //     component Admonition2(content, type) {
-        //         Hellow worldz!
-        //         Hello world !
-        //         Foo bar.
-        //         Foo bar .
-        //         http://example.com
-        //         <div alt={type}>
-        //           Foo
-        //           {content}
-        //           {if path == "xd" { "wow" } else { ":(" }}
-        //           Bar
-        //         </div>
-        //     }
-        // "#
-        //     )?
-        // );
 
-        // assert!(false);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_component_parser() -> Result<()> {
-        let mut engine = Engine::new();
-
-        engine.register_custom_syntax_with_state_raw(
-            // The leading symbol - which needs not be an identifier.
-            "perform",
-            // The custom parser implementation - always returns the next symbol expected
-            // 'look_ahead' is the next symbol about to be read
-            //
-            // Return symbols starting with '$$' also terminate parsing but allows us
-            // to determine which syntax variant was actually parsed so we can perform the
-            // appropriate action.  This is a convenient short-cut to keeping the value
-            // inside the state.
-            //
-            // The return type is 'Option<ImmutableString>' to allow common text strings
-            // to be interned and shared easily, reducing allocations during parsing.
-            |symbols, look_ahead, state| match symbols.len() {
-                // perform ...
-                1 => Ok(Some("$ident$".into())),
-                // perform command ...
-                2 => match symbols[1].as_str() {
-                    "action" => Ok(Some("$expr$".into())),
-                    "hello" => Ok(Some("world".into())),
-                    "update" | "check" | "add" | "remove" => Ok(Some("$ident$".into())),
-                    "cleanup" => Ok(Some("$$cleanup".into())),
-                    cmd => Err(LexError::ImproperSymbol(
-                        symbols[1].to_string(),
-                        format!("Improper command: {cmd}"),
-                    )
-                    .into_err(Position::NONE)),
-                },
-                // perform command arg ...
-                3 => match (symbols[1].as_str(), symbols[2].as_str()) {
-                    ("action", _) => Ok(Some("$$action".into())),
-                    ("hello", "world") => Ok(Some("$$hello-world".into())),
-                    ("update", arg) => match arg {
-                        "system" => Ok(Some("$$update-system".into())),
-                        "client" => Ok(Some("$$update-client".into())),
-                        _ => Err(LexError::ImproperSymbol(
-                            symbols[1].to_string(),
-                            format!("Cannot update {arg}"),
-                        )
-                        .into_err(Position::NONE)),
-                    },
-                    ("check", arg) => Ok(Some("$$check".into())),
-                    ("add", arg) => Ok(Some("$$add".into())),
-                    ("remove", arg) => Ok(Some("$$remove".into())),
-                    (cmd, arg) => Err(LexError::ImproperSymbol(
-                        symbols[2].to_string(),
-                        format!("Invalid argument for command {cmd}: {arg}"),
-                    )
-                    .into_err(Position::NONE)),
-                },
-                _ => unreachable!(),
-            },
-            // No variables declared/removed by this custom syntax
-            false,
-            // Implementation function
-            |context, inputs, state| {
-                let cmd = inputs.last().unwrap().get_string_value().unwrap();
-
-                match cmd {
-                    "$$cleanup" => Ok(Dynamic::from("cleanup")),
-                    "$$action" => Ok(Dynamic::from("action")),
-                    "$$hello-world" => Ok(Dynamic::from("hello-world")),
-                    "$$update-system" => Ok(Dynamic::from("update-system")),
-                    "$$update-client" => Ok(Dynamic::from("update-client")),
-                    "$$check" => Ok(Dynamic::from("check")),
-                    "$$add" => Ok(Dynamic::from("add")),
-                    "$$remove" => Ok(Dynamic::from("remove")),
-                    _ => Err(Box::new(EvalAltResult::ErrorParsing(
-                        ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
-                            "Unexpected command result: {cmd}"
-                        ))),
-                        Position::NONE,
-                    ))),
-                }
-            },
-        );
-
-        // let result = engine.eval::<i64>("inc(41)")?;
-        println!("{:?}", engine.eval::<String>(r#"perform hello world;"#)?);
-
-        // assert!(false);
+        assert!(false);
 
         Ok(())
     }

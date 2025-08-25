@@ -6,8 +6,12 @@
 enum OutputSymbol {
     BodyExpression,
     Text(String),
+    TagOpening(String),
+    TagName(String),
     TagContent(String),
-    TagExpression,
+    TagAttributeName(String),
+    TagAttributeValueExpression,
+    TagContentExpression,
 }
 
 #[repr(i32)]
@@ -16,8 +20,12 @@ enum ParserState {
     OpeningBracket = 1,
     Body = 2,
     BodyExpression = 3,
-    TagContent = 4,
-    TagExpression = 5,
+    TagOpening = 4,
+    TagName = 5,
+    TagContent = 6,
+    TagAttributeName = 7,
+    TagAttributeValue = 8,
+    TagContentExpression = 9,
 }
 
 impl TryFrom<i32> for ParserState {
@@ -29,8 +37,12 @@ impl TryFrom<i32> for ParserState {
             1 => Ok(ParserState::OpeningBracket),
             2 => Ok(ParserState::Body),
             3 => Ok(ParserState::BodyExpression),
-            4 => Ok(ParserState::TagContent),
-            5 => Ok(ParserState::TagExpression),
+            4 => Ok(ParserState::TagOpening),
+            5 => Ok(ParserState::TagName),
+            6 => Ok(ParserState::TagContent),
+            7 => Ok(ParserState::TagAttributeName),
+            8 => Ok(ParserState::TagAttributeValue),
+            9 => Ok(ParserState::TagContentExpression),
             _ => Err(()),
         }
     }
@@ -60,11 +72,8 @@ mod tests {
         engine.register_custom_syntax_without_look_ahead_raw(
             "component",
             |symbols, state| {
-                // println!(
-                //     "Symbols: {:?}, tag: {:?}",
-                //     symbols,
-                //     state.tag()
-                // );
+                println!("Symbols: {:?}, tag: {:?}", symbols, state.tag());
+
                 let last_symbol = symbols.last().unwrap().as_str();
 
                 let push_to_state =
@@ -107,9 +116,9 @@ mod tests {
                             "<" => {
                                 push_to_state(
                                     state,
-                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                    OutputSymbol::TagOpening(last_symbol.to_string()),
                                 )?;
-                                state.set_tag(ParserState::TagContent as i32);
+                                state.set_tag(ParserState::TagOpening as i32);
 
                                 Ok(Some("$raw$".into()))
                             }
@@ -137,7 +146,61 @@ mod tests {
                             )
                             .into_err(Position::NONE)),
                         },
+                        ParserState::TagOpening => match last_symbol {
+                            _ if last_symbol.trim().is_empty() => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagOpening(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagOpening as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagName(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagName as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                        },
+                        ParserState::TagName => match last_symbol {
+                            ">" => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::Body as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            _ if last_symbol.trim().is_empty() => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagContent as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagName(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagName as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                        },
                         ParserState::TagContent => match last_symbol {
+                            "$inner$" => {
+                                state.set_tag(ParserState::TagContent as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
                             ">" => {
                                 push_to_state(
                                     state,
@@ -148,11 +211,11 @@ mod tests {
                                 Ok(Some("$raw$".into()))
                             }
                             "{" => {
-                                state.set_tag(ParserState::TagExpression as i32);
+                                state.set_tag(ParserState::TagContentExpression as i32);
 
                                 Ok(Some("$inner$".into()))
                             }
-                            _ => {
+                            _ if last_symbol.trim().is_empty() => {
                                 push_to_state(
                                     state,
                                     OutputSymbol::TagContent(last_symbol.to_string()),
@@ -161,10 +224,74 @@ mod tests {
 
                                 Ok(Some("$raw$".into()))
                             }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagAttributeName as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
                         },
-                        ParserState::TagExpression => match last_symbol {
+                        ParserState::TagAttributeName => match last_symbol {
+                            "=" => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagAttributeValue as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            ">" => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::Body as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            _ if last_symbol.trim().is_empty() => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagContent(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagContent as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagAttributeName as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                        },
+                        ParserState::TagAttributeValue => match last_symbol {
+                            "{" => {
+                                push_to_state(state, OutputSymbol::TagAttributeValueExpression)?;
+                                state.set_tag(ParserState::TagContent as i32);
+
+                                Ok(Some("$inner$".into()))
+                            }
+                            _ => {
+                                push_to_state(
+                                    state,
+                                    OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                                )?;
+                                state.set_tag(ParserState::TagContent as i32);
+
+                                Ok(Some("$raw$".into()))
+                            }
+                        },
+                        ParserState::TagContentExpression => match last_symbol {
                             "$inner$" => {
-                                push_to_state(state, OutputSymbol::TagExpression)?;
+                                push_to_state(state, OutputSymbol::TagContentExpression)?;
 
                                 state.set_tag(ParserState::TagContent as i32);
 
@@ -206,26 +333,32 @@ mod tests {
                 // println!("Module: {:#?}", module);
                 let mut result = String::new();
 
+                let mut pop_expression = || {
+                    if let Some(expression) = inputs_deque.pop_front() {
+                        Ok(context.eval_expression_tree(expression)?.into_string()?)
+                    } else {
+                        Err(Box::new(EvalAltResult::ErrorParsing(
+                            ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
+                                "Exprected expression after component block (got nothing)"
+                            ))),
+                            Position::NONE,
+                        )))
+                    }
+                };
+
                 for node in state.as_array_ref()?.iter() {
                     match node.clone().try_cast::<OutputSymbol>().unwrap() {
-                        OutputSymbol::BodyExpression | OutputSymbol::TagExpression => {
-                            if let Some(expression) = inputs_deque.pop_front() {
-                                result.push_str(
-                                    &context.eval_expression_tree(expression)?.into_string()?,
-                                );
-                            } else {
-                                return Err(Box::new(EvalAltResult::ErrorParsing(
-                                    ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
-                                        "Exprected expression after component block (got nothing)"
-                                    ))),
-                                    Position::NONE,
-                                )));
-                            }
+                        OutputSymbol::BodyExpression | OutputSymbol::TagContentExpression => {
+                            result.push_str(&pop_expression()?);
                         }
-                        OutputSymbol::TagContent(text) => {
-                            result.push_str(format!("[{text}]").as_str());
+                        OutputSymbol::TagAttributeValueExpression => {
+                            result.push_str(&pop_expression()?);
                         }
-                        OutputSymbol::Text(text) => result.push_str(&text),
+                        OutputSymbol::TagAttributeName(text)
+                        | OutputSymbol::TagContent(text)
+                        | OutputSymbol::TagName(text)
+                        | OutputSymbol::TagOpening(text)
+                        | OutputSymbol::Text(text) => result.push_str(&text),
                     }
                 }
 
@@ -242,7 +375,12 @@ mod tests {
 
                 component {
                     <LayoutHomepage>
-                        < div class="myclass" data-foo={props.bar}>
+                        < button
+                            class="myclass"
+                            data-foo={props.bar}
+                            data-fooz={`${props.bar}`}
+                            disabled
+                        >
                             Hello! :D
                             {if content.is_empty() {
                                 component {
@@ -251,7 +389,7 @@ mod tests {
                             } else {
                                 content
                             }}
-                        </div>
+                        </button>
                     </LayoutHomepage>
                 }
             }
@@ -262,7 +400,7 @@ mod tests {
                     add: |script| script,
                 }
             }, "", #{
-                bar: "baz"
+                bar: "baz tag attribute"
             })
         "#
             )?

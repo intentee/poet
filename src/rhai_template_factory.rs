@@ -108,6 +108,6 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
             );
         }
 
-        Ok(RhaiTemplateRenderer::new(templates))
+        Ok(RhaiTemplateRenderer::new(self.prepare_engine()?, templates))
     }
 }

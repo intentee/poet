@@ -3,6 +3,7 @@ use anyhow::anyhow;
 use log::warn;
 use markdown::mdast::AttributeContent;
 use markdown::mdast::AttributeValue;
+use markdown::mdast::AttributeValueExpression;
 use markdown::mdast::Blockquote;
 use markdown::mdast::Code;
 use markdown::mdast::Emphasis;
@@ -200,7 +201,9 @@ pub fn eval_mdast(
         }) => {
             result.push_str(
                 &rhai_template_renderer.render(
-                    &name.clone().ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
+                    &name
+                        .clone()
+                        .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
                     rhai_component_context.clone(),
                     Dynamic::from_map({
                         let mut props = rhai::Map::new();
@@ -208,18 +211,26 @@ pub fn eval_mdast(
                         for attribute in attributes {
                             match attribute {
                                 AttributeContent::Expression(_) => {
-                                    return Err(anyhow!("Attribute expressions in Markdown are not supported"));
+                                    return Err(anyhow!(
+                                        "Attribute expressions in Markdown are not supported"
+                                    ));
                                 }
                                 AttributeContent::Property(MdxJsxAttribute { name, value }) => {
-                                    props.insert(name.into(), match value {
-                                        Some(value) => match value {
-                                            AttributeValue::Literal(literal) => literal.into(),
-                                            AttributeValue::Expression(_) => {
-                                                return Err(anyhow!("Attribute expressions in Markdown are not supported"));
-                                            }
+                                    props.insert(
+                                        name.into(),
+                                        match value {
+                                            Some(value) => match value {
+                                                AttributeValue::Literal(literal) => literal.into(),
+                                                AttributeValue::Expression(
+                                                    AttributeValueExpression { value, .. },
+                                                ) => rhai_template_renderer.render_expression(
+                                                    rhai_component_context.clone(),
+                                                    value,
+                                                )?,
+                                            },
+                                            None => true.into(),
                                         },
-                                        None => true.into(),
-                                    });
+                                    );
                                 }
                             }
                         }
@@ -230,12 +241,17 @@ pub fn eval_mdast(
                         let mut content = String::new();
 
                         for child in children {
-                            content.push_str(&eval_mdast(child, rhai_component_context, rhai_template_renderer, syntax_set)?);
+                            content.push_str(&eval_mdast(
+                                child,
+                                rhai_component_context,
+                                rhai_template_renderer,
+                                syntax_set,
+                            )?);
                         }
 
                         content
                     }),
-                )?
+                )?,
             );
         }
         Node::Paragraph(Paragraph { children, .. }) => {

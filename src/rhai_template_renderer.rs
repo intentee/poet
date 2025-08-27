@@ -2,18 +2,27 @@ use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
 use rhai::Dynamic;
+use rhai::Engine;
+use rhai::Scope;
 
 use crate::rhai_component_context::RhaiComponentContext;
 
 pub type ShortcodeRenderer = dyn Fn(RhaiComponentContext, Dynamic, Dynamic) -> Result<String>;
 
 pub struct RhaiTemplateRenderer {
+    expression_engine: Engine,
     templates: DashMap<String, Box<ShortcodeRenderer>>,
 }
 
 impl RhaiTemplateRenderer {
-    pub fn new(templates: DashMap<String, Box<ShortcodeRenderer>>) -> Self {
-        Self { templates }
+    pub fn new(
+        expression_engine: Engine,
+        templates: DashMap<String, Box<ShortcodeRenderer>>,
+    ) -> Self {
+        Self {
+            expression_engine,
+            templates,
+        }
     }
 
     pub fn render(
@@ -28,6 +37,20 @@ impl RhaiTemplateRenderer {
         } else {
             Err(anyhow!("Template '{}' not found", name))
         }
+    }
+
+    pub fn render_expression(
+        &self,
+        context: RhaiComponentContext,
+        expression: &str,
+    ) -> Result<Dynamic> {
+        let mut scope = Scope::new();
+
+        scope.push("context", context);
+
+        Ok(self
+            .expression_engine
+            .eval_expression_with_scope(&mut scope, expression)?)
     }
 
     pub fn render_without_props(

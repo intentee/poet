@@ -13,7 +13,10 @@ pub fn string_to_mdast(contents: &str) -> Result<Node> {
                 autolink: true,
                 frontmatter: true,
                 html_flow: false,
+                mdx_expression_flow: false,
+                mdx_expression_text: false,
                 mdx_jsx_flow: true,
+                mdx_jsx_text: true,
                 ..Constructs::gfm()
             },
             ..ParseOptions::default()

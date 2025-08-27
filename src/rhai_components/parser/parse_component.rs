@@ -14,9 +14,10 @@ pub fn parse_component(
     symbols: &[ImmutableString],
     state: &mut Dynamic,
 ) -> Result<Option<ImmutableString>, ParseError> {
-    // println!("Symbols: {:?}, tag: {:?}", symbols, state.tag());
-
-    let last_symbol = symbols.last().unwrap().as_str();
+    let last_symbol = symbols
+        .last()
+        .ok_or_else(|| LexError::Runtime("No symbols found".to_string()).into_err(Position::NONE))?
+        .as_str();
 
     let push_to_state = |state: &mut Dynamic, value: OutputSymbol| match state.as_array_mut() {
         Ok(mut array) => {
@@ -24,13 +25,9 @@ pub fn parse_component(
 
             Ok(())
         }
-        Err(err) => Err(LexError::ImproperSymbol(
-            symbols.last().unwrap().to_string(),
-            format!(
-                "Invalid state array {err} at token: {}",
-                symbols.last().unwrap()
-            ),
-        )
+        Err(err) => Err(LexError::Runtime(format!(
+            "Invalid state array {err} at token: {last_symbol}"
+        ))
         .into_err(Position::NONE)),
     };
 
@@ -94,11 +91,8 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 _ => Err(LexError::ImproperSymbol(
-                    symbols.last().unwrap().to_string(),
-                    format!(
-                        "Invalid expression block end at token: {}",
-                        symbols.last().unwrap()
-                    ),
+                    last_symbol.to_string(),
+                    "Invalid expression block end".to_string(),
                 )
                 .into_err(Position::NONE)),
             },
@@ -173,11 +167,8 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 "{" => Err(LexError::ImproperSymbol(
-                    symbols.last().unwrap().to_string(),
-                    format!(
-                        "Invalid expression block start at token: {}",
-                        symbols.last().unwrap()
-                    ),
+                    last_symbol.to_string(),
+                    "Invalid expression block start".to_string(),
                 )
                 .into_err(Position::NONE)),
                 _ if last_symbol.trim().is_empty() => {
@@ -287,19 +278,16 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 _ => Err(LexError::ImproperSymbol(
-                    symbols.last().unwrap().to_string(),
-                    format!(
-                        "Invalid self-closing tag end at token: {}",
-                        symbols.last().unwrap()
-                    ),
+                    last_symbol.to_string(),
+                    "Invalid self-closing tag end".to_string(),
                 )
                 .into_err(Position::NONE)),
             },
         },
         Err(_) => {
             return Err(LexError::ImproperSymbol(
-                symbols.last().unwrap().to_string(),
-                format!("Invalid parser state at token: {}", symbols.last().unwrap()),
+                last_symbol.to_string(),
+                "Invalid parser state".to_string(),
             )
             .into_err(Position::NONE));
         }

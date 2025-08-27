@@ -29,7 +29,10 @@ pub fn combine_output_symbols(
     };
 
     for node in state_array.iter() {
-        match node.clone().try_cast::<OutputSymbol>().unwrap() {
+        match node.clone().try_cast::<OutputSymbol>().ok_or_else(|| {
+            LexError::Runtime("Unable to cast state to output symbols".to_string())
+                .into_err(Position::NONE)
+        })? {
             OutputSymbol::BodyExpression => {
                 combined_symbols.push(OutputCombinedSymbol::BodyExpression(ExpressionReference {
                     expression_index,

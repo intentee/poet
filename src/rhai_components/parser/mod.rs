@@ -18,55 +18,53 @@ mod tag_stack_node;
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use anyhow::Result;
     use rhai::Engine;
+    use rhai::Module;
+    use rhai::Scope;
 
     use super::evaluator_factory::EvaluatorFactory;
     use super::parse_component::parse_component;
 
+    struct DummyContext {}
+
     #[test]
     fn test_docs_parser() -> Result<()> {
+        let component_context = Arc::new(DummyContext {});
         let evaluator_factory = EvaluatorFactory {};
         let mut engine = Engine::new();
 
         engine.set_fail_on_invalid_map_property(true);
         engine.set_max_expr_depths(256, 256);
-        // engine.set_strict_variables(true);
 
         engine.register_custom_syntax_without_look_ahead_raw(
             "component",
             parse_component,
             true,
-            evaluator_factory.create_component_evaluator(),
+            evaluator_factory.create_component_evaluator_with_context(component_context),
         );
 
-        // engine.register_static_module("LayoutHomepage", engine.module_resolver().resolve(
-        //     &engine,
-        //     None,
-        //     "shortcodes/LayoutHomepage.rhai",
-        //     Position::NONE,
-        // )?);
-        //
-        // let note_module = engine.module_resolver().resolve(
-        //     &engine,
-        //     None,
-        //     "shortcodes/Note.rhai",
-        //     Position::NONE,
-        // )?;
-        //
-        // for signature in note_module.gen_fn_signatures_with_mapper(|name| format!("Note::{name}").into()) {
-        //     println!("Function signature: {:#?}", signature);
-        // }
-        //
-        // println!("Note::template function: {:#?}", note_module.get_script_fn("template", 3));
+        let meta_module_ast = engine.compile(
+            r#"
+          import "LayoutHomepage" as LayoutHomepage;
 
-        // engine.register_static_module("Note", note_module);
+          fn LayoutHomepage_123(context, content, props) {
+            LayoutHomepage::template(context, props, content)
+          }
+        "#,
+        )?;
+
+        let module = Module::eval_ast_as_new(Scope::new(), &meta_module_ast, &engine)?;
+
+        engine.register_global_module(module.into());
 
         println!(
             "{}",
             engine.eval::<String>(
                 r#"
-            fn MyComponent(context, content, props) {
+            fn MyComponent(context, props, content) {
                 context.assets.add("resouces/controller_foo.tsx");
 
                 component {

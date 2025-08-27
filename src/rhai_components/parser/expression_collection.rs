@@ -1,3 +1,4 @@
+use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::EvalContext;
 use rhai::Expression;
@@ -9,11 +10,11 @@ pub struct ExpressionCollection<'expression> {
 }
 
 impl<'expression> ExpressionCollection<'expression> {
-    pub fn render_expression(
+    pub fn eval_expression(
         &mut self,
-        context: &mut EvalContext,
+        eval_context: &mut EvalContext,
         ExpressionReference { expression_index }: &ExpressionReference,
-    ) -> Result<String, Box<EvalAltResult>> {
+    ) -> Result<Dynamic, Box<EvalAltResult>> {
         let expression = self.expressions.get(*expression_index).ok_or_else(|| {
             Box::new(EvalAltResult::ErrorRuntime(
                 "Expression index out of bounds".into(),
@@ -21,6 +22,6 @@ impl<'expression> ExpressionCollection<'expression> {
             ))
         })?;
 
-        Ok(context.eval_expression_tree(expression)?.into_string()?)
+        Ok(eval_context.eval_expression_tree(expression)?)
     }
 }

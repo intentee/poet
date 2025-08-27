@@ -7,7 +7,7 @@ use super::expression_collection::ExpressionCollection;
 use super::tag::Tag;
 
 pub fn eval_tag(
-    context: &mut EvalContext,
+    eval_context: &mut EvalContext,
     expression_collection: &mut ExpressionCollection,
     tag: &Tag,
 ) -> Result<String, Box<EvalAltResult>> {
@@ -34,7 +34,9 @@ pub fn eval_tag(
             match value {
                 AttributeValue::Expression(expression_reference) => {
                     result.push_str(&escape_html(
-                        &expression_collection.render_expression(context, expression_reference)?,
+                        &expression_collection
+                            .eval_expression(eval_context, expression_reference)?
+                            .into_string()?,
                     ));
                 }
                 AttributeValue::Text(text) => {

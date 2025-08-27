@@ -53,7 +53,7 @@ pub fn combine_output_symbols(
                     .into_err(Position::NONE));
                 }
             },
-            OutputSymbol::TagLeftAnglePlusWhitespace(_) => match combined_symbols.last_mut() {
+            OutputSymbol::TagLeftAnglePlusWhitespace => match combined_symbols.last_mut() {
                 Some(OutputCombinedSymbol::TagLeftAngle) => {}
                 _ => {
                     combined_symbols.push(OutputCombinedSymbol::TagLeftAngle);
@@ -67,7 +67,7 @@ pub fn combine_output_symbols(
                     }
                 }
             }
-            OutputSymbol::TagContent(_) => {}
+            OutputSymbol::TagPadding => {}
             OutputSymbol::TagAttributeValueString(text) => match combined_symbols.last_mut() {
                 Some(OutputCombinedSymbol::TagAttributeName(_)) => {
                     combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(
@@ -127,14 +127,16 @@ pub fn combine_output_symbols(
             }
             OutputCombinedSymbol::Text(text) => match semantic_symbols.back_mut() {
                 Some(OutputSemanticSymbol::Text(existing_text)) => {
-                    existing_text.push_str(&text.trim());
+                    existing_text.push_str(text.trim());
                 }
                 _ => {
                     semantic_symbols.push_back(OutputSemanticSymbol::Text(text.trim().to_string()));
                 }
             },
             OutputCombinedSymbol::TagLeftAngle => match semantic_symbols.back_mut() {
-                Some(OutputSemanticSymbol::Tag(_)) | Some(OutputSemanticSymbol::Text(_)) => {
+                Some(OutputSemanticSymbol::BodyExpression(_))
+                | Some(OutputSemanticSymbol::Tag(_))
+                | Some(OutputSemanticSymbol::Text(_)) => {
                     semantic_symbols.push_back(OutputSemanticSymbol::Tag(Tag {
                         attributes: vec![],
                         is_closing: false,

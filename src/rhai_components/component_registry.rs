@@ -1,23 +1,14 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
-use nanoid::nanoid;
 
 use super::component_reference::ComponentReference;
 
-// // Allow only characters that are safe for use in function names
-// const SUFFIX_ALPHABET: [char; 62] = [
-//     '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
-//     'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B',
-//     'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
-//     'V', 'W', 'X', 'Y', 'Z',
-// ];
-
-pub struct ComponentRegsitry {
+pub struct ComponentRegistry {
     pub components: DashMap<String, ComponentReference>,
 }
 
-impl ComponentRegsitry {
+impl ComponentRegistry {
     pub fn get_global_fn_name(&self, component_name: &str) -> Result<String> {
         self.components
             .get(component_name)
@@ -31,7 +22,7 @@ impl ComponentRegsitry {
     }
 }
 
-impl Default for ComponentRegsitry {
+impl Default for ComponentRegistry {
     fn default() -> Self {
         Self {
             components: DashMap::new(),

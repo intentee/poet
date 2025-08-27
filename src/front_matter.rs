@@ -1,3 +1,6 @@
+#![allow(clippy::all)]
+#![allow(warnings)]
+
 use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;

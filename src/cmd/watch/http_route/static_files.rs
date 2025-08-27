@@ -39,7 +39,7 @@ async fn respond_with_file(
                 }
             }
             Ok(ReadFileContentsResult::Found(contents)) => Ok(HttpResponse::Ok()
-                .content_type(mime_guess::from_path(&std_path).first_or_octet_stream())
+                .content_type(mime_guess::from_path(std_path).first_or_octet_stream())
                 .body(contents)),
             Ok(ReadFileContentsResult::NotFound) => {
                 Ok(HttpResponse::NotFound().body("File not found"))

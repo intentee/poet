@@ -6,26 +6,22 @@ use rhai::EvalContext;
 use rhai::Expression;
 use rhai::Position;
 
-use super::component_registry::ComponentRegsitry;
+use super::component_registry::ComponentRegistry;
 use super::eval_tag_stack_node::eval_tag_stack_node;
 use super::expression_collection::ExpressionCollection;
 use super::tag_stack_node::TagStackNode;
 
 pub struct EvaluatorFactory {
-    pub component_registry: Arc<ComponentRegsitry>,
+    pub component_registry: Arc<ComponentRegistry>,
 }
 
 impl EvaluatorFactory {
-    pub fn create_component_evaluator_with_context<TComponentContext>(
+    pub fn create_component_evaluator(
         &self,
-        component_context: TComponentContext,
     ) -> impl Fn(&mut EvalContext, &[Expression], &Dynamic) -> Result<Dynamic, Box<EvalAltResult>>
     + Send
     + Sync
-    + 'static
-    where
-        TComponentContext: Clone + Send + Sync + 'static,
-    {
+    + 'static {
         let component_registry_clone = self.component_registry.clone();
 
         move |eval_context: &mut EvalContext, inputs: &[Expression], state: &Dynamic| {
@@ -34,7 +30,6 @@ impl EvaluatorFactory {
             };
 
             let rendered_tag_stack = eval_tag_stack_node(
-                component_context.clone(),
                 component_registry_clone.clone(),
                 eval_context,
                 &state.clone().try_cast::<TagStackNode>().ok_or_else(|| {

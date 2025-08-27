@@ -6,20 +6,21 @@ use rhai::Module;
 use rhai::Scope;
 
 use super::component_reference::ComponentReference;
-use super::component_registry::ComponentRegsitry;
+use super::component_registry::ComponentRegistry;
+use crate::rhai_safe_random_affix::rhai_safe_random_affix;
 
 pub struct ComponentMetaModule {
-    component_registry: Arc<ComponentRegsitry>,
+    component_registry: Arc<ComponentRegistry>,
 }
 
 impl ComponentMetaModule {
-    /// This module overcomes some limitations in Rhai regarding dynamic imports and function
-    /// names.
     pub fn into_global_module(self, engine: &Engine) -> Result<Module> {
         let mut meta_script = String::new();
 
         for entry in &self.component_registry.components {
+            let affix = rhai_safe_random_affix();
             let ComponentReference {
+                file_entry: _,
                 global_fn_name,
                 name,
                 path,
@@ -27,12 +28,12 @@ impl ComponentMetaModule {
 
             meta_script.push_str(&format!(
                 r#"
-                import "{path}" as {name};
+                    import "{path}" as {name}_{affix};
 
-                fn {global_fn_name}(context, props, content) {{
-                    {name}::template(context, props, content)
-                }}
-            "#
+                    fn {global_fn_name}(context, props, content) {{
+                        {name}_{affix}::template(context, props, content)
+                    }}
+                "#
             ));
         }
 
@@ -41,13 +42,13 @@ impl ComponentMetaModule {
         Ok(Module::eval_ast_as_new(
             Scope::new(),
             &meta_module_ast,
-            &engine,
+            engine,
         )?)
     }
 }
 
-impl From<Arc<ComponentRegsitry>> for ComponentMetaModule {
-    fn from(component_registry: Arc<ComponentRegsitry>) -> Self {
+impl From<Arc<ComponentRegistry>> for ComponentMetaModule {
+    fn from(component_registry: Arc<ComponentRegistry>) -> Self {
         Self { component_registry }
     }
 }

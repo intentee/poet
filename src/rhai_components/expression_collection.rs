@@ -22,6 +22,6 @@ impl<'expression> ExpressionCollection<'expression> {
             ))
         })?;
 
-        Ok(eval_context.eval_expression_tree(expression)?)
+        eval_context.eval_expression_tree(expression)
     }
 }

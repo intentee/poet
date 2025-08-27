@@ -60,17 +60,18 @@ pub fn parse_component(
                         opening_tag: None,
                     };
 
-                    combine_tag_stack(&mut tag_stack, &mut semantic_symbols)?;
+                    combine_tag_stack(
+                        &mut tag_stack,
+                        &mut Default::default(),
+                        &mut semantic_symbols,
+                    )?;
 
                     *state = Dynamic::from(tag_stack);
 
                     Ok(None)
                 }
                 "<" => {
-                    push_to_state(
-                        state,
-                        OutputSymbol::TagLeftAnglePlusWhitespace(last_symbol.to_string()),
-                    )?;
+                    push_to_state(state, OutputSymbol::TagLeftAnglePlusWhitespace)?;
                     state.set_tag(ParserState::TagLeftAnglePlusWhitespace as i32);
 
                     Ok(Some("$raw$".into()))
@@ -98,10 +99,7 @@ pub fn parse_component(
             },
             ParserState::TagLeftAnglePlusWhitespace => match last_symbol {
                 _ if last_symbol.trim().is_empty() => {
-                    push_to_state(
-                        state,
-                        OutputSymbol::TagLeftAnglePlusWhitespace(last_symbol.to_string()),
-                    )?;
+                    push_to_state(state, OutputSymbol::TagLeftAnglePlusWhitespace)?;
                     state.set_tag(ParserState::TagLeftAnglePlusWhitespace as i32);
 
                     Ok(Some("$raw$".into()))
@@ -147,7 +145,7 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 _ if last_symbol.trim().is_empty() => {
-                    push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
+                    push_to_state(state, OutputSymbol::TagPadding)?;
                     state.set_tag(ParserState::TagContent as i32);
 
                     Ok(Some("$raw$".into()))
@@ -172,7 +170,7 @@ pub fn parse_component(
                 )
                 .into_err(Position::NONE)),
                 _ if last_symbol.trim().is_empty() => {
-                    push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
+                    push_to_state(state, OutputSymbol::TagPadding)?;
                     state.set_tag(ParserState::TagContent as i32);
 
                     Ok(Some("$raw$".into()))
@@ -212,7 +210,7 @@ pub fn parse_component(
                     Ok(Some(">".into()))
                 }
                 _ if last_symbol.trim().is_empty() => {
-                    push_to_state(state, OutputSymbol::TagContent(last_symbol.to_string()))?;
+                    push_to_state(state, OutputSymbol::TagPadding)?;
                     state.set_tag(ParserState::TagContent as i32);
 
                     Ok(Some("$raw$".into()))
@@ -284,12 +282,10 @@ pub fn parse_component(
                 .into_err(Position::NONE)),
             },
         },
-        Err(_) => {
-            return Err(LexError::ImproperSymbol(
-                last_symbol.to_string(),
-                "Invalid parser state".to_string(),
-            )
-            .into_err(Position::NONE));
-        }
+        Err(_) => Err(LexError::ImproperSymbol(
+            last_symbol.to_string(),
+            "Invalid parser state".to_string(),
+        )
+        .into_err(Position::NONE)),
     }
 }

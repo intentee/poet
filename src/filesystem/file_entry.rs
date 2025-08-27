@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FileEntry {
     pub contents: String,
     pub relative_path: PathBuf,

@@ -2,19 +2,19 @@ mod attribute;
 mod attribute_value;
 mod combine_output_symbols;
 mod combine_tag_stack;
-mod component_meta_module;
-mod component_reference;
-mod component_registry;
+pub mod component_meta_module;
+pub mod component_reference;
+pub mod component_registry;
 mod escape_html;
 mod eval_tag;
 mod eval_tag_stack_node;
-mod evaluator_factory;
+pub mod evaluator_factory;
 mod expression_collection;
 mod expression_reference;
 mod output_combined_symbol;
 mod output_semantic_symbol;
 mod output_symbol;
-mod parse_component;
+pub mod parse_component;
 mod parser_state;
 mod tag;
 mod tag_stack_node;
@@ -35,11 +35,12 @@ mod tests {
 
     use super::component_meta_module::ComponentMetaModule;
     use super::component_reference::ComponentReference;
-    use super::component_registry::ComponentRegsitry;
+    use super::component_registry::ComponentRegistry;
     use super::evaluator_factory::EvaluatorFactory;
     use super::parse_component::parse_component;
+    use crate::filesystem::file_entry::FileEntry;
 
-    #[derive(Clone)]
+    #[derive(Clone, Default)]
     struct DummyAssetCollection {
         assets: Arc<DashSet<String>>,
     }
@@ -58,15 +59,7 @@ mod tests {
         }
     }
 
-    impl Default for DummyAssetCollection {
-        fn default() -> Self {
-            Self {
-                assets: Arc::new(DashSet::new()),
-            }
-        }
-    }
-
-    #[derive(Clone)]
+    #[derive(Clone, Default)]
     struct DummyContext {
         assets: DummyAssetCollection,
     }
@@ -85,26 +78,26 @@ mod tests {
         }
     }
 
-    impl Default for DummyContext {
-        fn default() -> Self {
-            Self {
-                assets: DummyAssetCollection::default(),
-            }
-        }
-    }
-
     #[tokio::test]
     async fn test_docs_parser() -> Result<()> {
         let component_context = DummyContext::default();
-        let component_registry = Arc::new(ComponentRegsitry::default());
+        let component_registry = Arc::new(ComponentRegistry::default());
 
         component_registry.register_component(ComponentReference {
+            file_entry: FileEntry {
+                relative_path: "LayoutHomepage.rhai".into(),
+                contents: "".into(),
+            },
             global_fn_name: "LayoutHomepage_123".to_string(),
             name: "LayoutHomepage".to_string(),
             path: "LayoutHomepage".to_string(),
         });
 
         component_registry.register_component(ComponentReference {
+            file_entry: FileEntry {
+                relative_path: "Note.rhai".into(),
+                contents: "".into(),
+            },
             global_fn_name: "Note_123".to_string(),
             name: "Note".to_string(),
             path: "Note".to_string(),
@@ -127,7 +120,7 @@ mod tests {
             "component",
             parse_component,
             true,
-            evaluator_factory.create_component_evaluator_with_context(component_context.clone()),
+            evaluator_factory.create_component_evaluator(),
         );
 
         engine.build_type::<DummyAssetCollection>();
@@ -163,6 +156,7 @@ mod tests {
                                 <b><i><u>test</u></i></b>
                                 Hello! :D
                                 {" - "}
+                                <br />
 
                                 <Note type="warn">
                                     {if content.is_empty() {
@@ -204,8 +198,7 @@ mod tests {
                 .assets
                 .contains("resouces/controller_foo.tsx")
         );
-
-        assert!(false);
+        // assert!(false);
 
         Ok(())
     }

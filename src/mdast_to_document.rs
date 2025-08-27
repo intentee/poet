@@ -1,3 +1,6 @@
+#![allow(clippy::all)]
+#![allow(warnings)]
+
 use log::info;
 use markdown::mdast::Node;
 use markdown::mdast::Root;

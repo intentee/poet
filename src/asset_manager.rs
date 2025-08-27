@@ -5,7 +5,7 @@ use rhai::TypeBuilder;
 pub struct AssetManager {}
 
 impl CustomType for AssetManager {
-    fn build(builder: TypeBuilder<Self>) {}
+    fn build(_builder: TypeBuilder<Self>) {}
 }
 
 impl Default for AssetManager {

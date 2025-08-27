@@ -26,7 +26,7 @@ minijinja-contrib = { version = "2.11.0", features = ["datetime", "pycompat", "w
 notify = "8.2.0"
 notify-debouncer-full = "0.6.0"
 # rhai = { version = "1.22.2", features = ["no_closure", "serde", "serde_json", "sync"] }
-rhai = { git = "https://github.com/rhaiscript/rhai.git", rev = "b24210765033210037b8d02c805400480ccc2a57", features = ["no_closure", "serde", "serde_json", "sync"] }
+rhai = { git = "https://github.com/rhaiscript/rhai.git", rev = "b24210765033210037b8d02c805400480ccc2a57", features = ["internals", "metadata", "no_closure", "serde", "serde_json", "sync"] }
 serde = { version = "1.0.219", features = ["derive"] }
 tokio = { version = "1.45.1", features = ["full"] }
 tokio-stream = "0.1.17"

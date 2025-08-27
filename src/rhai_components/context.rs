@@ -9,6 +9,7 @@ use rhai::module_resolvers::FileModuleResolver;
 
 use crate::asset_manager::AssetManager;
 use crate::filesystem::file_entry::FileEntry;
+use crate::rhai_component_parser::{eval_component, parse_component};
 
 pub type ShortcodeRenderer = dyn Fn(AssetManager, Dynamic, Dynamic) -> Result<String>;
 
@@ -40,9 +41,17 @@ impl RhaiContext {
         let mut engine = Engine::new();
 
         engine.set_fail_on_invalid_map_property(true);
+        engine.set_max_expr_depths(256, 256);
         engine.set_module_resolver(FileModuleResolver::new_with_path(&self.scripts_directory));
         engine.set_optimization_level(OptimizationLevel::Full);
         engine.set_strict_variables(true);
+
+        engine.register_custom_syntax_without_look_ahead_raw(
+            "component",
+            parse_component,
+            true,
+            eval_component,
+        );
 
         engine
     }

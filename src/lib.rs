@@ -1,8 +1,9 @@
 mod build_project;
 pub mod cmd;
+mod escape_html;
+mod eval_mdast;
 mod filesystem;
 mod front_matter;
-mod mdast_to_document;
 mod rhai_component_context;
 mod rhai_components;
 mod rhai_safe_random_affix;

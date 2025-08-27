@@ -1,4 +1,6 @@
 fn template(context, props, content) {
+  context.assets.add("resources/css/page-home.css");
+
   component {
     <!DOCTYPE html>
     <html lang="en">

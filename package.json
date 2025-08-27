@@ -5,6 +5,7 @@
     "type": "git",
     "url": "git+https://github.com/intentee/poet.git"
   },
+  "type": "module",
   "version": "0.1.0",
   "devDependencies": {
     "@types/hotwired__turbo": "^8.0.4",

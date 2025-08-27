@@ -5,7 +5,6 @@ mod combine_tag_stack;
 pub mod component_meta_module;
 pub mod component_reference;
 pub mod component_registry;
-mod escape_html;
 mod eval_tag;
 mod eval_tag_stack_node;
 pub mod evaluator_factory;

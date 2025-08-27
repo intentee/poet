@@ -2,7 +2,7 @@ import notifier from "node-notifier";
 
 import { spawner } from "jarmuz/job-types";
 
-spawner(async function ({ baseDirectory, buildId, command }) {
+spawner(function ({ baseDirectory, buildId, command }) {
   notifier.notify({
     title: "poet",
     message: `Build ${buildId} finished`,

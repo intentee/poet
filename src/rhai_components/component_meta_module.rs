@@ -28,9 +28,9 @@ impl ComponentMetaModule {
 
             meta_script.push_str(&format!(
                 r#"
-                    import "{path}" as {name}_{affix};
-
                     fn {global_fn_name}(context, props, content) {{
+                        import "{path}" as {name}_{affix};
+
                         {name}_{affix}::template(context, props, content)
                     }}
                 "#

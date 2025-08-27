@@ -58,7 +58,7 @@ impl Handler for Watch {
                     for event in &events {
                         match event.kind {
                             EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
-                                info!("Source file change detected");
+                                info!("Source file change detected: {:?}", event.paths);
 
                                 files_changed_tx
                                     .send(())
@@ -78,6 +78,7 @@ impl Handler for Watch {
             self.source_directory.join("content"),
             RecursiveMode::Recursive,
         )?;
+        debouncer.watch(self.source_directory.clone(), RecursiveMode::NonRecursive)?;
         debouncer.watch(
             self.source_directory.join("shortcodes"),
             RecursiveMode::Recursive,

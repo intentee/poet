@@ -6,7 +6,7 @@ export function run({ development, once = false, rustJobs }) {
   jarmuz({
     once,
     pipeline: ["tcm", "tsc", "eslint", esbuildJob, ...rustJobs],
-    watch: ["resources", "src", "templates"],
+    watch: ["resources", "src"],
   }).decide(function ({ matches, schedule }) {
     switch (true) {
       case matches("resources/**/*.{ts,tsx}"):

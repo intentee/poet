@@ -2,9 +2,9 @@ use rhai::EvalAltResult;
 use rhai::EvalContext;
 
 use super::attribute_value::AttributeValue;
-use super::escape_html::escape_html;
 use super::expression_collection::ExpressionCollection;
 use super::tag::Tag;
+use crate::escape_html::escape_html;
 
 pub fn eval_tag(
     eval_context: &mut EvalContext,

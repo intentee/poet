@@ -1,10 +1,14 @@
 mod attribute;
+mod attribute_value;
 mod escape_html;
+mod expression_collection;
+mod expression_reference;
 mod output_combined_symbol;
 mod output_semantic_symbol;
 mod output_symbol;
 mod parser_state;
 mod tag;
+mod tag_stack_node;
 
 use std::collections::VecDeque;
 
@@ -19,30 +23,21 @@ use rhai::ParseErrorType;
 use rhai::Position;
 
 use self::attribute::Attribute;
+use self::attribute_value::AttributeValue;
 use self::escape_html::escape_html;
+use self::expression_collection::ExpressionCollection;
+use self::expression_reference::ExpressionReference;
 use self::output_combined_symbol::OutputCombinedSymbol;
 use self::output_semantic_symbol::OutputSemanticSymbol;
 use self::output_symbol::OutputSymbol;
 use self::parser_state::ParserState;
 use self::tag::Tag;
-
-#[derive(Clone, Debug)]
-enum TagStackChild {
-    Text(String),
-    Tag(TagStackNode),
-}
-
-#[derive(Clone, Debug)]
-struct TagStackNode {
-    pub children: Vec<TagStackChild>,
-    pub is_closed: bool,
-    pub opening_tag: Option<Tag>,
-}
+use self::tag_stack_node::TagStackNode;
 
 pub fn parse_component(
     symbols: &[ImmutableString],
     state: &mut Dynamic,
-) -> core::result::Result<Option<ImmutableString>, ParseError> {
+) -> Result<Option<ImmutableString>, ParseError> {
     // println!("Symbols: {:?}, tag: {:?}", symbols, state.tag());
 
     let last_symbol = symbols.last().unwrap().as_str();
@@ -82,6 +77,7 @@ pub fn parse_component(
 
                     Ok(Some("$inner$".into()))
                 }
+                // This is where the expression ends, so lets optimize the internal state now
                 "}" => Ok(None),
                 "<" => {
                     push_to_state(
@@ -320,7 +316,11 @@ pub fn parse_component(
     }
 }
 
-pub fn render_tag(tag: &Tag) -> String {
+pub fn render_tag(
+    context: &mut EvalContext,
+    expression_collection: &mut ExpressionCollection,
+    tag: &Tag,
+) -> Result<String, Box<EvalAltResult>> {
     let mut result = String::new();
 
     if tag.is_closing {
@@ -328,7 +328,7 @@ pub fn render_tag(tag: &Tag) -> String {
         result.push_str(&tag.name);
         result.push('>');
 
-        return result;
+        return Ok(result);
     }
 
     result.push('<');
@@ -341,7 +341,16 @@ pub fn render_tag(tag: &Tag) -> String {
         if let Some(value) = &attribute.value {
             result.push('=');
             result.push('"');
-            result.push_str(value);
+            match value {
+                AttributeValue::Expression(expression_reference) => {
+                    result.push_str(&escape_html(
+                        &expression_collection.render_expression(context, expression_reference)?,
+                    ));
+                }
+                AttributeValue::Text(text) => {
+                    result.push_str(text);
+                }
+            };
             result.push('"');
         }
     }
@@ -352,50 +361,58 @@ pub fn render_tag(tag: &Tag) -> String {
         result.push('>');
     }
 
-    result
+    Ok(result)
 }
 
 pub fn eval_component(
     context: &mut EvalContext,
     inputs: &[Expression],
     state: &Dynamic,
-) -> core::result::Result<Dynamic, Box<EvalAltResult>> {
-    let mut inputs_deque: VecDeque<&Expression> = inputs.iter().collect();
-
-    let mut shift_expression_tree = || {
-        if let Some(expression) = inputs_deque.pop_front() {
-            Ok(context.eval_expression_tree(expression)?.into_string()?)
-        } else {
-            Err(Box::new(EvalAltResult::ErrorParsing(
-                ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
-                    "Exprected expression after component block (got nothing)"
-                ))),
-                Position::NONE,
-            )))
-        }
+) -> Result<Dynamic, Box<EvalAltResult>> {
+    let mut expression_collection = ExpressionCollection {
+        expressions: inputs.to_vec(),
     };
+    // let mut inputs_deque: VecDeque<&Expression> = inputs.iter().collect();
 
+    // let mut shift_expression_tree = || {
+    //     if let Some(expression) = inputs_deque.pop_front() {
+    //         Ok(context.eval_expression_tree(expression)?.into_string()?)
+    //     } else {
+    //         Err(Box::new(EvalAltResult::ErrorParsing(
+    //             ParseErrorType::BadInput(LexError::UnexpectedInput(format!(
+    //                 "Exprected expression after component block (got nothing)"
+    //             ))),
+    //             Position::NONE,
+    //         )))
+    //     }
+    // };
+
+    let mut expression_index = 0;
     let mut combined_symbols: Vec<OutputCombinedSymbol> = vec![];
 
     for node in state.as_array_ref()?.iter() {
         match node.clone().try_cast::<OutputSymbol>().unwrap() {
             OutputSymbol::BodyExpression => {
-                combined_symbols.push(OutputCombinedSymbol::BodyExpressionResult(
-                    shift_expression_tree()?,
-                ));
+                combined_symbols.push(OutputCombinedSymbol::BodyExpression(ExpressionReference {
+                    expression_index,
+                }));
+                expression_index += 1;
             }
-            OutputSymbol::TagAttributeValueExpression => {
-                let chunk = shift_expression_tree()?;
-
-                match combined_symbols.last_mut() {
-                    Some(OutputCombinedSymbol::TagAttributeValue(value)) => {
-                        value.push_str(&chunk);
-                    }
-                    _ => {
-                        combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(chunk));
-                    }
+            OutputSymbol::TagAttributeValueExpression => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::TagAttributeName(_)) => {
+                    combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(
+                        AttributeValue::Expression(ExpressionReference { expression_index }),
+                    ));
+                    expression_index += 1;
                 }
-            }
+                _ => {
+                    return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
+                        "Attribute value expression without name".to_string(),
+                        Vec::new(),
+                        Position::NONE,
+                    )));
+                }
+            },
             OutputSymbol::TagLeftAnglePlusWhitespace(_) => match combined_symbols.last_mut() {
                 Some(OutputCombinedSymbol::TagLeftAngle) => {}
                 _ => {
@@ -412,11 +429,20 @@ pub fn eval_component(
             }
             OutputSymbol::TagContent(_) => {}
             OutputSymbol::TagAttributeValueString(text) => match combined_symbols.last_mut() {
-                Some(OutputCombinedSymbol::TagAttributeValue(value)) => {
+                Some(OutputCombinedSymbol::TagAttributeName(_)) => {
+                    combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(
+                        AttributeValue::Text(text),
+                    ));
+                }
+                Some(OutputCombinedSymbol::TagAttributeValue(AttributeValue::Text(value))) => {
                     value.push_str(&text);
                 }
                 _ => {
-                    combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(text));
+                    return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
+                        "Attribute value expression without name".to_string(),
+                        Vec::new(),
+                        Position::NONE,
+                    )));
                 }
             },
             OutputSymbol::TagAttributeName(text) => match combined_symbols.last_mut() {
@@ -456,15 +482,9 @@ pub fn eval_component(
 
     for output_combined_symbol in combined_symbols {
         match output_combined_symbol {
-            OutputCombinedSymbol::BodyExpressionResult(result) => {
-                match semantic_symbols.back_mut() {
-                    Some(OutputSemanticSymbol::Text(existing_text)) => {
-                        existing_text.push_str(&result);
-                    }
-                    _ => {
-                        semantic_symbols.push_back(OutputSemanticSymbol::Text(result));
-                    }
-                }
+            OutputCombinedSymbol::BodyExpression(expression_reference) => {
+                semantic_symbols
+                    .push_back(OutputSemanticSymbol::BodyExpression(expression_reference));
             }
             OutputCombinedSymbol::Text(text) => match semantic_symbols.back_mut() {
                 Some(OutputSemanticSymbol::Text(existing_text)) => {
@@ -530,26 +550,28 @@ pub fn eval_component(
                     )));
                 }
             },
-            OutputCombinedSymbol::TagAttributeValue(value) => match semantic_symbols.back_mut() {
-                Some(OutputSemanticSymbol::Tag(Tag { attributes, .. })) => {
-                    if let Some(last_attribute) = attributes.last_mut() {
-                        last_attribute.value = Some(escape_html(&value));
-                    } else {
+            OutputCombinedSymbol::TagAttributeValue(attribute_value) => {
+                match semantic_symbols.back_mut() {
+                    Some(OutputSemanticSymbol::Tag(Tag { attributes, .. })) => {
+                        if let Some(last_attribute) = attributes.last_mut() {
+                            last_attribute.value = Some(attribute_value);
+                        } else {
+                            return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
+                                "Attribute value without name".to_string(),
+                                Vec::new(),
+                                Position::NONE,
+                            )));
+                        }
+                    }
+                    _ => {
                         return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
-                            "Attribute value without name".to_string(),
+                            "Unexpected tag attribute value".to_string(),
                             Vec::new(),
                             Position::NONE,
                         )));
                     }
                 }
-                _ => {
-                    return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
-                        "Unexpected tag attribute value".to_string(),
-                        Vec::new(),
-                        Position::NONE,
-                    )));
-                }
-            },
+            }
             OutputCombinedSymbol::TagSelfClose => match semantic_symbols.back_mut() {
                 Some(OutputSemanticSymbol::Tag(Tag {
                     is_self_closing, ..
@@ -568,7 +590,7 @@ pub fn eval_component(
         }
     }
 
-    let mut tag_stack = TagStackNode {
+    let mut tag_stack = TagStackNode::Tag {
         children: vec![],
         is_closed: false,
         opening_tag: None,
@@ -576,7 +598,7 @@ pub fn eval_component(
 
     build_tag_stack(&mut tag_stack, &mut semantic_symbols)?;
 
-    let rendered_tag_stack = render_tag_stack(context, &tag_stack)?;
+    let rendered_tag_stack = render_tag_stack(context, &tag_stack, &mut expression_collection)?;
 
     Ok(Dynamic::from(rendered_tag_stack))
 }
@@ -584,120 +606,153 @@ pub fn eval_component(
 fn build_tag_stack<'node>(
     current_node: &'node mut TagStackNode,
     semantic_symbols: &mut VecDeque<OutputSemanticSymbol>,
-) -> core::result::Result<(), Box<EvalAltResult>> {
-    let next_symbol = semantic_symbols.pop_front();
+) -> Result<(), Box<EvalAltResult>> {
+    match current_node {
+        TagStackNode::Tag {
+            children,
+            is_closed,
+            opening_tag,
+        } => {
+            let next_symbol = semantic_symbols.pop_front();
 
-    match next_symbol {
-        Some(OutputSemanticSymbol::Tag(tag)) => {
-            if tag.is_closing {
-                if let Some(opening_tag) = &current_node.opening_tag {
-                    if opening_tag.name != tag.name {
-                        return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
-                            format!(
-                                "Mismatched closing tag: expected </{}>, got </{}>",
-                                opening_tag.name, tag.name
-                            ),
-                            Vec::new(),
-                            Position::NONE,
-                        )));
-                    }
-                } else {
-                    return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
-                        format!("Unexpected closing tag: </{}>", tag.name),
-                        Vec::new(),
-                        Position::NONE,
-                    )));
+            match next_symbol {
+                Some(OutputSemanticSymbol::BodyExpression(expression_reference)) => {
+                    children.push(TagStackNode::BodyExpression(expression_reference));
+
+                    build_tag_stack(current_node, semantic_symbols)
                 }
+                Some(OutputSemanticSymbol::Tag(tag)) => {
+                    if tag.is_closing {
+                        if let Some(opening_tag) = &opening_tag {
+                            if opening_tag.name != tag.name {
+                                return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
+                                    format!(
+                                        "Mismatched closing tag: expected </{}>, got </{}>",
+                                        opening_tag.name, tag.name
+                                    ),
+                                    Vec::new(),
+                                    Position::NONE,
+                                )));
+                            }
+                        } else {
+                            return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
+                                format!("Unexpected closing tag: </{}>", tag.name),
+                                Vec::new(),
+                                Position::NONE,
+                            )));
+                        }
 
-                current_node.is_closed = true;
+                        *is_closed = true;
 
-                Ok(())
-            } else if tag.is_self_closing {
-                current_node.children.push(TagStackChild::Tag(TagStackNode {
-                    children: vec![],
-                    is_closed: false,
-                    opening_tag: Some(tag),
-                }));
+                        Ok(())
+                    } else if tag.is_self_closing {
+                        children.push(TagStackNode::Tag {
+                            children: vec![],
+                            is_closed: false,
+                            opening_tag: Some(tag),
+                        });
 
-                build_tag_stack(current_node, semantic_symbols)
-            } else {
-                let mut child_node = TagStackNode {
-                    children: vec![],
-                    is_closed: false,
-                    opening_tag: Some(tag),
-                };
+                        build_tag_stack(current_node, semantic_symbols)
+                    } else {
+                        let mut child_node = TagStackNode::Tag {
+                            children: vec![],
+                            is_closed: false,
+                            opening_tag: Some(tag),
+                        };
 
-                build_tag_stack(&mut child_node, semantic_symbols)?;
+                        build_tag_stack(&mut child_node, semantic_symbols)?;
 
-                current_node.children.push(TagStackChild::Tag(child_node));
+                        children.push(child_node);
 
-                build_tag_stack(current_node, semantic_symbols)
+                        build_tag_stack(current_node, semantic_symbols)
+                    }
+                }
+                Some(OutputSemanticSymbol::Text(text)) => {
+                    if !text.is_empty() {
+                        children.push(TagStackNode::Text(text));
+                    }
+
+                    build_tag_stack(current_node, semantic_symbols)
+                }
+                None => Ok(()),
             }
         }
-        Some(OutputSemanticSymbol::Text(text)) => {
-            if !text.is_empty() {
-                current_node.children.push(TagStackChild::Text(text));
-            }
-
-            build_tag_stack(current_node, semantic_symbols)
+        TagStackNode::BodyExpression(_) => {
+            return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
+                "Cannot add child to body expression node".to_string(),
+                Vec::new(),
+                Position::NONE,
+            )));
         }
-        None => Ok(()),
+        TagStackNode::Text(_) => {
+            return Err(Box::new(EvalAltResult::ErrorCustomSyntax(
+                "Cannot add child to text node".to_string(),
+                Vec::new(),
+                Position::NONE,
+            )));
+        }
     }
 }
 
 fn render_tag_stack<'node>(
     context: &mut EvalContext,
     current_node: &'node TagStackNode,
-) -> core::result::Result<String, Box<EvalAltResult>> {
-    let mut result = String::new();
-
-    if let Some(opening_tag) = &current_node.opening_tag
-        && !opening_tag.is_component()
-    {
-        result.push_str(&render_tag(opening_tag));
-    }
-
-    for child in &current_node.children {
-        match child {
-            TagStackChild::Text(text) => {
-                result.push_str(text);
-            }
-            TagStackChild::Tag(tag_node) => {
-                result.push_str(&render_tag_stack(context, tag_node)?);
-            }
+    expression_collection: &mut ExpressionCollection,
+) -> Result<String, Box<EvalAltResult>> {
+    match current_node {
+        TagStackNode::BodyExpression(expression_reference) => {
+            Ok(expression_collection.render_expression(context, expression_reference)?)
         }
-    }
+        TagStackNode::Tag {
+            children,
+            is_closed,
+            opening_tag,
+        } => {
+            let mut result = String::new();
 
-    if let Some(opening_tag) = &current_node.opening_tag
-        && current_node.is_closed
-        && !opening_tag.is_component()
-    {
-        result.push_str(&format!("</{}>", opening_tag.name));
-    }
+            if let Some(opening_tag) = &opening_tag
+                && !opening_tag.is_component()
+            {
+                result.push_str(&render_tag(context, expression_collection, opening_tag)?);
+            }
 
-    if let Some(opening_tag) = &current_node.opening_tag
-        && opening_tag.is_component()
-    {
-        // context.global_runtime_state_mut().iter_imports().for_each(|(name, module)| {
-        //     println!("imported module: {} {:#?}", name, module);
-        // });
-        context.iter_namespaces().for_each(|module| {
-            println!("regsitered namespace: {:#?}", module);
-        });
+            for child in children {
+                result.push_str(&render_tag_stack(context, child, expression_collection)?);
+            }
 
-        for (name, is_const, dynamic) in context.scope().iter() {
-            println!("scoped variable: {} {:#?} = {:#?}", name, is_const, dynamic);
+            if let Some(opening_tag) = &opening_tag
+                && *is_closed
+                && !opening_tag.is_component()
+            {
+                result.push_str(&format!("</{}>", opening_tag.name));
+            }
+
+            if let Some(opening_tag) = &opening_tag
+                && opening_tag.is_component()
+            {
+                // context.global_runtime_state_mut().iter_imports().for_each(|(name, module)| {
+                //     println!("imported module: {} {:#?}", name, module);
+                // });
+                context.iter_namespaces().for_each(|module| {
+                    println!("regsitered namespace: {:#?}", module);
+                });
+
+                for (name, is_const, dynamic) in context.scope().iter() {
+                    println!("scoped variable: {} {:#?} = {:#?}", name, is_const, dynamic);
+                }
+
+                // println!("Eval result: {:#?}", context.engine().eval::<Dynamic>("Note::template(1, 2, 3)")?);
+
+                // context.call_fn(
+                //     "template",
+                //     (Dynamic::from(""), Dynamic::from(""), Dynamic::from("")),
+                // )?;
+            }
+
+            Ok(result)
         }
-
-        // println!("Eval result: {:#?}", context.engine().eval::<Dynamic>("Note::template(1, 2, 3)")?);
-
-        context.call_fn(
-            "template",
-            (Dynamic::from(""), Dynamic::from(""), Dynamic::from("")),
-        )?;
+        TagStackNode::Text(text) => Ok(text.clone()),
     }
-
-    Ok(result)
 }
 
 #[cfg(test)]
@@ -748,20 +803,8 @@ mod tests {
             "{}",
             engine.eval::<String>(
                 r#"
-            fn do_something() {
-                import "shortcodes/Note.rhai" as Note;
-
-                Note::template(1, 2, 3)
-            }
-
-            do_something();
-
             fn MyComponent(context, content, props) {
                 context.assets.add("resouces/controller_foo.tsx");
-
-                Note::template(context, content, #{
-                    type: "warn",
-                });
 
                 component {
                     <!DOCTYPE html>

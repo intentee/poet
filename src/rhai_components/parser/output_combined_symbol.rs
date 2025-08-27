@@ -1,12 +1,15 @@
+use super::attribute_value::AttributeValue;
+use super::expression_reference::ExpressionReference;
+
 #[derive(Debug)]
 pub enum OutputCombinedSymbol {
-    BodyExpressionResult(String),
+    BodyExpression(ExpressionReference),
     Text(String),
     TagLeftAngle,
     TagCloseBeforeName,
     TagName(String),
     TagAttributeName(String),
-    TagAttributeValue(String),
+    TagAttributeValue(AttributeValue),
     TagSelfClose,
     TagRightAngle,
 }

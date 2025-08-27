@@ -14,6 +14,7 @@ use crate::filesystem::Filesystem;
 use crate::filesystem::memory::Memory;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::filesystem::storage::Storage;
+use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::rhai_component_context::RhaiComponentContext;
 use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
@@ -66,17 +67,28 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
             info!("Processing content file: {:?}", file.relative_path);
 
             let mdast = string_to_mdast(&file.contents)?;
-            let rhai_component_context = RhaiComponentContext {};
+            let front_matter = find_front_matter_in_mdast(&mdast)?.ok_or_else(|| {
+                anyhow!("No front matter found in file: {:?}", file.relative_path)
+            })?;
 
-            println!(
-                "{}",
-                eval_mdast(
-                    &mdast,
-                    &rhai_component_context,
-                    &rhai_template_renderer,
-                    &syntax_set
-                )?,
-            );
+            let rhai_component_context = RhaiComponentContext {
+                front_matter: front_matter.clone(),
+            };
+
+            let layout_content = eval_mdast(
+                &mdast,
+                &rhai_component_context,
+                &rhai_template_renderer,
+                &syntax_set,
+            )?;
+
+            let processed_file = rhai_template_renderer.render_without_props(
+                &front_matter.layout,
+                rhai_component_context.clone(),
+                layout_content,
+            )?;
+
+            println!("Processed file content:\n{}", processed_file);
         }
     }
 

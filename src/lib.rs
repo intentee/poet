@@ -3,6 +3,7 @@ pub mod cmd;
 mod escape_html;
 mod eval_mdast;
 mod filesystem;
+mod find_front_matter_in_mdast;
 mod front_matter;
 mod rhai_component_context;
 mod rhai_components;

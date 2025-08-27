@@ -1,3 +1,4 @@
 +++
 layout = "LayoutHomepage"
+title = "Homepage"
 +++

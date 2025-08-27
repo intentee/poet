@@ -18,6 +18,7 @@ use markdown::mdast::Paragraph;
 use markdown::mdast::Root;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
+use markdown::mdast::Toml;
 use rhai::Dynamic;
 use syntect::html::ClassStyle;
 use syntect::html::ClassedHTMLGenerator;
@@ -266,6 +267,9 @@ pub fn eval_mdast(
         }
         Node::ThematicBreak(ThematicBreak { .. }) => {
             result.push_str("<hr>");
+        }
+        Node::Toml(Toml { value, .. }) => {
+            // ignore frontmatter during this pass
         }
         item => {
             warn!("Unhandled node type: {:?}", item);

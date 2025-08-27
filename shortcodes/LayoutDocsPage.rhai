@@ -1,8 +1,6 @@
 fn template(context, props, content) {
-    context.assets.add("resources/css/page-docs.css");
-
     component {
-      <LayoutHomepage extraBodyClass="bar">
+      <LayoutHomepage>
         <div>
           Hello! :D
           {content}

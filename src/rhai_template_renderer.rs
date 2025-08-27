@@ -20,13 +20,27 @@ impl RhaiTemplateRenderer {
         &self,
         name: &str,
         context: RhaiComponentContext,
-        params: Dynamic,
+        props: Dynamic,
         content: Dynamic,
     ) -> Result<String> {
         if let Some(renderer) = self.templates.get(name) {
-            renderer(context, params, content)
+            renderer(context, props, content)
         } else {
             Err(anyhow!("Template '{}' not found", name))
         }
+    }
+
+    pub fn render_without_props(
+        &self,
+        name: &str,
+        context: RhaiComponentContext,
+        content: String,
+    ) -> Result<String> {
+        self.render(
+            name,
+            context,
+            Dynamic::from_map(rhai::Map::new()),
+            Dynamic::from(content),
+        )
     }
 }

@@ -5,10 +5,9 @@ use std::sync::Arc;
 use anyhow::Result;
 use anyhow::anyhow;
 use esbuild_metafile::EsbuildMetaFile;
-use esbuild_metafile::HttpPreloader;
 use log::info;
 use log::warn;
-use rhai::Dynamic;
+use syntect::parsing::SyntaxSet;
 
 use crate::eval_mdast::eval_mdast;
 use crate::filesystem::Filesystem;
@@ -47,6 +46,7 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
         source_filesystem.base_directory.clone(),
         PathBuf::from("shortcodes"),
     );
+    let syntax_set = SyntaxSet::load_defaults_newlines();
 
     // First pass, process Rhai files to be used as shortcodes or layouts
     for file in &files {
@@ -70,7 +70,12 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
 
             println!(
                 "{}",
-                eval_mdast(&mdast, &rhai_component_context, &rhai_template_renderer,)?,
+                eval_mdast(
+                    &mdast,
+                    &rhai_component_context,
+                    &rhai_template_renderer,
+                    &syntax_set
+                )?,
             );
         }
     }

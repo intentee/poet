@@ -1,6 +1,5 @@
 use anyhow::Result;
 use anyhow::anyhow;
-use log::info;
 use log::warn;
 use markdown::mdast::AttributeContent;
 use markdown::mdast::AttributeValue;
@@ -20,6 +19,10 @@ use markdown::mdast::Root;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
 use rhai::Dynamic;
+use syntect::html::ClassStyle;
+use syntect::html::ClassedHTMLGenerator;
+use syntect::parsing::SyntaxSet;
+use syntect::util::LinesWithEndings;
 
 use crate::escape_html::escape_html;
 use crate::rhai_component_context::RhaiComponentContext;
@@ -29,6 +32,7 @@ pub fn eval_mdast(
     mdast: &Node,
     rhai_component_context: &RhaiComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
+    syntax_set: &SyntaxSet,
 ) -> Result<String> {
     let mut result = String::new();
 
@@ -41,14 +45,53 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
 
             result.push_str("</blockquote>");
         }
-        Node::Code(Code { value, .. }) => {
-            result.push_str("<pre><code>");
-            result.push_str(&escape_html(value));
+        Node::Code(Code {
+            meta, lang, value, ..
+        }) => {
+            result.push_str(&format!(
+                r#"<pre class="code{}"{}><code>"#,
+                match lang {
+                    Some(lang) => format!(" language-{}", lang),
+                    None => "".to_string(),
+                },
+                match meta {
+                    Some(meta) => format!(r#" data-meta="{}""#, escape_html(meta)),
+                    None => "".to_string(),
+                }
+            ));
+            if let Some(lang) = lang {
+                let syntax = syntax_set.find_syntax_by_extension(lang);
+
+                match syntax {
+                    Some(syntax) => {
+                        let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
+                            syntax,
+                            &syntax_set,
+                            ClassStyle::Spaced,
+                        );
+                        for line in LinesWithEndings::from(value) {
+                            html_generator.parse_html_for_line_which_includes_newline(line)?;
+                        }
+                        let html_rs = html_generator.finalize();
+
+                        result.push_str(&html_rs);
+                    }
+                    None => {
+                        warn!("No syntax found for language: {}", lang);
+
+                        result.push_str(&escape_html(value));
+                    }
+                }
+            } else {
+                result.push_str(&escape_html(value));
+            }
+
             result.push_str("</code></pre>");
         }
         Node::Emphasis(Emphasis { children, .. }) => {
@@ -59,6 +102,7 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
 
@@ -75,6 +119,7 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
 
@@ -102,6 +147,7 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
 
@@ -121,6 +167,7 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
 
@@ -138,6 +185,7 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
 
@@ -181,7 +229,7 @@ pub fn eval_mdast(
                         let mut content = String::new();
 
                         for child in children {
-                            content.push_str(&eval_mdast(child, rhai_component_context, rhai_template_renderer)?);
+                            content.push_str(&eval_mdast(child, rhai_component_context, rhai_template_renderer, syntax_set)?);
                         }
 
                         content
@@ -197,6 +245,7 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
 
@@ -208,6 +257,7 @@ pub fn eval_mdast(
                     child,
                     rhai_component_context,
                     rhai_template_renderer,
+                    syntax_set,
                 )?);
             }
         }

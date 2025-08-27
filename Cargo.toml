@@ -23,6 +23,7 @@ markdown = "1.0.0"
 mime_guess = "2.0.5"
 minijinja = { version = "2.11.0", features = ["builtins", "json", "loader"] }
 minijinja-contrib = { version = "2.11.0", features = ["datetime", "pycompat", "wordcount", "wordwrap"] }
+nanoid = "0.4.0"
 notify = "8.2.0"
 notify-debouncer-full = "0.6.0"
 # rhai = { version = "1.22.2", features = ["no_closure", "serde", "serde_json", "sync"] }

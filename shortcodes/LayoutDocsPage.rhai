@@ -1,4 +1,4 @@
-fn template(context, content, props) {
+fn template(context, props, content) {
     context.assets.add("resources/css/page-docs.css");
 
     component {

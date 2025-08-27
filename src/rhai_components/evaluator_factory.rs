@@ -1,14 +1,19 @@
+use std::sync::Arc;
+
 use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::EvalContext;
 use rhai::Expression;
 use rhai::Position;
 
+use super::component_registry::ComponentRegsitry;
 use super::eval_tag_stack_node::eval_tag_stack_node;
 use super::expression_collection::ExpressionCollection;
 use super::tag_stack_node::TagStackNode;
 
-pub struct EvaluatorFactory {}
+pub struct EvaluatorFactory {
+    pub component_registry: Arc<ComponentRegsitry>,
+}
 
 impl EvaluatorFactory {
     pub fn create_component_evaluator_with_context<TComponentContext>(
@@ -21,6 +26,8 @@ impl EvaluatorFactory {
     where
         TComponentContext: Clone + Send + Sync + 'static,
     {
+        let component_registry_clone = self.component_registry.clone();
+
         move |eval_context: &mut EvalContext, inputs: &[Expression], state: &Dynamic| {
             let mut expression_collection = ExpressionCollection {
                 expressions: inputs.to_vec(),
@@ -28,6 +35,7 @@ impl EvaluatorFactory {
 
             let rendered_tag_stack = eval_tag_stack_node(
                 component_context.clone(),
+                component_registry_clone.clone(),
                 eval_context,
                 &state.clone().try_cast::<TagStackNode>().ok_or_else(|| {
                     EvalAltResult::ErrorRuntime(

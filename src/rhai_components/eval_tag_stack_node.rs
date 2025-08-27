@@ -1,15 +1,19 @@
+use std::sync::Arc;
+
 use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::EvalContext;
 use rhai::Map;
 
 use super::attribute_value::AttributeValue;
+use super::component_registry::ComponentRegsitry;
 use super::eval_tag::eval_tag;
 use super::expression_collection::ExpressionCollection;
 use super::tag_stack_node::TagStackNode;
 
 pub fn eval_tag_stack_node<'node, TComponentContext>(
     component_context: TComponentContext,
+    component_registry: Arc<ComponentRegsitry>,
     eval_context: &mut EvalContext,
     current_node: &'node TagStackNode,
     expression_collection: &mut ExpressionCollection,
@@ -37,6 +41,7 @@ where
             for child in children {
                 result.push_str(&eval_tag_stack_node(
                     component_context.clone(),
+                    component_registry.clone(),
                     eval_context,
                     child,
                     expression_collection,
@@ -48,6 +53,8 @@ where
                 && !opening_tag.is_component()
             {
                 result.push_str(&format!("</{}>", opening_tag.name));
+
+                return Ok(result);
             }
 
             if let Some(opening_tag) = &opening_tag
@@ -78,7 +85,14 @@ where
 
                 Ok(eval_context
                     .call_fn::<Dynamic>(
-                        "LayoutHomepage_123",
+                        component_registry
+                            .get_global_fn_name(&opening_tag.name)
+                            .or_else(|err| {
+                                Err(EvalAltResult::ErrorRuntime(
+                                    format!("Component not found: {err}").into(),
+                                    rhai::Position::NONE,
+                                ))
+                            })?,
                         (
                             Dynamic::from(component_context.clone()),
                             Dynamic::from_map(props),

@@ -21,18 +21,46 @@ mod tests {
     use std::sync::Arc;
 
     use anyhow::Result;
+    use dashmap::DashSet;
+    use rhai::CustomType;
     use rhai::Engine;
     use rhai::Module;
     use rhai::Scope;
+    use rhai::TypeBuilder;
 
     use super::evaluator_factory::EvaluatorFactory;
     use super::parse_component::parse_component;
 
-    struct DummyContext {}
+    #[derive(Clone)]
+    struct DummyContext {
+        assets: Arc<DashSet<String>>,
+    }
+
+    impl DummyContext {
+        fn assets(&mut self) -> Arc<DashSet<String>> {
+            self.assets.clone()
+        }
+    }
+
+    impl CustomType for DummyContext {
+        fn build(mut builder: TypeBuilder<Self>) {
+            builder
+                .with_name("DummyContext")
+                .with_get("assets", Self::assets);
+        }
+    }
+
+    impl Default for DummyContext {
+        fn default() -> Self {
+            Self {
+                assets: Arc::new(DashSet::new()),
+            }
+        }
+    }
 
     #[test]
     fn test_docs_parser() -> Result<()> {
-        let component_context = Arc::new(DummyContext {});
+        let component_context = DummyContext::default();
         let evaluator_factory = EvaluatorFactory {};
         let mut engine = Engine::new();
 
@@ -43,15 +71,18 @@ mod tests {
             "component",
             parse_component,
             true,
-            evaluator_factory.create_component_evaluator_with_context(component_context),
+            evaluator_factory.create_component_evaluator_with_context(component_context.clone()),
         );
+
+        // engine.build_type::<DummyContext>();
 
         let meta_module_ast = engine.compile(
             r#"
-          import "LayoutHomepage" as LayoutHomepage;
+          // import "LayoutHomepage" as LayoutHomepage;
 
-          fn LayoutHomepage_123(context, content, props) {
-            LayoutHomepage::template(context, props, content)
+          fn LayoutHomepage_123(context, props, content) {
+            // LayoutHomepage::template(context, props, content)
+            `[LAYOUT(${content})]`
           }
         "#,
         )?;
@@ -108,9 +139,9 @@ mod tests {
                 assets: #{
                     add: |script| script,
                 }
-            }, "", #{
+            }, #{
                 bar: "baz tag \" attribute"
-            })
+            }, "")
         "#
             )?
         );

@@ -1,7 +1,9 @@
 use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::EvalContext;
+use rhai::Map;
 
+use super::attribute_value::AttributeValue;
 use super::eval_tag::eval_tag;
 use super::expression_collection::ExpressionCollection;
 use super::tag_stack_node::TagStackNode;
@@ -51,16 +53,51 @@ where
             if let Some(opening_tag) = &opening_tag
                 && opening_tag.is_component()
             {
+                let props = {
+                    let mut props = Map::new();
+
+                    for attribute in &opening_tag.attributes {
+                        props.insert(
+                            attribute.name.clone().into(),
+                            if let Some(value) = &attribute.value {
+                                match value {
+                                    AttributeValue::Expression(expression_reference) => {
+                                        expression_collection
+                                            .eval_expression(eval_context, expression_reference)?
+                                    }
+                                    AttributeValue::Text(text) => text.into(),
+                                }
+                            } else {
+                                true.into()
+                            },
+                        );
+                    }
+
+                    props
+                };
+
                 Ok(eval_context
                     .call_fn::<Dynamic>(
                         "LayoutHomepage_123",
                         (
                             Dynamic::from(component_context.clone()),
-                            Dynamic::from(""),
+                            Dynamic::from_map(props),
                             Dynamic::from(result.clone()),
                         ),
-                    )?
-                    .into_string()?)
+                    )
+                    .or_else(|err| {
+                        Err(EvalAltResult::ErrorRuntime(
+                            format!("Failed to call component function: {err}").into(),
+                            rhai::Position::NONE,
+                        ))
+                    })?
+                    .into_string()
+                    .or_else(|err| {
+                        Err(EvalAltResult::ErrorRuntime(
+                            format!("Failed to convert component output to string: {err}").into(),
+                            rhai::Position::NONE,
+                        ))
+                    })?)
             } else {
                 Ok(result)
             }

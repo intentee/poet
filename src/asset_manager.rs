@@ -1,32 +1,27 @@
-use std::path::PathBuf;
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use esbuild_metafile::EsbuildMetaFile;
 use esbuild_metafile::HttpPreloader;
+use log::warn;
 use rhai::CustomType;
 use rhai::TypeBuilder;
 
 #[derive(Clone)]
 pub struct AssetManager {
     http_preloader: Arc<HttpPreloader>,
-    is_watching: bool,
-    target_file_relative_path: PathBuf,
 }
 
 impl AssetManager {
     pub fn add(&mut self, asset: String) {
-        self.http_preloader.register_input(&asset);
+        if self.http_preloader.register_input(&asset).is_none() {
+            warn!("Asset not found: {asset}");
+        }
     }
 
-    pub fn from_esbuild_metafile(
-        esbuild_metafile: Arc<EsbuildMetaFile>,
-        is_watching: bool,
-        target_file_relative_path: PathBuf,
-    ) -> Self {
+    pub fn from_esbuild_metafile(esbuild_metafile: Arc<EsbuildMetaFile>) -> Self {
         AssetManager {
             http_preloader: Arc::new(HttpPreloader::new(esbuild_metafile)),
-            is_watching,
-            target_file_relative_path,
         }
     }
 
@@ -36,19 +31,23 @@ impl AssetManager {
 
     pub fn render(&mut self) -> String {
         let mut rendered_assets: String = String::new();
+        let mut rendered_preloads: BTreeSet<String> = BTreeSet::new();
+        let mut rendered_includes: BTreeSet<String> = BTreeSet::new();
 
         for path in self.http_preloader.preloads.iter() {
-            rendered_assets.push_str(&path.to_string());
+            rendered_preloads.insert(path.to_string());
         }
 
         for path in self.http_preloader.includes.iter() {
-            rendered_assets.push_str(&path.to_string());
+            rendered_includes.insert(path.to_string());
         }
 
-        if self.is_watching {
-            let relative_path = self.target_file_relative_path.to_string_lossy();
+        for element in rendered_preloads {
+            rendered_assets.push_str(&element);
+        }
 
-            rendered_assets.push_str(&format!(r#"<script async id="poet-live-reload" data-relative-path="{relative_path}" src="/api/v1/live_reload_script.js" type="module"></script>"#));
+        for element in rendered_includes {
+            rendered_assets.push_str(&element);
         }
 
         rendered_assets

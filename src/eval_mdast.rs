@@ -9,6 +9,7 @@ use markdown::mdast::Code;
 use markdown::mdast::Emphasis;
 use markdown::mdast::Heading;
 use markdown::mdast::Html;
+use markdown::mdast::InlineCode;
 use markdown::mdast::Link;
 use markdown::mdast::List;
 use markdown::mdast::ListItem;
@@ -129,6 +130,9 @@ pub fn eval_mdast(
         }
         Node::Html(Html { value, .. }) => {
             result.push_str(value);
+        }
+        Node::InlineCode(InlineCode { value, .. }) => {
+            result.push_str(&format!("<code>{}</code>", escape_html(value)));
         }
         Node::Link(Link {
             children,

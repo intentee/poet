@@ -10,6 +10,7 @@ pub struct RhaiComponentContext {
     pub asset_manager: AssetManager,
     pub file_entry: FileEntry,
     pub front_matter: FrontMatter,
+    pub is_watching: bool,
 }
 
 impl RhaiComponentContext {
@@ -24,6 +25,10 @@ impl RhaiComponentContext {
     pub fn get_front_matter(&mut self) -> FrontMatter {
         self.front_matter.clone()
     }
+
+    pub fn get_is_watching(&mut self) -> bool {
+        self.is_watching
+    }
 }
 
 impl CustomType for RhaiComponentContext {
@@ -32,6 +37,7 @@ impl CustomType for RhaiComponentContext {
             .with_name("RhaiComponentContext")
             .with_get("assets", Self::get_assets)
             .with_get("file", Self::get_file)
-            .with_get("front_matter", Self::get_front_matter);
+            .with_get("front_matter", Self::get_front_matter)
+            .with_get("is_watching", Self::get_is_watching);
     }
 }

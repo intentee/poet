@@ -128,7 +128,6 @@ impl Handler for Watch {
                 .app_data(app_data.clone())
                 .service(Files::new("/static", "static").prefer_utf8(true))
                 .configure(http_route::favicon::register)
-                .configure(http_route::live_reload_script::register)
                 .configure(http_route::live_reload::register)
                 .configure(http_route::generated_files::register)
         })

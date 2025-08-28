@@ -1,13 +1,14 @@
 fn template(context, props, content) {
-    component {
-      <LayoutHomepage>
-        <div>
-          Hello! :D
-          {content}
-          <Note type="warn">
-            xD
-          </Note>
-        </div>
-      </LayoutHomepage>
-    }
+  context.assets.add("resources/css/page-docs.css");
+
+  component {
+    <LayoutHomepage>
+      <div class="page-docs">
+        {content}
+        <Note>
+          Notka z klasa note
+        </Note>
+      </div>
+    </LayoutHomepage>
+  }
 }

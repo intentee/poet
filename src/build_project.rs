@@ -75,12 +75,9 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
                 .get_stem_path_relative_to(&PathBuf::from("content"))
                 .with_extension("html");
             let rhai_component_context = RhaiComponentContext {
-                asset_manager: AssetManager::from_esbuild_metafile(
-                    esbuild_metafile.clone(),
-                    is_watching,
-                    target_file_relative_path.clone(),
-                ),
+                asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile.clone()),
                 file_entry: file.clone(),
+                is_watching,
                 front_matter: front_matter.clone(),
             };
 

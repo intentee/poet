@@ -30,6 +30,7 @@
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "clsx": "^2.1.1",
+    "idiomorph": "^0.7.3",
     "nanoid": "^5.1.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

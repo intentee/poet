@@ -3,7 +3,7 @@ layout = "LayoutDocsPage"
 title = "Chat Templates"
 +++
 
-- `one
+- `one`
 - two`
 
 ***
@@ -40,8 +40,16 @@ Something else... <poet:/docs/internals/index#something?reshape>
 
 <p>test</p>
 
-<Note type={if true { "yes" } else { "no" }}>
-  hi
+<Note type="info">
+  wow
+</Note>
+
+<Note type="hello">
+  aweaweaweawe
+</Note>
+
+<Note type={context.front_matter.title}>
+  ua
 </Note>
 
 {wow}

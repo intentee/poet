@@ -28,12 +28,12 @@ fmt: prettier
 
 .PHONY: prettier
 prettier: node_modules
-	# npm exec prettier -- \
-	# 	--plugin=prettier-plugin-organize-imports \
-	# 	--write \
-	# 	jarmuz \
-	# 	resources \
-	# 	*.mjs \
+	npm exec prettier -- \
+		--plugin=prettier-plugin-organize-imports \
+		--write \
+		jarmuz \
+		resources \
+		*.mjs \
 
 .PHONY: watch
 watch: node_modules

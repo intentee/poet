@@ -6,7 +6,7 @@ fn template(context, props, content) {
       <div class="page-docs">
         {content}
         <Note>
-          Notka z klasa note
+          Notka
         </Note>
       </div>
     </LayoutHomepage>

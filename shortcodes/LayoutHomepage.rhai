@@ -1,5 +1,8 @@
 fn template(context, props, content) {
-  context.assets.add("resources/ts/global_live_reload.ts");
+  if context.is_watching {
+    context.assets.add("resources/ts/global-live-reload.ts");
+  }
+
   context.assets.add("resources/css/page-common.css");
   context.assets.add("resources/css/page-home.css");
 

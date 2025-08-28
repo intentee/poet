@@ -2,5 +2,10 @@
   h1 {
     color: yellow;
     font-weight: bold;
+    padding-bottom: 10px;
+  }
+
+  p {
+    margin-bottom: 15px;
   }
 }

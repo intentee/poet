@@ -21,7 +21,7 @@ export function jobEsbuild({ development }) {
     const entryPoints = await glob([
       "resources/css/{fragment,global,page}-*.css",
       "resources/css/reset.css",
-      "resources/ts/{controller,global,worker}_*.{ts,tsx}",
+      "resources/ts/{controller,global,worker}{_,-}*.{ts,tsx}",
     ]);
 
     printSubtreeList({

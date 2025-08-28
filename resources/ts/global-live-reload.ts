@@ -11,7 +11,9 @@ setTimeout(function () {
 
   console.log(`Seting up live reload for ${window.location.pathname}`);
 
-  const eventSource = new EventSource(`/api/v1/live_reload${window.location.pathname}`);
+  const eventSource = new EventSource(
+    `/api/v1/live_reload${window.location.pathname}`,
+  );
 
   eventSource.onmessage = function (event) {
     let updatedHTML = event.data;
@@ -20,15 +22,11 @@ setTimeout(function () {
       updatedHTML = updatedHTML.substring(DOCTYPE.length);
     }
 
-    Idiomorph.morph(
-      document.documentElement,
-      updatedHTML,
-      {
-        head: {
-          style: 'morph'
-        }
-      }
-    );
+    Idiomorph.morph(document.documentElement, updatedHTML, {
+      head: {
+        style: "morph",
+      },
+    });
   };
 
   eventSource.onerror = function (event) {

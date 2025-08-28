@@ -1,5 +1,6 @@
 // use chrono::NaiveDate;
 use rhai::CustomType;
+use rhai::Map;
 use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
@@ -26,6 +27,8 @@ pub struct FrontMatter {
     // pub truth_source_for: Vec<String>,
     // pub collections: Vec<Collection>,
     // pub excerpts: Vec<Excerpt>,
+    #[serde(default)]
+    pub props: Map,
     pub title: String,
 }
 

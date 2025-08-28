@@ -36,7 +36,7 @@ pub fn eval_tag(
                     result.push_str(&escape_html(
                         &expression_collection
                             .eval_expression(eval_context, expression_reference)?
-                            .into_string()?,
+                            .to_string(),
                     ));
                 }
                 AttributeValue::Text(text) => {

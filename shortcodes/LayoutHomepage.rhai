@@ -1,4 +1,5 @@
 fn template(context, props, content) {
+
   component {
     <!DOCTYPE html>
     <html lang="en">

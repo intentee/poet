@@ -20,7 +20,7 @@ pub fn eval_tag_stack_node(
     match current_node {
         TagStackNode::BodyExpression(expression_reference) => Ok(expression_collection
             .eval_expression(eval_context, expression_reference)?
-            .into_string()?),
+            .to_string()),
         TagStackNode::Tag {
             children,
             is_closed,
@@ -109,13 +109,7 @@ pub fn eval_tag_stack_node(
                             rhai::Position::NONE,
                         )
                     })?
-                    .into_string()
-                    .map_err(|err| {
-                        EvalAltResult::ErrorRuntime(
-                            format!("Failed to convert component output to string: {err}").into(),
-                            rhai::Position::NONE,
-                        )
-                    })?)
+                    .to_string())
             } else {
                 Ok(result)
             }

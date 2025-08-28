@@ -7,6 +7,7 @@ use anyhow::anyhow;
 use esbuild_metafile::EsbuildMetaFile;
 use log::info;
 use log::warn;
+use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::eval_mdast::eval_mdast;
@@ -82,10 +83,11 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
                 &syntax_set,
             )?;
 
-            let processed_file = rhai_template_renderer.render_without_props(
+            let processed_file = rhai_template_renderer.render(
                 &front_matter.layout,
                 rhai_component_context.clone(),
-                layout_content,
+                Dynamic::from_map(front_matter.props),
+                layout_content.into(),
             )?;
 
             println!("Processed file content:\n{}", processed_file);

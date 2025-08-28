@@ -52,18 +52,4 @@ impl RhaiTemplateRenderer {
             .expression_engine
             .eval_expression_with_scope(&mut scope, expression)?)
     }
-
-    pub fn render_without_props(
-        &self,
-        name: &str,
-        context: RhaiComponentContext,
-        content: String,
-    ) -> Result<String> {
-        self.render(
-            name,
-            context,
-            Dynamic::from_map(rhai::Map::new()),
-            Dynamic::from(content),
-        )
-    }
 }

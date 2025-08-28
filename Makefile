@@ -23,17 +23,8 @@ clean:
 	rm -rf target
 
 .PHONY: fmt
-fmt: prettier
-	cargo fmt
-
-.PHONY: prettier
-prettier: node_modules
-	npm exec prettier -- \
-		--plugin=prettier-plugin-organize-imports \
-		--write \
-		jarmuz \
-		resources \
-		*.mjs \
+fmt: node_modules
+	./jarmuz-fmt.mjs
 
 .PHONY: watch
 watch: node_modules

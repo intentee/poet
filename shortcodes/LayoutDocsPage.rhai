@@ -5,9 +5,6 @@ fn template(context, props, content) {
     <LayoutHomepage>
       <div class="page-docs">
         {content}
-        <Note>
-          Notka
-        </Note>
       </div>
     </LayoutHomepage>
   }

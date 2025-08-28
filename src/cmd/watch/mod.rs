@@ -1,6 +1,7 @@
 mod app_data;
 mod http_route;
 mod output_filesystem_holder;
+mod resolve_generated_file_path;
 mod respond_with_file;
 
 use std::net::SocketAddr;

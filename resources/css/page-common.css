@@ -1,5 +1,6 @@
 @import url("./_fonts.css");
+@import url("./_reset.css");
+@import url("./_variables.css");
 
 body {
-  font-family: "Inter", sans-serif;
 }

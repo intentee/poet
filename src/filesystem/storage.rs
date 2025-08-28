@@ -59,6 +59,10 @@ impl Filesystem for Storage {
             return Ok(ReadFileContentsResult::NotFound);
         }
 
+        if full_path.is_dir() {
+            return Ok(ReadFileContentsResult::Directory);
+        }
+
         let contents = fs::read_to_string(&full_path).await?;
 
         Ok(ReadFileContentsResult::Found(contents))

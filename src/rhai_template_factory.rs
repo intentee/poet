@@ -8,6 +8,7 @@ use rhai::Engine;
 use rhai::Func;
 use rhai::module_resolvers::FileModuleResolver;
 
+use crate::asset_manager::AssetManager;
 use crate::filesystem::file_entry::FileEntry;
 use crate::front_matter::FrontMatter;
 use crate::rhai_component_context::RhaiComponentContext;
@@ -60,6 +61,7 @@ impl RhaiTemplateFactory {
             self.base_directory.join(&self.shortcodes_subdirectory),
         ));
 
+        engine.build_type::<AssetManager>();
         engine.build_type::<FrontMatter>();
         engine.build_type::<RhaiComponentContext>();
 

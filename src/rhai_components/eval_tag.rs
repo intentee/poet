@@ -47,13 +47,11 @@ pub fn eval_tag(
         }
     }
 
-    // if tag.is_self_closing {
-    //     result.push_str(" />");
-    // } else {
-    //     result.push('>');
-    // }
-
-    result.push('>');
+    if tag.is_self_closing && !tag.is_void_element() {
+        result.push_str(" />");
+    } else {
+        result.push('>');
+    }
 
     Ok(result)
 }

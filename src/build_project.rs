@@ -10,6 +10,7 @@ use log::warn;
 use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
+use crate::asset_manager::AssetManager;
 use crate::eval_mdast::eval_mdast;
 use crate::filesystem::Filesystem;
 use crate::filesystem::memory::Memory;
@@ -35,11 +36,7 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
         ReadFileContentsResult::NotFound => {
             warn!("esbuild metafile not found, proceeding without it");
 
-            EsbuildMetaFile::from_str(
-                r#"{
-                "outputs": {}
-            }"#,
-            )?
+            EsbuildMetaFile::default()
         }
     }
     .into();
@@ -73,6 +70,7 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
             })?;
 
             let rhai_component_context = RhaiComponentContext {
+                asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile.clone()),
                 front_matter: front_matter.clone(),
             };
 

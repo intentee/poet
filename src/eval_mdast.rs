@@ -74,7 +74,7 @@ pub fn eval_mdast(
                     Some(syntax) => {
                         let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
                             syntax,
-                            &syntax_set,
+                            syntax_set,
                             ClassStyle::Spaced,
                         );
                         for line in LinesWithEndings::from(value) {
@@ -142,7 +142,7 @@ pub fn eval_mdast(
                 result.push_str(&format!(" title=\"{}\"", title));
             }
 
-            result.push_str(">");
+            result.push('>');
 
             for child in children {
                 result.push_str(&eval_mdast(
@@ -284,7 +284,7 @@ pub fn eval_mdast(
         Node::ThematicBreak(ThematicBreak { .. }) => {
             result.push_str("<hr>");
         }
-        Node::Toml(Toml { value, .. }) => {
+        Node::Toml(Toml { .. }) => {
             // ignore frontmatter during this pass
         }
         item => {

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use anyhow::Result;
-use tokio::sync::watch;
+use tokio::sync::Notify;
 
 use crate::filesystem::Filesystem;
 
@@ -10,8 +10,8 @@ pub struct OutputFilesystemHolder<TFilesystem>
 where
     TFilesystem: Filesystem,
 {
-    output_filesystem: RwLock<Option<Arc<TFilesystem>>>,
-    update_notifier: watch::Sender<()>,
+    pub output_filesystem: RwLock<Option<Arc<TFilesystem>>>,
+    pub update_notifier: Notify,
 }
 
 impl<TFilesystem> OutputFilesystemHolder<TFilesystem>
@@ -36,7 +36,7 @@ where
             *output_filesystem = Some(filesystem);
         }
 
-        self.update_notifier.send(())?;
+        self.update_notifier.notify_waiters();
 
         Ok(())
     }
@@ -47,11 +47,9 @@ where
     TFilesystem: Filesystem,
 {
     fn default() -> Self {
-        let (update_notifier, _) = watch::channel(());
-
         Self {
             output_filesystem: RwLock::new(None),
-            update_notifier,
+            update_notifier: Notify::new(),
         }
     }
 }

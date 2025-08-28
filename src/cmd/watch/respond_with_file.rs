@@ -2,21 +2,14 @@ use std::path::Path as StdPath;
 
 use actix_web::HttpResponse;
 use actix_web::Result;
-use actix_web::get;
-use actix_web::web;
 use actix_web::web::Data;
-use actix_web::web::Path;
 use log::error;
 
 use crate::cmd::watch::app_data::AppData;
 use crate::filesystem::Filesystem as _;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 
-pub fn register(cfg: &mut web::ServiceConfig) {
-    cfg.service(respond);
-}
-
-async fn respond_with_file(
+pub async fn respond_with_file(
     app_data: Data<AppData>,
     std_path: &StdPath,
     check_for_index: bool,
@@ -62,12 +55,4 @@ async fn respond_with_file(
             Ok(HttpResponse::InternalServerError().body(msg))
         }
     }
-}
-
-#[get("/{path:.*}")]
-async fn respond(app_data: Data<AppData>, path: Path<String>) -> Result<HttpResponse> {
-    let path_string = path.into_inner();
-    let std_path = StdPath::new(&path_string);
-
-    respond_with_file(app_data, std_path, true).await
 }

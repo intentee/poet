@@ -5,7 +5,7 @@ fn template(context, props, content) {
           Hello! :D
           {content}
           <Note type="warn">
-            xDD
+            xD
           </Note>
         </div>
       </LayoutHomepage>

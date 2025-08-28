@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 
+use rhai::CustomType;
+use rhai::TypeBuilder;
+
 #[derive(Clone, Debug)]
 pub struct FileEntry {
     pub contents: String,
@@ -7,11 +10,19 @@ pub struct FileEntry {
 }
 
 impl FileEntry {
-    pub fn get_stem_relative_to(&self, base: &PathBuf) -> String {
+    pub fn get_relative_path(&mut self) -> String {
+        self.relative_path.to_string_lossy().to_string()
+    }
+
+    pub fn get_stem_path_relative_to(&self, base: &PathBuf) -> PathBuf {
         self.relative_path
             .strip_prefix(base)
             .unwrap_or(&self.relative_path)
             .with_extension("")
+    }
+
+    pub fn get_stem_relative_to(&self, base: &PathBuf) -> String {
+        self.get_stem_path_relative_to(base)
             .to_string_lossy()
             .to_string()
     }
@@ -29,6 +40,14 @@ impl FileEntry {
 
     pub fn is_rhai(&self) -> bool {
         self.has_extension("rhai")
+    }
+}
+
+impl CustomType for FileEntry {
+    fn build(mut builder: TypeBuilder<Self>) {
+        builder
+            .with_name("FileEntry")
+            .with_get("relative_path", Self::get_relative_path);
     }
 }
 

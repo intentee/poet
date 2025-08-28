@@ -1,12 +1,14 @@
 mod app_data;
 mod http_route;
 mod output_filesystem_holder;
+mod respond_with_file;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use actix_files::Files;
 use actix_web::App;
 use actix_web::HttpServer;
 use actix_web::rt;
@@ -51,7 +53,7 @@ impl Handler for Watch {
         let (files_changed_tx, mut files_changed_rx) = watch::channel(());
 
         let mut debouncer = new_debouncer(
-            Duration::from_millis(50),
+            Duration::from_millis(30),
             None,
             move |result: DebounceEventResult| match result {
                 Ok(events) => {
@@ -60,9 +62,21 @@ impl Handler for Watch {
                             EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
                                 info!("Source file change detected: {:?}", event.paths);
 
-                                files_changed_tx
-                                    .send(())
-                                    .expect("Failed to send file change notification");
+                                for path in &event.paths {
+                                    // try to ignore temporary files
+                                    let path_string = path.to_string_lossy();
+
+                                    if path_string.ends_with("~")
+                                        || path_string.ends_with(".swp")
+                                        || path_string.ends_with(".tmp")
+                                    {
+                                        continue;
+                                    }
+
+                                    files_changed_tx
+                                        .send(())
+                                        .expect("Failed to send file change notification");
+                                }
 
                                 break;
                             }
@@ -88,7 +102,7 @@ impl Handler for Watch {
 
         rt::spawn(async move {
             loop {
-                match build_project(&source_filesystem).await {
+                match build_project(true, &source_filesystem).await {
                     Ok(memory_filesystem) => {
                         if let Err(err) = output_filesystem_holder_clone
                             .set_output_filesystem(Arc::new(memory_filesystem))
@@ -112,8 +126,11 @@ impl Handler for Watch {
         HttpServer::new(move || {
             App::new()
                 .app_data(app_data.clone())
+                .service(Files::new("/static", "static").prefer_utf8(true))
                 .configure(http_route::favicon::register)
-                .configure(http_route::static_files::register)
+                .configure(http_route::live_reload_script::register)
+                .configure(http_route::live_reload::register)
+                .configure(http_route::generated_files::register)
         })
         .bind(self.addr)
         .expect("Unable to bind server to address")

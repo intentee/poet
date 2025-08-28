@@ -62,6 +62,7 @@ impl RhaiTemplateFactory {
         ));
 
         engine.build_type::<AssetManager>();
+        engine.build_type::<FileEntry>();
         engine.build_type::<FrontMatter>();
         engine.build_type::<RhaiComponentContext>();
 

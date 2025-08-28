@@ -22,7 +22,8 @@ use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
 
-pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
+pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Result<Memory> {
+    let memory_filesystem = Memory::default();
     let esbuild_metafile: Arc<EsbuildMetaFile> = match source_filesystem
         .read_file_contents(&PathBuf::from("esbuild-meta.json"))
         .await?
@@ -47,7 +48,6 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
     );
     let syntax_set = SyntaxSet::load_defaults_newlines();
 
-    // First pass, process Rhai files to be used as shortcodes or layouts
     for file in &files {
         if file.is_rhai() {
             info!("Processing shortcode file: {:?}", file.relative_path);
@@ -60,6 +60,8 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
 
     let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
 
+    info!("Processing content files...");
+
     for file in &files {
         if file.is_markdown() {
             info!("Processing content file: {:?}", file.relative_path);
@@ -69,8 +71,16 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
                 anyhow!("No front matter found in file: {:?}", file.relative_path)
             })?;
 
+            let target_file_relative_path = &file
+                .get_stem_path_relative_to(&PathBuf::from("content"))
+                .with_extension("html");
             let rhai_component_context = RhaiComponentContext {
-                asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile.clone()),
+                asset_manager: AssetManager::from_esbuild_metafile(
+                    esbuild_metafile.clone(),
+                    is_watching,
+                    target_file_relative_path.clone(),
+                ),
+                file_entry: file.clone(),
                 front_matter: front_matter.clone(),
             };
 
@@ -88,9 +98,11 @@ pub async fn build_project(source_filesystem: &Storage) -> Result<Memory> {
                 layout_content.into(),
             )?;
 
-            println!("Processed file content:\n{}", processed_file);
+            memory_filesystem
+                .set_file_contents(target_file_relative_path, &processed_file)
+                .await?;
         }
     }
 
-    Err(anyhow!("Not implemented yet"))
+    Ok(memory_filesystem)
 }

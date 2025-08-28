@@ -10,7 +10,6 @@ use actix_web::web::Data;
 use actix_web::web::Path;
 use actix_web_lab::sse;
 use log::error;
-use log::info;
 use log::warn;
 
 use crate::cmd::watch::app_data::AppData;
@@ -23,8 +22,6 @@ pub fn register(cfg: &mut web::ServiceConfig) {
 
 #[get("/api/v1/live_reload/{path:.*}")]
 async fn respond(app_data: Data<AppData>, path: Path<String>) -> Result<impl Responder, Error> {
-    info!("Live reload request for path: {path}");
-
     let event_stream = async_stream::stream! {
         let path_string = path.into_inner();
         let std_path = StdPath::new(&path_string);

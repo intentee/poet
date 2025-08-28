@@ -67,7 +67,12 @@ pub fn combine_output_symbols(
                     }
                 }
             }
-            OutputSymbol::TagPadding => {}
+            OutputSymbol::TagPadding => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::TagPadding) => {}
+                _ => {
+                    combined_symbols.push(OutputCombinedSymbol::TagPadding);
+                }
+            },
             OutputSymbol::TagAttributeValueString(text) => match combined_symbols.last_mut() {
                 Some(OutputCombinedSymbol::TagAttributeName(_)) => {
                     combined_symbols.push(OutputCombinedSymbol::TagAttributeValue(
@@ -127,10 +132,10 @@ pub fn combine_output_symbols(
             }
             OutputCombinedSymbol::Text(text) => match semantic_symbols.back_mut() {
                 Some(OutputSemanticSymbol::Text(existing_text)) => {
-                    existing_text.push_str(text.trim());
+                    existing_text.push_str(&text);
                 }
                 _ => {
-                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text.trim().to_string()));
+                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text.to_string()));
                 }
             },
             OutputCombinedSymbol::TagLeftAngle => match semantic_symbols.back_mut() {
@@ -205,6 +210,7 @@ pub fn combine_output_symbols(
                     }
                 }
             }
+            OutputCombinedSymbol::TagPadding => {}
             OutputCombinedSymbol::TagSelfClose => match semantic_symbols.back_mut() {
                 Some(OutputSemanticSymbol::Tag(Tag {
                     is_self_closing, ..

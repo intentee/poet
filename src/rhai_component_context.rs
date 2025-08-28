@@ -29,6 +29,10 @@ impl RhaiComponentContext {
     pub fn get_is_watching(&mut self) -> bool {
         self.is_watching
     }
+
+    pub fn link_to(&mut self, path: &str) -> String {
+        path.to_string()
+    }
 }
 
 impl CustomType for RhaiComponentContext {
@@ -38,6 +42,7 @@ impl CustomType for RhaiComponentContext {
             .with_get("assets", Self::get_assets)
             .with_get("file", Self::get_file)
             .with_get("front_matter", Self::get_front_matter)
-            .with_get("is_watching", Self::get_is_watching);
+            .with_get("is_watching", Self::get_is_watching)
+            .with_fn("link_to", Self::link_to);
     }
 }

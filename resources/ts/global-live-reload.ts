@@ -16,7 +16,7 @@ setTimeout(function () {
   );
 
   eventSource.onmessage = function (event) {
-    let updatedHTML = event.data;
+    let updatedHTML = event.data.trim();
 
     if (updatedHTML.startsWith(DOCTYPE)) {
       updatedHTML = updatedHTML.substring(DOCTYPE.length);

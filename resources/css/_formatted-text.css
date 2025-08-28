@@ -1,0 +1,207 @@
+.formatted-text {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--font-size-base);
+  text-wrap: pretty;
+
+  figure {
+    display: flex;
+    flex-direction: column;
+    margin: var(--spacing-base) 0;
+    padding: 0;
+    row-gap: var(--spacing-half);
+
+    > a {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+
+      img {
+        height: 100%;
+        width: 100%;
+      }
+    }
+
+    figcaption {
+      font-style: italic;
+      text-align: center;
+    }
+  }
+
+  h1,
+  h2,
+  h3 {
+    margin-top: 1em;
+    position: relative;
+    scroll-margin-top: calc(
+      var(--spacing-base) + var(--height-primary-navigation-header)
+    );
+
+    &:first-child {
+      margin-top: -0.25em;
+    }
+  }
+
+  h1 {
+    font-size: 3em;
+    font-weight: bold;
+
+    @media (max-width: 800px) {
+      line-height: 1.2;
+      margin-bottom: 0.3em;
+    }
+  }
+
+  h2 {
+    font-size: 2em;
+    font-weight: bold;
+  }
+
+  h3 {
+    font-size: 1.2em;
+    font-weight: bold;
+  }
+
+  img {
+    max-width: 100%;
+    object-fit: cover;
+  }
+
+  pre {
+    display: grid;
+    position: relative;
+
+    code {
+      overflow-x: auto;
+    }
+  }
+
+  pre[data-lang] {
+    background-color: transparent !important;
+    border: 2px solid var(--color-border);
+
+    @media (max-width: 800px) {
+      margin: var(--spacing-base) calc(-1 * var(--spacing-half));
+    }
+
+    @media (min-width: 800px) {
+      margin: var(--spacing-base) calc(-1 * var(--spacing-base));
+    }
+
+    &::before {
+      background-color: lavender;
+      border-bottom: 2px solid var(--color-border);
+      content: attr(data-lang);
+      left: 0;
+      right: 0;
+      position: sticky;
+      top: 0;
+
+      @media (max-width: 800px) {
+        padding: var(--spacing-half);
+      }
+
+      @media (min-width: 800px) {
+        padding: var(--spacing-half) var(--spacing-base);
+      }
+    }
+
+    code {
+      @media (max-width: 800px) {
+        padding: var(--spacing-base) var(--spacing-half);
+      }
+
+      @media (min-width: 800px) {
+        padding: var(--spacing-base);
+      }
+    }
+  }
+
+  ol,
+  ul {
+    padding-left: var(--spacing-base);
+
+    li {
+      padding: var(--spacing-quarter) 0;
+    }
+
+    ol,
+    ul {
+      padding: var(--spacing-quarter) var(--spacing-base) 0 var(--spacing-2x);
+    }
+  }
+
+  p,
+  ol,
+  ul {
+    code {
+      --margin-horizontal: 4px;
+
+      display: inline-flex;
+      font-family: var(--font-family-monospace);
+      font-size: var(--font-size-small);
+      margin: 0 var(--margin-horizontal);
+      position: relative;
+      text-align: center;
+      z-index: var(--z-index-text-decoration);
+
+      &::after {
+        --size-overflow: calc(-1 * var(--margin-horizontal));
+
+        /* background-color: #f5f5f5; */
+        background-color: lavender;
+        border-radius: 20% 10px 30% 10px;
+        bottom: var(--size-overflow);
+        content: "";
+        left: var(--size-overflow);
+        pointer-events: none;
+        position: absolute;
+        right: var(--size-overflow);
+        top: var(--size-overflow);
+        user-select: none;
+        z-index: -1;
+      }
+    }
+  }
+
+  table {
+    border-collapse: collapse;
+
+    p + p {
+      margin-top: var(--spacing-half);
+    }
+
+    td,
+    th {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-base);
+      text-align: left;
+
+      code {
+        word-break: break-word;
+      }
+    }
+
+    thead {
+      background-color: lavender;
+    }
+  }
+}
+
+.formatted-text__note {
+  background-color: var(--color-note-background);
+  border-radius: 20px 30px 10px 15px;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--spacing-base);
+
+  @media (max-width: 800px) {
+    margin: var(--spacing-base) calc(-1 * var(--spacing-half));
+    padding: var(--spacing-base) var(--spacing-half);
+  }
+
+  @media (min-width: 800px) {
+    margin: var(--spacing-base) calc(-1 * var(--spacing-base));
+    padding: var(--spacing-base);
+  }
+}

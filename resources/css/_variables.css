@@ -1,30 +1,43 @@
 :root {
-  --color-body-background-o55: #ffffff55;
   --color-body-background: #ffffff;
   --color-body-font: #111;
   --color-border: black;
-  --color-highlight-1: #ffff55;
-  --color-highlight-2: antiquewhite;
+  --color-highlight: #ffff55;
   --color-note-background: #ffffdd;
-  --color-scrollbar: #111;
-  --color-scrollbar-hover: #333;
   --duration-transition-hover: 100ms;
-  --font-family-sans-serif: "Inter", sans-serif;
-  --font-family-monospace: "JetBrains Mono", monospace;
-  --font-size-base: 14px;
-  --font-size-l1: calc(1.5 * var(--font-size-base));
-  --font-size-l2: calc(1.5 * var(--font-size-l1));
-  --font-size-small: 11px;
-  --height-workbench-header: 80px;
+  --font-family-body: "Inter", sans-serif;
+  --font-family-monospace: "Noto Sans Mono", monospace;
+  --height-footer: 90px;
+  --height-primary-navigation-horizontal-scrollbar: 10px;
   --line-height-base: 1.5;
   --max-width-workbench-content: 1024px;
+  --primary-navigation-icon-height: 30px;
+  --primary-navigation-icon-width: 30px;
   --spacing-2x: calc(2 * var(--spacing-base));
   --spacing-base: 16px;
   --spacing-half: calc(0.5 * var(--spacing-base));
   --spacing-quarter: calc(0.25 * var(--spacing-base));
-  --width-scrollbar: 8px;
 
-  --z-index-workbench-content: 1;
-  --z-index-workbench-header: 2;
+  --z-index-text-decoration: 1;
+  --z-index-related-pages: 2;
+  --z-index-primary-navigation: 3;
   --z-index-modal: 3;
+
+  @media (max-width: 800px) {
+    --height-mobile-related-pages: 60px;
+    --height-mobile-sub-navigation: 50px;
+    --height-primary-navigation-header: 60px;
+  }
+  @media (min-width: 800px) {
+    --height-mobile-sub-navigation: 0;
+    --height-primary-navigation-header: 70px;
+  }
+  @media (max-width: 1650px) {
+    --font-size-base: 14px;
+    --font-size-small: 12px;
+  }
+  @media (min-width: 1650px) {
+    --font-size-base: 16px;
+    --font-size-small: 14px;
+  }
 }

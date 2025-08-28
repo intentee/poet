@@ -22,6 +22,8 @@ use serde::Serialize;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FrontMatter {
     // pub created_at: NaiveDate,
+    #[serde(default)]
+    pub description: String,
     pub layout: String,
     // pub references: Vec<String>,
     // pub truth_source_for: Vec<String>,
@@ -33,6 +35,10 @@ pub struct FrontMatter {
 }
 
 impl FrontMatter {
+    pub fn get_description(&mut self) -> String {
+        self.description.clone()
+    }
+
     pub fn get_title(&mut self) -> String {
         self.title.clone()
     }
@@ -42,6 +48,7 @@ impl CustomType for FrontMatter {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("FrontMatter")
+            .with_get("description", Self::get_description)
             .with_get("title", Self::get_title);
     }
 }

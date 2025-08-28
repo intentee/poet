@@ -10,6 +10,7 @@ pub enum OutputCombinedSymbol {
     TagName(String),
     TagAttributeName(String),
     TagAttributeValue(AttributeValue),
+    TagPadding,
     TagSelfClose,
     TagRightAngle,
 }

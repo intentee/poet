@@ -30,3 +30,6 @@ fmt: node_modules
 watch: node_modules
 	./jarmuz-watch.mjs
 
+.PHONY: watch
+watch-content: node_modules
+	./jarmuz-watch-content.mjs

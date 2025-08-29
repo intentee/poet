@@ -1,4 +1,6 @@
+use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
@@ -11,47 +13,82 @@ use notify_debouncer_full::Debouncer;
 use notify_debouncer_full::RecommendedCache;
 use notify_debouncer_full::new_debouncer;
 use notify_debouncer_full::notify::RecursiveMode;
-use tokio::sync::watch;
+use tokio::sync::Notify;
 
 pub struct WatchProjectHandle {
-    pub content_files_changed_rx: watch::Receiver<()>,
     pub debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
+    pub on_config_file_changed: Arc<Notify>,
+    pub on_content_file_changed: Arc<Notify>,
+}
+
+fn is_inside_directory(directory: &Path, file_path: &Path) -> bool {
+    file_path
+        .canonicalize()
+        .and_then(|file| directory.canonicalize().map(|dir| (file, dir)))
+        .map(|(file, dir)| file.starts_with(dir))
+        .unwrap_or(false)
+}
+
+fn is_temp_file(path: &Path) -> bool {
+    let path_string = path.to_string_lossy();
+
+    path_string.ends_with("~") || path_string.ends_with(".swp") || path_string.ends_with(".tmp")
 }
 
 pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHandle> {
-    let (content_files_changed_tx, content_files_changed_rx) = watch::channel(());
+    let config_path = source_directory.join("poet.toml").canonicalize()?;
+    let content_directory = source_directory.join("content");
+    let esbuild_metafile_path = source_directory.join("esbuild-meta.json").canonicalize()?;
+    let shortcodes_directory = source_directory.join("shortcodes");
 
-    content_files_changed_tx
-        .send(())
-        .expect("Failed to send file change notification");
+    let on_config_file_changed = Arc::new(Notify::new());
+    let on_content_file_changed = Arc::new(Notify::new());
+
+    let content_directory_clone = content_directory.clone();
+    let on_config_file_changed_clone = on_config_file_changed.clone();
+    let on_content_file_changed_clone = on_content_file_changed.clone();
+    let shortcodes_directory_clone = shortcodes_directory.clone();
 
     let mut debouncer = new_debouncer(
-        Duration::from_millis(30),
+        Duration::from_millis(100),
         None,
         move |result: DebounceEventResult| match result {
             Ok(events) => {
                 for event in &events {
                     match event.kind {
                         EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
-                            info!("Source file change detected: {:?}", event.paths);
-
                             for path in &event.paths {
-                                // try to ignore temporary files
-                                let path_string = path.to_string_lossy();
+                                if is_temp_file(path) {
+                                    info!("Ignoring temporary file change: {}", path.display());
 
-                                if path_string.ends_with("~")
-                                    || path_string.ends_with(".swp")
-                                    || path_string.ends_with(".tmp")
-                                {
                                     continue;
                                 }
 
-                                content_files_changed_tx
-                                    .send(())
-                                    .expect("Failed to send file change notification");
+                                if is_inside_directory(&content_directory_clone, path)
+                                    || is_inside_directory(&shortcodes_directory_clone, path)
+                                    || esbuild_metafile_path == *path
+                                {
+                                    info!("Source file change detected: {:?}", path.display());
+
+                                    on_content_file_changed_clone.notify_waiters();
+
+                                    return;
+                                }
+
+                                println!("Config path: {:?}", config_path);
+
+                                if config_path == *path {
+                                    info!("Poet config file changed: {:?}", path.display());
+
+                                    on_config_file_changed_clone.notify_waiters();
+
+                                    return;
+                                }
+
+                                info!("Ignoring file change: {:?}", path.display());
                             }
 
-                            break;
+                            return;
                         }
                         _ => {}
                     }
@@ -61,15 +98,13 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
         },
     )?;
 
-    debouncer.watch(source_directory.join("content"), RecursiveMode::Recursive)?;
+    debouncer.watch(content_directory, RecursiveMode::Recursive)?;
+    debouncer.watch(shortcodes_directory, RecursiveMode::Recursive)?;
     debouncer.watch(source_directory.clone(), RecursiveMode::NonRecursive)?;
-    debouncer.watch(
-        source_directory.join("shortcodes"),
-        RecursiveMode::Recursive,
-    )?;
 
     Ok(WatchProjectHandle {
-        content_files_changed_rx,
         debouncer,
+        on_config_file_changed,
+        on_content_file_changed,
     })
 }

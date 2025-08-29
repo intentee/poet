@@ -57,8 +57,9 @@ impl Handler for Watch {
         })?;
 
         let WatchProjectHandle {
-            mut content_files_changed_rx,
             debouncer: _debouncer,
+            on_config_file_changed,
+            on_content_file_changed,
         } = watch_project_files(self.source_directory.clone())?;
 
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
@@ -74,20 +75,22 @@ impl Handler for Watch {
         let ctrlc_notifier_builder = ctrlc_notifier.clone();
 
         task_set.spawn(rt::spawn(async move {
+            let do_build_project = async || match build_project(true, &source_filesystem).await {
+                Ok(memory_filesystem) => {
+                    if let Err(err) = output_filesystem_holder_clone
+                        .set_output_filesystem(Arc::new(memory_filesystem))
+                    {
+                        error!("Failed to set output filesystem: {err}");
+                    }
+                }
+                Err(err) => error!("Failed to build project: {err}"),
+            };
+
+            do_build_project().await;
+
             loop {
                 tokio::select! {
-                    _ = content_files_changed_rx.changed() => {
-                        match build_project(true, &source_filesystem).await {
-                            Ok(memory_filesystem) => {
-                                if let Err(err) = output_filesystem_holder_clone
-                                    .set_output_filesystem(Arc::new(memory_filesystem))
-                                {
-                                    error!("Failed to set output filesystem: {err}");
-                                }
-                            }
-                            Err(err) => error!("Failed to build project: {err}"),
-                        }
-                    }
+                    _ = on_content_file_changed.notified() => do_build_project().await,
                     _ = ctrlc_notifier_builder.cancelled() => {
                         break;
                     }
@@ -105,11 +108,14 @@ impl Handler for Watch {
             });
 
             loop {
+                info!("Starting watch server");
+
                 if ctrlc_notifier_server.is_cancelled() {
                     break;
                 }
 
                 let app_data_clone = app_data.clone();
+                let on_config_file_changed_clone = on_config_file_changed.clone();
                 let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
                 let static_files_directory_clone = static_files_directory.clone();
 
@@ -126,7 +132,13 @@ impl Handler for Watch {
                 })
                 .bind(addr)
                 .expect("Unable to bind server to address")
-                .shutdown_signal(async move { ctrlc_notifier_server_clone.cancelled().await })
+                .shutdown_signal(async move {
+                    tokio::select! {
+                        _ = on_config_file_changed_clone.notified() => {}
+                        _ = ctrlc_notifier_server_clone.cancelled() => {}
+                    }
+                })
+                .shutdown_timeout(1)
                 .run()
                 .await
                 {

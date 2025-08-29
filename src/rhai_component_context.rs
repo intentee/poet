@@ -14,7 +14,8 @@ pub struct RhaiComponentContext {
     pub asset_manager: AssetManager,
     pub front_matter: FrontMatter,
     pub is_watching: bool,
-    pub markdown_document_index: Arc<HashMap<String, MarkdownDocumentReference>>,
+    pub markdown_basename_by_id: Arc<HashMap<String, String>>,
+    pub markdown_document_by_basename: Arc<HashMap<String, MarkdownDocumentReference>>,
 }
 
 impl RhaiComponentContext {
@@ -31,7 +32,23 @@ impl RhaiComponentContext {
     }
 
     pub fn link_to(&mut self, path: &str) -> Result<String, Box<EvalAltResult>> {
-        if let Some(reference) = self.markdown_document_index.get(path) {
+        let basename = if path.starts_with("#") {
+            if let Some(basename) = self
+                .markdown_basename_by_id
+                .get(match path.strip_prefix('#') {
+                    Some(id) => id,
+                    None => return Err("Unable to strip prefix from document id".into()),
+                })
+            {
+                basename
+            } else {
+                return Err(format!("Documetn with id does not exist: {path}").into());
+            }
+        } else {
+            path
+        };
+
+        if let Some(reference) = self.markdown_document_by_basename.get(basename) {
             Ok(format!("/{}", reference.target_file_relative_path().display()).to_string())
         } else {
             Err(format!("Document does not exist: {path}").into())

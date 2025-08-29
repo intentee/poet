@@ -1,7 +1,7 @@
 mod app_data;
 mod http_route;
 mod output_filesystem_holder;
-mod resolve_generated_page_path;
+mod resolve_generated_page;
 mod respond_with_generated_page;
 mod watch_project_files;
 
@@ -75,6 +75,7 @@ impl Handler for Watch {
                 Ok(memory_filesystem) => {
                     if let Err(err) = output_filesystem_holder_clone
                         .set_output_filesystem(Arc::new(memory_filesystem))
+                        .await
                     {
                         error!("Failed to set output filesystem: {err}");
                     }

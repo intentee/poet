@@ -65,7 +65,9 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
 
     info!("Processing content files...");
 
-    let mut markdown_document_index: HashMap<String, MarkdownDocumentReference> = HashMap::new();
+    let mut markdown_basename_by_id: HashMap<String, String> = HashMap::new();
+    let mut markdown_document_by_basename: HashMap<String, MarkdownDocumentReference> =
+        HashMap::new();
     let mut markdown_document_list: Vec<MarkdownDocument> = Vec::new();
 
     for file in &files {
@@ -80,13 +82,21 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
             let basename_path = file.get_stem_path_relative_to(&PathBuf::from("content"));
             let basename = basename_path.display().to_string();
 
+            if let Some(id) = &front_matter.id {
+                if markdown_basename_by_id.contains_key(id) {
+                    return Err(anyhow!("Duplicate document id: #{id} in '{basename}'"));
+                }
+
+                markdown_basename_by_id.insert(id.clone(), basename.clone());
+            }
+
             let markdown_document_reference = MarkdownDocumentReference {
                 basename: basename.clone(),
                 basename_path,
                 front_matter,
             };
 
-            markdown_document_index.insert(basename, markdown_document_reference.clone());
+            markdown_document_by_basename.insert(basename, markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {
                 mdast,
                 reference: markdown_document_reference,
@@ -94,7 +104,8 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
         }
     }
 
-    let markdown_document_index_arc = Arc::new(markdown_document_index);
+    let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
+    let markdown_document_index_arc = Arc::new(markdown_document_by_basename);
 
     for MarkdownDocument {
         mdast,
@@ -110,7 +121,8 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
             asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile.clone()),
             is_watching,
             front_matter: front_matter.clone(),
-            markdown_document_index: markdown_document_index_arc.clone(),
+            markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
+            markdown_document_by_basename: markdown_document_index_arc.clone(),
         };
 
         let layout_content = eval_mdast(

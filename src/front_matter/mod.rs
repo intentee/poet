@@ -6,8 +6,13 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Collection {
+    #[serde(default)]
+    pub after: Option<String>,
     pub name: String,
+    #[serde(default)]
+    pub parent: Option<String>,
 }
 
 // #[derive(Debug, Deserialize, Serialize)]
@@ -18,15 +23,18 @@ pub struct Collection {
 // }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FrontMatter {
     // pub created_at: NaiveDate,
     #[serde(default)]
     pub description: String,
+    #[serde(default)]
+    pub id: Option<String>,
     pub layout: String,
     // pub references: Vec<String>,
     // pub truth_source_for: Vec<String>,
     #[serde(default)]
-    pub collections: Vec<Collection>,
+    pub collection: Vec<Collection>,
     // pub excerpts: Vec<Excerpt>,
     #[serde(default)]
     pub props: Map,

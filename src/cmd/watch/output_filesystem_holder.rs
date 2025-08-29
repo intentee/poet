@@ -1,8 +1,8 @@
 use std::sync::Arc;
-use std::sync::RwLock;
 
 use anyhow::Result;
 use tokio::sync::Notify;
+use tokio::sync::RwLock;
 
 use crate::filesystem::Filesystem;
 
@@ -18,21 +18,16 @@ impl<TFilesystem> OutputFilesystemHolder<TFilesystem>
 where
     TFilesystem: Filesystem,
 {
-    pub fn get_output_filesystem(&self) -> Result<Option<Arc<TFilesystem>>> {
-        let output_filesystem = self
-            .output_filesystem
-            .read()
-            .expect("Failed to acquire read lock on output filesystem");
+    pub async fn get_output_filesystem(&self) -> Result<Option<Arc<TFilesystem>>> {
+        let output_filesystem = self.output_filesystem.read().await;
 
         Ok(output_filesystem.clone())
     }
 
-    pub fn set_output_filesystem(&self, filesystem: Arc<TFilesystem>) -> Result<()> {
+    pub async fn set_output_filesystem(&self, filesystem: Arc<TFilesystem>) -> Result<()> {
         {
-            let mut output_filesystem = self
-                .output_filesystem
-                .write()
-                .expect("Failed to acquire write lock on output filesystem");
+            let mut output_filesystem = self.output_filesystem.write().await;
+
             *output_filesystem = Some(filesystem);
         }
 

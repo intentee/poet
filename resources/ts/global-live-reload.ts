@@ -11,11 +11,11 @@ function setupLiveReload() {
 
   console.log(`Seting up live reload for ${window.location.pathname}`);
 
-  const eventSource = new EventSource(
+  const liveReloadSocket = new WebSocket(
     `/api/v1/live_reload${window.location.pathname}`,
   );
 
-  eventSource.onmessage = function (event) {
+  liveReloadSocket.onmessage = function (event) {
     let updatedHTML = event.data.trim();
 
     if (updatedHTML.startsWith(DOCTYPE)) {
@@ -29,12 +29,12 @@ function setupLiveReload() {
     });
   };
 
-  eventSource.onerror = function (event) {
-    console.error("Live reload EventSource failed:", event);
+  liveReloadSocket.onerror = function (event) {
+    console.error("Live reload socket failed:", event);
   };
 
-  eventSource.onopen = function (event) {
-    console.log("Live reload EventSource connected:", event);
+  liveReloadSocket.onopen = function (event) {
+    console.log("Live reload socket connected:", event);
   };
 }
 

@@ -38,7 +38,7 @@ fn template(context, props, content) {
             <div class="primary-navigation__group-wrapper">
               <div class="primary-navigation__group">
                 <a
-                  href={context.link_to("index")}
+                  href={context.link_to("#getting-started")}
                   class="primary-navigation__link"
                 >
                   Docs

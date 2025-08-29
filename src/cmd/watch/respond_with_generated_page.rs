@@ -6,7 +6,7 @@ use actix_web::web::Data;
 use log::error;
 
 use crate::cmd::watch::app_data::AppData;
-use crate::cmd::watch::resolve_generated_page_path::resolve_generated_page_path;
+use crate::cmd::watch::resolve_generated_page::resolve_generated_page;
 use crate::filesystem::file_entry::FileEntry;
 
 pub async fn respond_with_generated_page(
@@ -14,9 +14,13 @@ pub async fn respond_with_generated_page(
     std_path: &StdPath,
     check_for_index: bool,
 ) -> Result<HttpResponse> {
-    match app_data.output_filesystem_holder.get_output_filesystem() {
+    match app_data
+        .output_filesystem_holder
+        .get_output_filesystem()
+        .await
+    {
         Ok(Some(filesystem)) => {
-            match resolve_generated_page_path(filesystem, std_path, check_for_index).await? {
+            match resolve_generated_page(filesystem, std_path, check_for_index).await? {
                 Some(FileEntry {
                     contents,
                     relative_path,

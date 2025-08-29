@@ -15,12 +15,12 @@ pub struct MarkdownDocumentCollection {
 impl MarkdownDocumentCollection {
     pub fn sort_by_successors(&self) -> Result<Vec<MarkdownDocumentInCollection>> {
         let mut basename_to_node = HashMap::new();
-        let mut hierarchy_graph: StableDiGraph<String, ()> = StableDiGraph::new();
+        let mut successors_graph: StableDiGraph<String, ()> = StableDiGraph::new();
         let mut node_to_document = HashMap::new();
 
         // First pass, register all the documents
         for document in &self.documents {
-            let node = hierarchy_graph.add_node(document.reference.basename.clone());
+            let node = successors_graph.add_node(document.reference.basename.clone());
 
             basename_to_node.insert(document.reference.basename.clone(), node);
             node_to_document.insert(node, document.clone());
@@ -29,7 +29,7 @@ impl MarkdownDocumentCollection {
         // Second pass, register edges
         for document in &self.documents {
             if let Some(after) = &document.collection.after {
-                hierarchy_graph.try_add_edge(
+                successors_graph.try_add_edge(
                     *basename_to_node
                         .get(after)
                         .ok_or(anyhow!("Unable to find node {}", after))?,
@@ -44,7 +44,7 @@ impl MarkdownDocumentCollection {
             }
         }
 
-        match toposort(&hierarchy_graph, None) {
+        match toposort(&successors_graph, None) {
             Ok(sorted_nodes) => {
                 let mut sorted_documents: Vec<MarkdownDocumentInCollection> = Vec::new();
 
@@ -59,7 +59,7 @@ impl MarkdownDocumentCollection {
 
                 Ok(sorted_documents)
             }
-            Err(_) => Err(anyhow!("Found cycle in documents hierarchy")),
+            Err(_) => Err(anyhow!("Found cycle in documents successors")),
         }
     }
 }
@@ -87,7 +87,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sort_by_hierarchy() -> Result<()> {
+    fn test_sort_by_successors() -> Result<()> {
         let mut collection = MarkdownDocumentCollection::default();
 
         collection.documents.push(MarkdownDocumentInCollection {

@@ -9,7 +9,7 @@ use crate::filesystem::Filesystem;
 use crate::filesystem::file_entry::FileEntry;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 
-pub async fn resolve_generated_file_path<TFilesystem>(
+pub async fn resolve_generated_page_path<TFilesystem>(
     filesystem: Arc<TFilesystem>,
     std_path: &StdPath,
     check_for_index: bool,
@@ -20,7 +20,7 @@ where
     match filesystem.read_file_contents(std_path).await {
         Ok(ReadFileContentsResult::Directory) => {
             if check_for_index {
-                Box::pin(resolve_generated_file_path(
+                Box::pin(resolve_generated_page_path(
                     filesystem.clone(),
                     &std_path.join("index.html"),
                     false,
@@ -39,7 +39,7 @@ where
             let path_str = path_string.as_str();
 
             if path_str.ends_with('/') && check_for_index {
-                return Box::pin(resolve_generated_file_path(
+                return Box::pin(resolve_generated_page_path(
                     filesystem.clone(),
                     &std_path.join("index.html"),
                     false,
@@ -49,7 +49,7 @@ where
 
             match path_str {
                 "" | "/" if check_for_index => {
-                    Box::pin(resolve_generated_file_path(
+                    Box::pin(resolve_generated_page_path(
                         filesystem.clone(),
                         StdPath::new("index.html"),
                         false,

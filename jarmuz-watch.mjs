@@ -10,7 +10,6 @@ jarmuz({
   switch (true) {
     case matches("src/**/*.rs"):
       schedule("cargo-build");
-      schedule("poet-watch");
       return;
     case matches("resources/**/*.{ts,tsx}"):
       schedule("tsc");

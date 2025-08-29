@@ -2,7 +2,7 @@ import { Idiomorph } from "idiomorph";
 
 const DOCTYPE = "<!DOCTYPE html>";
 
-setTimeout(function () {
+function setupLiveReload() {
   if ((globalThis as unknown as any).isLiveReloadSetup) {
     return;
   }
@@ -36,4 +36,6 @@ setTimeout(function () {
   eventSource.onopen = function (event) {
     console.log("Live reload EventSource connected:", event);
   };
-});
+}
+
+setupLiveReload();

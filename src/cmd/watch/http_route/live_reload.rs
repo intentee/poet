@@ -13,7 +13,7 @@ use log::error;
 use log::warn;
 
 use crate::cmd::watch::app_data::AppData;
-use crate::cmd::watch::resolve_generated_file_path::resolve_generated_file_path;
+use crate::cmd::watch::resolve_generated_page_path::resolve_generated_page_path;
 use crate::filesystem::file_entry::FileEntry;
 
 pub fn register(cfg: &mut web::ServiceConfig) {
@@ -31,7 +31,7 @@ async fn respond(app_data: Data<AppData>, path: Path<String>) -> Result<impl Res
 
             match app_data.output_filesystem_holder.get_output_filesystem() {
                 Ok(Some(filesystem)) => {
-                    match resolve_generated_file_path(filesystem, std_path, true).await {
+                    match resolve_generated_page_path(filesystem, std_path, true).await {
                         Ok(Some(FileEntry {
                             contents,
                             relative_path: _,

@@ -1,5 +1,5 @@
-import { persist } from "jarmuz/job-types";
+import { spawner } from "jarmuz/job-types";
 
-persist(function ({ baseDirectory, keepAlive }) {
-  return keepAlive(`target/debug/poet watch ${baseDirectory}`);
+spawner(function ({ baseDirectory, command }) {
+  return command(`target/debug/poet watch ${baseDirectory}`);
 });

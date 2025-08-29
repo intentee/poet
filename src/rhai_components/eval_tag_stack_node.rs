@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rhai::Array;
 use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::EvalContext;
@@ -18,9 +19,23 @@ pub fn eval_tag_stack_node(
     expression_collection: &mut ExpressionCollection,
 ) -> Result<String, Box<EvalAltResult>> {
     match current_node {
-        TagStackNode::BodyExpression(expression_reference) => Ok(expression_collection
-            .eval_expression(eval_context, expression_reference)?
-            .to_string()),
+        TagStackNode::BodyExpression(expression_reference) => {
+            let body_expression_result =
+                expression_collection.eval_expression(eval_context, expression_reference)?;
+
+            if body_expression_result.is_array() {
+                let body_expresion_array: Array = body_expression_result.as_array_ref()?.to_vec();
+                let mut combined_ret = String::new();
+
+                for item in body_expresion_array {
+                    combined_ret.push_str(&item.to_string());
+                }
+
+                Ok(combined_ret)
+            } else {
+                Ok(body_expression_result.to_string())
+            }
+        }
         TagStackNode::Tag {
             children,
             is_closed,

@@ -10,7 +10,6 @@ use actix_web::web::Data;
 use actix_web::web::Path;
 use actix_web::web::Payload;
 use log::error;
-use log::info;
 use log::warn;
 
 use crate::cmd::watch::app_data::AppData;
@@ -34,8 +33,6 @@ async fn respond(
         let path_string = path.into_inner();
         let std_path = StdPath::new(&path_string);
 
-        info!("Received live reload request for path: {path_string}");
-
         loop {
             app_data
                 .output_filesystem_holder
@@ -57,7 +54,7 @@ async fn respond(
                             if let Err(err) = session.text(contents).await {
                                 error!("Unable to send live reload notification: {err}");
 
-                                break;
+                                return;
                             }
                         }
                         Ok(None) => {

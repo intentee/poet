@@ -1,6 +1,6 @@
 use super::attribute::Attribute;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub struct Tag {
     pub attributes: Vec<Attribute>,
     pub is_closing: bool,

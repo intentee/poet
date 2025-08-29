@@ -11,6 +11,7 @@ use rhai::module_resolvers::FileModuleResolver;
 use crate::asset_manager::AssetManager;
 use crate::filesystem::file_entry::FileEntry;
 use crate::front_matter::FrontMatter;
+use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_component_context::RhaiComponentContext;
 use crate::rhai_components::component_meta_module::ComponentMetaModule;
 use crate::rhai_components::component_reference::ComponentReference;
@@ -64,6 +65,7 @@ impl RhaiTemplateFactory {
         engine.build_type::<AssetManager>();
         engine.build_type::<FileEntry>();
         engine.build_type::<FrontMatter>();
+        engine.build_type::<MarkdownDocumentReference>();
         engine.build_type::<RhaiComponentContext>();
 
         engine.register_custom_syntax_without_look_ahead_raw(

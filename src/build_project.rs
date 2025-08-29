@@ -19,6 +19,8 @@ use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::filesystem::storage::Storage;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::markdown_document::MarkdownDocument;
+use crate::markdown_document_collection::MarkdownDocumentCollection;
+use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_component_context::RhaiComponentContext;
 use crate::rhai_template_factory::RhaiTemplateFactory;
@@ -65,6 +67,7 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
 
     info!("Processing content files...");
 
+    let mut collections: HashMap<String, MarkdownDocumentCollection> = HashMap::new();
     let mut markdown_basename_by_id: HashMap<String, String> = HashMap::new();
     let mut markdown_document_by_basename: HashMap<String, MarkdownDocumentReference> =
         HashMap::new();
@@ -91,10 +94,21 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
             }
 
             let markdown_document_reference = MarkdownDocumentReference {
-                basename: basename.clone(),
+                basename: basename_path.display().to_string(),
                 basename_path,
-                front_matter,
+                front_matter: front_matter.clone(),
             };
+
+            for collection in &front_matter.collections {
+                collections
+                    .entry(collection.name.clone())
+                    .or_default()
+                    .documents
+                    .push(MarkdownDocumentInCollection {
+                        collection: collection.clone(),
+                        reference: markdown_document_reference.clone(),
+                    })
+            }
 
             markdown_document_by_basename.insert(basename, markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {
@@ -104,6 +118,7 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
         }
     }
 
+    let collections_arc = Arc::new(collections);
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_index_arc = Arc::new(markdown_document_by_basename);
 
@@ -111,14 +126,15 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
         mdast,
         reference:
             reference @ MarkdownDocumentReference {
-                basename,
-                basename_path,
+                basename: _,
+                basename_path: _,
                 front_matter,
             },
     } in &markdown_document_list
     {
         let rhai_component_context = RhaiComponentContext {
             asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile.clone()),
+            collections: collections_arc.clone(),
             is_watching,
             front_matter: front_matter.clone(),
             markdown_basename_by_id: markdown_basename_by_id_arc.clone(),

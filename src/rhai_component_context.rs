@@ -7,11 +7,13 @@ use rhai::TypeBuilder;
 
 use crate::asset_manager::AssetManager;
 use crate::front_matter::FrontMatter;
+use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 
 #[derive(Clone)]
 pub struct RhaiComponentContext {
     pub asset_manager: AssetManager,
+    pub collections: Arc<HashMap<String, MarkdownDocumentCollection>>,
     pub front_matter: FrontMatter,
     pub is_watching: bool,
     pub markdown_basename_by_id: Arc<HashMap<String, String>>,
@@ -21,6 +23,17 @@ pub struct RhaiComponentContext {
 impl RhaiComponentContext {
     pub fn get_assets(&mut self) -> AssetManager {
         self.asset_manager.clone()
+    }
+
+    pub fn get_collection(
+        &mut self,
+        collection_name: &str,
+    ) -> Result<MarkdownDocumentCollection, Box<EvalAltResult>> {
+        if let Some(collection) = self.collections.get(collection_name) {
+            Ok(collection.clone())
+        } else {
+            Err(format!("There are no documents in collection: '{collection_name}'").into())
+        }
     }
 
     pub fn get_front_matter(&mut self) -> FrontMatter {
@@ -63,6 +76,7 @@ impl CustomType for RhaiComponentContext {
             .with_get("assets", Self::get_assets)
             .with_get("front_matter", Self::get_front_matter)
             .with_get("is_watching", Self::get_is_watching)
+            .with_fn("collection", Self::get_collection)
             .with_fn("link_to", Self::link_to);
     }
 }

@@ -1,3 +1,30 @@
+fn render_section(context, page, nesting_level) {
+  switch nesting_level {
+    0 => component {
+      <div class="docs__nav-section-title">
+        Docs pages titles navigation placeholder
+      </div>
+      <div class="docs__nav-section">{
+        let rendered = [];
+
+        for child in page.children {
+          rendered.push(render_section(context, page, nesting_level + 1));
+        }
+
+        rendered
+      }</div>
+    },
+    _ => component {
+      <a
+        class="docs__nav-link"
+        href={context.link_to(page.basename)}
+      >
+        {page.front_matter.title}
+      </a>
+    }
+  }
+}
+
 fn template(context, props, content) {
   context.assets.add("resources/css/layout-documentation-page.css");
 
@@ -10,17 +37,6 @@ fn template(context, props, content) {
             Mobile docs navigation placeholder
           </label>
           <div class="docs__nav__content">
-            <div class="docs__nav-section-title">
-              Docs pages titles navigation placeholder
-            </div>
-            <div class="docs__nav-section">
-              <a
-                class="docs__nav-link"
-                href={context.link_to("index")}
-              >
-                Page title
-              </a>
-            </div>
           </div>
         </nav>
         <div class="docs__content">

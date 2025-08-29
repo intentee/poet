@@ -3,7 +3,7 @@ fn template(context, props, content) {
     context.assets.add("resources/ts/global-live-reload.ts");
   }
 
-  context.assets.add("resources/css/page-common.css");
+  context.assets.add("resources/css/layout-common.css");
 
   component {
     <!DOCTYPE html>
@@ -31,14 +31,14 @@ fn template(context, props, content) {
         <div class="page">
           <nav class="primary-navigation">
             <div class="primary-navigation__group primary-navigation__group--logo">
-              <a href={context.link_to("/index")} class="primary-navigation__link primary-navigation__link--logo">
+              <a href={context.link_to("index")} class="primary-navigation__link primary-navigation__link--logo">
               Poet 🪶
               </a>
             </div>
             <div class="primary-navigation__group-wrapper">
               <div class="primary-navigation__group">
                 <a
-                  href={context.link_to("/docs")}
+                  href={context.link_to("index")}
                   class="primary-navigation__link"
                 >
                   Docs

@@ -12,10 +12,10 @@ fn template(context, props, content) {
           Open-source static site generator that exposes MCP server.
         </h2>
         <div class="homepage__cta">
-          <a href={context.link_to("/get-started")} class="homepage__cta__button homepage__cta__button--primary">
+          <a href={context.link_to("docs/introduction/what-is-poet")} class="homepage__cta__button homepage__cta__button--primary">
             Get Started
           </a>
-          <a href={context.link_to("/installation")} class="homepage__cta__button">
+          <a href={context.link_to("index")} class="homepage__cta__button">
             Install
           </a>
         </div>

@@ -108,6 +108,7 @@ impl Handler for Watch {
 
                 let PoetConfig {
                     static_files_directory,
+                    static_files_public_path,
                     watch_server_addr,
                 } = match read_poet_config_file(&poet_config_path).await {
                     Ok(poet_config) => poet_config,
@@ -141,8 +142,11 @@ impl Handler for Watch {
                     App::new()
                         .app_data(app_data_clone.clone())
                         .service(
-                            Files::new("/static", static_files_directory_clone.clone())
-                                .prefer_utf8(true),
+                            Files::new(
+                                &static_files_public_path,
+                                static_files_directory_clone.clone(),
+                            )
+                            .prefer_utf8(true),
                         )
                         .configure(http_route::favicon::register)
                         .configure(http_route::live_reload::register)

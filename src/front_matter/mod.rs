@@ -5,13 +5,11 @@ use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
-// #[derive(Debug, Deserialize, Serialize)]
-// pub struct Collection {
-//     pub name: String,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub after: Option<String>,
-// }
-//
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Collection {
+    pub name: String,
+}
+
 // #[derive(Debug, Deserialize, Serialize)]
 // pub struct Excerpt {
 //     #[serde(rename = "type")]
@@ -27,7 +25,8 @@ pub struct FrontMatter {
     pub layout: String,
     // pub references: Vec<String>,
     // pub truth_source_for: Vec<String>,
-    // pub collections: Vec<Collection>,
+    #[serde(default)]
+    pub collections: Vec<Collection>,
     // pub excerpts: Vec<Excerpt>,
     #[serde(default)]
     pub props: Map,

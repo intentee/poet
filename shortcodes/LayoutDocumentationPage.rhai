@@ -1,5 +1,5 @@
 fn template(context, props, content) {
-  context.assets.add("resources/css/page-docs.css");
+  context.assets.add("resources/css/layout-documentation-page.css");
 
   component {
     <LayoutMinimal>
@@ -16,7 +16,7 @@ fn template(context, props, content) {
             <div class="docs__nav-section">
               <a
                 class="docs__nav-link"
-                href={context.link_to("#")}
+                href={context.link_to("index")}
               >
                 Page title
               </a>

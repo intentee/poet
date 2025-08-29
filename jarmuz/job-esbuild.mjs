@@ -1,26 +1,49 @@
 import * as esbuild from "esbuild";
 import { emptyDir } from "fs-extra";
+import { readFile } from "fs/promises";
 import { glob } from "glob";
+import { load } from "js-toml";
 import { writeFile } from "node:fs/promises";
+import path from "path";
 
 import { basic } from "jarmuz/job-types";
 
 const metafileFilename = "esbuild-meta.json";
-const outdir = "static";
-const publicPath = "/static/";
 
 export function jobEsbuild({ development }) {
-  basic(async function ({ buildId, printSubtreeList, resetConsole }) {
+  basic(async function ({
+    baseDirectory,
+    buildId,
+    printSubtreeList,
+    resetConsole,
+  }) {
     await resetConsole();
-    await emptyDir(outdir);
 
     console.log(`Building with ID: ${buildId}`);
+
+    const { static_files_directory, static_files_public_path } = load(
+      await readFile(`${baseDirectory}/poet.toml`, {
+        encoding: "utf-8",
+      }),
+    );
+
+    const outdir = path.join(baseDirectory, static_files_directory);
+    const relativePath = path.relative(baseDirectory, static_files_directory);
+
+    if (relativePath.startsWith(".") || path.isAbsolute(relativePath)) {
+      console.error(
+        "Suspicious static files directory path. Not cleaning it up.",
+      );
+
+      return false;
+    }
+
+    await emptyDir(outdir);
 
     const inject = await glob(["resources/ts/polyfill_*.{ts,tsx}"]);
 
     const entryPoints = await glob([
-      "resources/css/{fragment,global,page}-*.css",
-      "resources/css/reset.css",
+      "resources/css/{fragment,global,layout,page}-*.css",
       "resources/ts/{controller,global,worker}{_,-}*.{ts,tsx}",
     ]);
 
@@ -56,10 +79,9 @@ export function jobEsbuild({ development }) {
         ),
         __BUILD_ID: JSON.stringify(buildId),
         __DEV__: JSON.stringify(String(development)),
-        __PUBLIC_PATH: JSON.stringify(publicPath),
+        __PUBLIC_PATH: JSON.stringify(static_files_public_path),
       },
       inject,
-      publicPath,
       preserveSymlinks: true,
       treeShaking: true,
       tsconfig: "tsconfig.json",

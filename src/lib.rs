@@ -6,6 +6,8 @@ mod eval_mdast;
 mod filesystem;
 mod find_front_matter_in_mdast;
 mod front_matter;
+mod poet_config;
+mod read_poet_config_file;
 mod rhai_component_context;
 mod rhai_components;
 mod rhai_safe_random_affix;

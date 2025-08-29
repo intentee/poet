@@ -17,8 +17,8 @@ use tokio::sync::Notify;
 
 pub struct WatchProjectHandle {
     pub debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
-    pub on_config_file_changed: Arc<Notify>,
     pub on_content_file_changed: Arc<Notify>,
+    pub on_poet_config_file_changed: Arc<Notify>,
 }
 
 fn is_inside_directory(directory: &Path, file_path: &Path) -> bool {
@@ -35,17 +35,19 @@ fn is_temp_file(path: &Path) -> bool {
     path_string.ends_with("~") || path_string.ends_with(".swp") || path_string.ends_with(".tmp")
 }
 
-pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHandle> {
-    let config_path = source_directory.join("poet.toml").canonicalize()?;
+pub fn watch_project_files(
+    poet_config_path: PathBuf,
+    source_directory: PathBuf,
+) -> Result<WatchProjectHandle> {
     let content_directory = source_directory.join("content");
     let esbuild_metafile_path = source_directory.join("esbuild-meta.json").canonicalize()?;
     let shortcodes_directory = source_directory.join("shortcodes");
 
-    let on_config_file_changed = Arc::new(Notify::new());
+    let on_poet_config_file_changed = Arc::new(Notify::new());
     let on_content_file_changed = Arc::new(Notify::new());
 
     let content_directory_clone = content_directory.clone();
-    let on_config_file_changed_clone = on_config_file_changed.clone();
+    let on_poet_config_file_changed_clone = on_poet_config_file_changed.clone();
     let on_content_file_changed_clone = on_content_file_changed.clone();
     let shortcodes_directory_clone = shortcodes_directory.clone();
 
@@ -75,12 +77,10 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
                                     return;
                                 }
 
-                                println!("Config path: {:?}", config_path);
-
-                                if config_path == *path {
+                                if poet_config_path == *path {
                                     info!("Poet config file changed: {:?}", path.display());
 
-                                    on_config_file_changed_clone.notify_waiters();
+                                    on_poet_config_file_changed_clone.notify_waiters();
 
                                     return;
                                 }
@@ -104,7 +104,7 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
 
     Ok(WatchProjectHandle {
         debouncer,
-        on_config_file_changed,
+        on_poet_config_file_changed,
         on_content_file_changed,
     })
 }

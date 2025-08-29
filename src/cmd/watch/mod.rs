@@ -5,7 +5,6 @@ mod resolve_generated_page_path;
 mod respond_with_generated_page;
 mod watch_project_files;
 
-use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -19,6 +18,7 @@ use async_trait::async_trait;
 use clap::Parser;
 use log::error;
 use log::info;
+use tokio::fs::create_dir_all;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
@@ -27,23 +27,17 @@ use self::output_filesystem_holder::OutputFilesystemHolder;
 use self::watch_project_files::WatchProjectHandle;
 use self::watch_project_files::watch_project_files;
 use super::Handler;
-use super::value_parser::parse_socket_addr;
 use super::value_parser::validate_is_directory;
-use super::value_parser::validate_is_directory_or_create;
 use crate::build_project::build_project;
 use crate::filesystem::memory::Memory;
 use crate::filesystem::storage::Storage;
+use crate::poet_config::PoetConfig;
+use crate::read_poet_config_file::read_poet_config_file;
 
 #[derive(Parser)]
 pub struct Watch {
-    #[arg(long, default_value = "127.0.0.1:8050", value_parser = parse_socket_addr)]
-    addr: SocketAddr,
-
     #[arg(value_parser = validate_is_directory)]
     source_directory: PathBuf,
-
-    #[arg(long, default_value = "static", value_parser = validate_is_directory_or_create)]
-    static_files_directory: PathBuf,
 }
 
 #[async_trait]
@@ -56,11 +50,13 @@ impl Handler for Watch {
             ctrlc_notifier_handler.cancel();
         })?;
 
+        let poet_config_path = self.source_directory.join("poet.toml").canonicalize()?;
+
         let WatchProjectHandle {
             debouncer: _debouncer,
-            on_config_file_changed,
             on_content_file_changed,
-        } = watch_project_files(self.source_directory.clone())?;
+            on_poet_config_file_changed,
+        } = watch_project_files(poet_config_path.clone(), self.source_directory.clone())?;
 
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
@@ -98,9 +94,7 @@ impl Handler for Watch {
             }
         }));
 
-        let addr = self.addr;
         let ctrlc_notifier_server = ctrlc_notifier.clone();
-        let static_files_directory = self.static_files_directory.clone();
 
         task_set.spawn(rt::spawn(async move {
             let app_data = Data::new(AppData {
@@ -108,15 +102,39 @@ impl Handler for Watch {
             });
 
             loop {
-                info!("Starting watch server");
-
                 if ctrlc_notifier_server.is_cancelled() {
                     break;
                 }
 
+                let PoetConfig {
+                    static_files_directory,
+                    watch_server_addr,
+                } = match read_poet_config_file(&poet_config_path).await {
+                    Ok(poet_config) => poet_config,
+                    Err(err) => {
+                        error!(
+                            "Unable to parse config file {}: {err}",
+                            poet_config_path.display()
+                        );
+
+                        on_poet_config_file_changed.notified().await;
+
+                        continue;
+                    }
+                };
+
+                if !static_files_directory.exists()
+                    && let Err(err) = create_dir_all(&static_files_directory).await
+                {
+                    error!(
+                        "Unable to create static files directory '{}': {err}",
+                        static_files_directory.display()
+                    );
+                }
+
                 let app_data_clone = app_data.clone();
-                let on_config_file_changed_clone = on_config_file_changed.clone();
                 let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
+                let on_poet_config_file_changed_clone = on_poet_config_file_changed.clone();
                 let static_files_directory_clone = static_files_directory.clone();
 
                 if let Err(err) = HttpServer::new(move || {
@@ -130,12 +148,12 @@ impl Handler for Watch {
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)
                 })
-                .bind(addr)
+                .bind(watch_server_addr)
                 .expect("Unable to bind server to address")
                 .shutdown_signal(async move {
                     tokio::select! {
-                        _ = on_config_file_changed_clone.notified() => {}
                         _ = ctrlc_notifier_server_clone.cancelled() => {}
+                        _ = on_poet_config_file_changed_clone.notified() => {}
                     }
                 })
                 .shutdown_timeout(1)

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::LinkedList;
 
 use anyhow::Result;
 use anyhow::anyhow;
@@ -6,6 +7,24 @@ use petgraph::algo::toposort;
 use petgraph::stable_graph::StableDiGraph;
 
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
+use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
+
+fn find_children(
+    parent: &MarkdownDocumentInCollection,
+    sorted_documents: &mut LinkedList<MarkdownDocumentInCollection>,
+) -> LinkedList<MarkdownDocumentTreeNode> {
+    let children = sorted_documents
+        .extract_if(|document| document.collection.parent == Some(parent.reference.basename()))
+        .collect::<LinkedList<_>>();
+
+    children
+        .iter()
+        .map(|document| MarkdownDocumentTreeNode {
+            children: find_children(document, sorted_documents),
+            reference: document.reference.clone(),
+        })
+        .collect::<LinkedList<MarkdownDocumentTreeNode>>()
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct MarkdownDocumentCollection {
@@ -13,7 +32,23 @@ pub struct MarkdownDocumentCollection {
 }
 
 impl MarkdownDocumentCollection {
-    pub fn sort_by_successors(&self) -> Result<Vec<MarkdownDocumentInCollection>> {
+    /// Returns a list of roots
+    pub fn build_hierarchy(&self) -> Result<Vec<MarkdownDocumentTreeNode>> {
+        let mut sorted_documents = self.sort_by_successors()?;
+        let roots = sorted_documents
+            .extract_if(|document| document.collection.parent.is_none())
+            .collect::<LinkedList<MarkdownDocumentInCollection>>();
+
+        Ok(roots
+            .iter()
+            .map(|document| MarkdownDocumentTreeNode {
+                children: find_children(document, &mut sorted_documents),
+                reference: document.reference.clone(),
+            })
+            .collect::<Vec<_>>())
+    }
+
+    pub fn sort_by_successors(&self) -> Result<LinkedList<MarkdownDocumentInCollection>> {
         let mut basename_to_node = HashMap::new();
         let mut successors_graph: StableDiGraph<String, ()> = StableDiGraph::new();
         let mut node_to_document = HashMap::new();
@@ -46,10 +81,11 @@ impl MarkdownDocumentCollection {
 
         match toposort(&successors_graph, None) {
             Ok(sorted_nodes) => {
-                let mut sorted_documents: Vec<MarkdownDocumentInCollection> = Vec::new();
+                let mut sorted_documents: LinkedList<MarkdownDocumentInCollection> =
+                    LinkedList::new();
 
                 for node_id in sorted_nodes {
-                    sorted_documents.push(
+                    sorted_documents.push_back(
                         node_to_document
                             .get(&node_id)
                             .ok_or(anyhow!("Unable to inverse find document for node"))?
@@ -134,6 +170,70 @@ mod tests {
             .collect();
 
         assert_eq!(sorted, ["1", "2", "3", "4", "5"]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_hierarchy() -> Result<()> {
+        let mut collection = MarkdownDocumentCollection::default();
+
+        collection.documents.push(MarkdownDocumentInCollection {
+            collection: Collection {
+                after: None,
+                name: "my_collection".to_string(),
+                parent: None,
+            },
+            reference: create_document_reference("1"),
+        });
+
+        collection.documents.push(MarkdownDocumentInCollection {
+            collection: Collection {
+                after: Some("3".to_string()),
+                name: "my_collection".to_string(),
+                parent: Some("3".to_string()),
+            },
+            reference: create_document_reference("5"),
+        });
+
+        collection.documents.push(MarkdownDocumentInCollection {
+            collection: Collection {
+                after: Some("3".to_string()),
+                name: "my_collection".to_string(),
+                parent: Some("3".to_string()),
+            },
+            reference: create_document_reference("4"),
+        });
+
+        collection.documents.push(MarkdownDocumentInCollection {
+            collection: Collection {
+                after: Some("1".to_string()),
+                name: "my_collection".to_string(),
+                parent: None,
+            },
+            reference: create_document_reference("2"),
+        });
+
+        collection.documents.push(MarkdownDocumentInCollection {
+            collection: Collection {
+                after: Some("2".to_string()),
+                name: "my_collection".to_string(),
+                parent: Some("1".to_string()),
+            },
+            reference: create_document_reference("3"),
+        });
+
+        let hierarchy = collection.build_hierarchy()?;
+
+        // println!("hierarchy: {hierarchy:#?}");
+        // assert!(false);
+
+        let sorted: Vec<String> = hierarchy
+            .iter()
+            .map(|node| node.reference.front_matter.title.clone())
+            .collect();
+
+        assert_eq!(sorted, ["1", "2"]);
 
         Ok(())
     }

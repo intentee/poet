@@ -10,6 +10,7 @@ mod markdown_document;
 mod markdown_document_collection;
 mod markdown_document_in_collection;
 mod markdown_document_reference;
+mod markdown_document_tree_node;
 mod poet_config;
 mod read_poet_config_file;
 mod rhai_component_context;

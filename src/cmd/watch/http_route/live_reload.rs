@@ -9,6 +9,7 @@ use actix_web::web;
 use actix_web::web::Data;
 use actix_web::web::Path;
 use actix_web::web::Payload;
+use log::debug;
 use log::error;
 use log::warn;
 
@@ -52,7 +53,7 @@ async fn respond(
                             relative_path: _,
                         })) => {
                             if let Err(err) = session.text(contents).await {
-                                error!("Unable to send live reload notification: {err}");
+                                debug!("Unable to send live reload notification: {err}");
 
                                 return;
                             }

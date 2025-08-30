@@ -4,7 +4,7 @@ fn render_section(context, node, nesting_level) {
       <div class="docs__nav-section-title">
         {node.reference.front_matter.title}
       </div>
-      <div class="docs__nav-section">{
+      {
         let rendered = [];
 
         for child in node.children {
@@ -12,15 +12,17 @@ fn render_section(context, node, nesting_level) {
         }
 
         rendered
-      }</div>
+      }
     },
     _ => component {
-      <a
-        class="docs__nav-link"
-        href={context.link_to(node.reference.basename)}
-      >
-        {node.reference.front_matter.title}
-      </a>
+      <div class="docs__nav-section">
+        <a
+          class="docs__nav-link"
+          href={context.link_to(node.reference.basename)}
+        >
+          {node.reference.front_matter.title}
+        </a>
+      </div>
     }
   }
 }

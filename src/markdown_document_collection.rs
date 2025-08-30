@@ -5,6 +5,11 @@ use anyhow::Result;
 use anyhow::anyhow;
 use petgraph::algo::toposort;
 use petgraph::stable_graph::StableDiGraph;
+use rhai::Array;
+use rhai::CustomType;
+use rhai::Dynamic;
+use rhai::EvalAltResult;
+use rhai::TypeBuilder;
 
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
@@ -97,6 +102,29 @@ impl MarkdownDocumentCollection {
             }
             Err(_) => Err(anyhow!("Found cycle in documents successors")),
         }
+    }
+
+    fn rhai_documents(&mut self) -> Vec<MarkdownDocumentInCollection> {
+        self.documents.clone()
+    }
+
+    fn rhai_hierarchy(&mut self) -> core::result::Result<Array, Box<EvalAltResult>> {
+        match self.build_hierarchy() {
+            Ok(hierarchy) => Ok(hierarchy
+                .iter()
+                .map(|node| Dynamic::from(node.clone()))
+                .collect::<Vec<_>>()),
+            Err(err) => Err(format!("Unable to build hierarchy of documents: {err}").into()),
+        }
+    }
+}
+
+impl CustomType for MarkdownDocumentCollection {
+    fn build(mut builder: TypeBuilder<Self>) {
+        builder
+            .with_name("MarkdownDocumentCollection")
+            .with_get("documents", Self::rhai_documents)
+            .with_get("hierarchy", Self::rhai_hierarchy);
     }
 }
 

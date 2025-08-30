@@ -31,10 +31,12 @@ impl MarkdownDocumentReference {
     fn basename_link_stem(&self) -> Result<String> {
         if self.basename_path.ends_with("index") {
             if let Some(parent) = self.basename_path.parent() {
-                if parent == "" {
+                let parent_str = parent.display().to_string();
+
+                if parent_str.is_empty() {
                     Ok("".into())
                 } else {
-                    Ok(format!("{}/", parent.display()))
+                    Ok(format!("{}/", parent_str))
                 }
             } else {
                 Ok("".into())

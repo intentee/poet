@@ -34,11 +34,23 @@ pub struct FrontMatter {
 }
 
 impl FrontMatter {
-    pub fn get_description(&mut self) -> String {
+    #[cfg(test)]
+    pub fn mock(name: &str) -> Self {
+        Self {
+            description: "".to_string(),
+            id: None,
+            layout: "SomeLayout".to_string(),
+            collections: Default::default(),
+            props: Default::default(),
+            title: name.to_string(),
+        }
+    }
+
+    fn rhai_description(&mut self) -> String {
         self.description.clone()
     }
 
-    pub fn get_title(&mut self) -> String {
+    fn rhai_title(&mut self) -> String {
         self.title.clone()
     }
 }
@@ -47,7 +59,7 @@ impl CustomType for FrontMatter {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("FrontMatter")
-            .with_get("description", Self::get_description)
-            .with_get("title", Self::get_title);
+            .with_get("description", Self::rhai_description)
+            .with_get("title", Self::rhai_title);
     }
 }

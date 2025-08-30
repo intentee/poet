@@ -4,8 +4,8 @@ layout = "LayoutDocumentationPage"
 title = "Installation"
 
 [[collection]]
-after = "docs/introduction/what-is-poet"
 name = "documentation_pages"
+after = "docs/introduction/what-is-poet"
 parent = "docs/introduction/index"
 +++
 

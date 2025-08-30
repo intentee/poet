@@ -25,7 +25,7 @@ impl RhaiComponentContext {
         self.asset_manager.clone()
     }
 
-    pub fn get_collection(
+    fn rhai_collection(
         &mut self,
         collection_name: &str,
     ) -> Result<MarkdownDocumentCollection, Box<EvalAltResult>> {
@@ -36,15 +36,15 @@ impl RhaiComponentContext {
         }
     }
 
-    pub fn get_front_matter(&mut self) -> FrontMatter {
+    fn rhai_front_matter(&mut self) -> FrontMatter {
         self.front_matter.clone()
     }
 
-    pub fn get_is_watching(&mut self) -> bool {
+    fn rhai_is_watching(&mut self) -> bool {
         self.is_watching
     }
 
-    pub fn link_to(&mut self, path: &str) -> Result<String, Box<EvalAltResult>> {
+    fn rhai_link_to(&mut self, path: &str) -> Result<String, Box<EvalAltResult>> {
         let basename = if path.starts_with("#") {
             if let Some(basename) = self
                 .markdown_basename_by_id
@@ -62,7 +62,12 @@ impl RhaiComponentContext {
         };
 
         if let Some(reference) = self.markdown_document_by_basename.get(basename) {
-            Ok(format!("/{}", reference.target_file_relative_path().display()).to_string())
+            match reference.canonical_link() {
+                Ok(canonical_link) => Ok(canonical_link),
+                Err(err) => {
+                    Err(format!("Unable to generate canonical link for {basename}: {err}").into())
+                }
+            }
         } else {
             Err(format!("Document does not exist: {path}").into())
         }
@@ -74,9 +79,9 @@ impl CustomType for RhaiComponentContext {
         builder
             .with_name("RhaiComponentContext")
             .with_get("assets", Self::get_assets)
-            .with_get("front_matter", Self::get_front_matter)
-            .with_get("is_watching", Self::get_is_watching)
-            .with_fn("collection", Self::get_collection)
-            .with_fn("link_to", Self::link_to);
+            .with_get("front_matter", Self::rhai_front_matter)
+            .with_get("is_watching", Self::rhai_is_watching)
+            .with_fn("collection", Self::rhai_collection)
+            .with_fn("link_to", Self::rhai_link_to);
     }
 }

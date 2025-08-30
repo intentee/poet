@@ -94,7 +94,6 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
             }
 
             let markdown_document_reference = MarkdownDocumentReference {
-                basename: basename_path.display().to_string(),
                 basename_path,
                 front_matter: front_matter.clone(),
             };
@@ -126,7 +125,6 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
         mdast,
         reference:
             reference @ MarkdownDocumentReference {
-                basename: _,
                 basename_path: _,
                 front_matter,
             },
@@ -155,8 +153,14 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
             layout_content.into(),
         )?;
 
+        info!(
+            "Writing target file: {}, {}",
+            reference.basename_path.display(),
+            reference.target_file_relative_path()?.display(),
+        );
+
         memory_filesystem
-            .set_file_contents(&reference.target_file_relative_path(), &processed_file)
+            .set_file_contents(&reference.target_file_relative_path()?, &processed_file)
             .await?;
     }
 

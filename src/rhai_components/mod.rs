@@ -45,7 +45,7 @@ mod tests {
     }
 
     impl DummyAssetCollection {
-        fn add(&mut self, asset: String) {
+        fn rhai_add(&mut self, asset: String) {
             self.assets.insert(asset);
         }
     }
@@ -54,7 +54,7 @@ mod tests {
         fn build(mut builder: TypeBuilder<Self>) {
             builder
                 .with_name("DummyAssetCollection")
-                .with_fn("add", Self::add);
+                .with_fn("add", Self::rhai_add);
         }
     }
 
@@ -64,7 +64,7 @@ mod tests {
     }
 
     impl DummyContext {
-        fn assets(&mut self) -> DummyAssetCollection {
+        fn rhai_assets(&mut self) -> DummyAssetCollection {
             self.assets.clone()
         }
     }
@@ -73,7 +73,7 @@ mod tests {
         fn build(mut builder: TypeBuilder<Self>) {
             builder
                 .with_name("DummyContext")
-                .with_get("assets", Self::assets);
+                .with_get("assets", Self::rhai_assets);
         }
     }
 

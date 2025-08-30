@@ -10,10 +10,6 @@ pub struct FileEntry {
 }
 
 impl FileEntry {
-    pub fn get_relative_path(&mut self) -> String {
-        self.relative_path.to_string_lossy().to_string()
-    }
-
     pub fn get_stem_path_relative_to(&self, base: &PathBuf) -> PathBuf {
         self.relative_path
             .strip_prefix(base)
@@ -41,13 +37,17 @@ impl FileEntry {
     pub fn is_rhai(&self) -> bool {
         self.has_extension("rhai")
     }
+
+    fn rhai_relative_path(&mut self) -> String {
+        self.relative_path.to_string_lossy().to_string()
+    }
 }
 
 impl CustomType for FileEntry {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("FileEntry")
-            .with_get("relative_path", Self::get_relative_path);
+            .with_get("relative_path", Self::rhai_relative_path);
     }
 }
 

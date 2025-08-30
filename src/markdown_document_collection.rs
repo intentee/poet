@@ -20,9 +20,9 @@ impl MarkdownDocumentCollection {
 
         // First pass, register all the documents
         for document in &self.documents {
-            let node = successors_graph.add_node(document.reference.basename.clone());
+            let node = successors_graph.add_node(document.reference.basename());
 
-            basename_to_node.insert(document.reference.basename.clone(), node);
+            basename_to_node.insert(document.reference.basename(), node);
             node_to_document.insert(node, document.clone());
         }
 
@@ -34,10 +34,10 @@ impl MarkdownDocumentCollection {
                         .get(after)
                         .ok_or(anyhow!("Unable to find node {}", after))?,
                     *basename_to_node
-                        .get(&document.reference.basename)
+                        .get(&document.reference.basename())
                         .ok_or(anyhow!(
                             "Unable to find node {}",
-                            document.reference.basename
+                            document.reference.basename()
                         ))?,
                     (),
                 )?;
@@ -73,16 +73,8 @@ mod tests {
 
     fn create_document_reference(name: &str) -> MarkdownDocumentReference {
         MarkdownDocumentReference {
-            basename: name.to_string(),
             basename_path: name.into(),
-            front_matter: FrontMatter {
-                description: "".to_string(),
-                id: None,
-                layout: "SomeLayout".to_string(),
-                collections: Default::default(),
-                props: Default::default(),
-                title: name.to_string(),
-            },
+            front_matter: FrontMatter::mock(name),
         }
     }
 

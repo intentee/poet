@@ -25,11 +25,11 @@ impl AssetManager {
         }
     }
 
-    pub fn preload(&mut self, asset: String) {
+    fn rhai_preload(&mut self, asset: String) {
         self.http_preloader.register_preload(&asset);
     }
 
-    pub fn render(&mut self) -> String {
+    fn rhai_render(&mut self) -> String {
         let mut rendered_assets: String = String::new();
         let mut rendered_preloads: BTreeSet<String> = BTreeSet::new();
         let mut rendered_includes: BTreeSet<String> = BTreeSet::new();
@@ -59,7 +59,7 @@ impl CustomType for AssetManager {
         builder
             .with_name("AssetManager")
             .with_fn("add", Self::add)
-            .with_fn("preload", Self::preload)
-            .with_fn("render", Self::render);
+            .with_fn("preload", Self::rhai_preload)
+            .with_fn("render", Self::rhai_render);
     }
 }

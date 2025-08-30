@@ -20,6 +20,8 @@ use crate::rhai_components::component_reference::ComponentReference;
 use crate::rhai_components::component_registry::ComponentRegistry;
 use crate::rhai_components::evaluator_factory::EvaluatorFactory;
 use crate::rhai_components::parse_component::parse_component;
+use crate::rhai_functions::render_hierarchy;
+use crate::rhai_markdown_document_hierarchy::RhaiMarkdownDocumentHierarchy;
 use crate::rhai_safe_random_affix::rhai_safe_random_affix;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::rhai_template_renderer::ShortcodeRenderer;
@@ -71,6 +73,8 @@ impl RhaiTemplateFactory {
         engine.build_type::<MarkdownDocumentReference>();
         engine.build_type::<MarkdownDocumentTreeNode>();
         engine.build_type::<RhaiComponentContext>();
+        engine.build_type::<RhaiMarkdownDocumentHierarchy>();
+        engine.register_fn("render_hierarchy", render_hierarchy);
 
         engine.register_custom_syntax_without_look_ahead_raw(
             "component",

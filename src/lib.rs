@@ -15,6 +15,8 @@ mod poet_config;
 mod read_poet_config_file;
 mod rhai_component_context;
 mod rhai_components;
+mod rhai_functions;
+mod rhai_markdown_document_hierarchy;
 mod rhai_safe_random_affix;
 mod rhai_template_factory;
 mod rhai_template_renderer;

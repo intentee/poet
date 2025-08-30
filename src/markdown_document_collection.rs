@@ -5,14 +5,13 @@ use anyhow::Result;
 use anyhow::anyhow;
 use petgraph::algo::toposort;
 use petgraph::stable_graph::StableDiGraph;
-use rhai::Array;
 use rhai::CustomType;
-use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
+use crate::rhai_markdown_document_hierarchy::RhaiMarkdownDocumentHierarchy;
 
 fn find_children(
     parent: &MarkdownDocumentInCollection,
@@ -108,12 +107,11 @@ impl MarkdownDocumentCollection {
         self.documents.clone()
     }
 
-    fn rhai_hierarchy(&mut self) -> core::result::Result<Array, Box<EvalAltResult>> {
+    fn rhai_hierarchy(
+        &mut self,
+    ) -> core::result::Result<RhaiMarkdownDocumentHierarchy, Box<EvalAltResult>> {
         match self.build_hierarchy() {
-            Ok(hierarchy) => Ok(hierarchy
-                .iter()
-                .map(|node| Dynamic::from(node.clone()))
-                .collect::<Vec<_>>()),
+            Ok(hierarchy) => Ok(RhaiMarkdownDocumentHierarchy::from(hierarchy)),
             Err(err) => Err(format!("Unable to build hierarchy of documents: {err}").into()),
         }
     }

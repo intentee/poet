@@ -1,18 +1,10 @@
-fn render_section(context, node, nesting_level) {
-  switch nesting_level {
+fn render_menu(context, node, level, nested) {
+  switch level {
     0 => component {
       <div class="docs__nav-section-title">
         {node.reference.front_matter.title}
       </div>
-      {
-        let rendered = [];
-
-        for child in node.children {
-          rendered.push(render_section(context, child, nesting_level + 1));
-        }
-
-        rendered
-      }
+      {nested}
     },
     _ => component {
       <div class="docs__nav-section">
@@ -38,16 +30,12 @@ fn template(context, props, content) {
           <label class="docs__nav__toggle" for="docs-nav-toggle">
             Mobile docs navigation placeholder
           </label>
-          <div class="docs__nav__content">{
-            let root_documents = context.collection("documentation_pages").hierarchy;
-            let rendered = [];
-
-            for root_document in root_documents {
-              rendered.push(render_section(context, root_document, 0));
-            }
-
-            rendered
-          }</div>
+          <div class="docs__nav__content">
+            {render_hierarchy(
+              context.collection("documentation_pages").hierarchy,
+              render_menu.curry(context)
+            )}
+          </div>
         </nav>
         <div class="docs__content">
           <div class="formatted-text">

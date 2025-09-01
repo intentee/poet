@@ -12,3 +12,15 @@ parent = "docs/getting-started/index"
 Done
 
 ![GitHub logo](resources/images/logo-github.svg)
+
+foo\
+bar\
+baz
+
+~~delete~~
+
+| Month    | Savings |
+| -------- | ------- |
+| January  | $250    |
+| February | $80     |
+| March    | $420    |

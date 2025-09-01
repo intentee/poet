@@ -12,6 +12,7 @@ use crate::asset_manager::AssetManager;
 use crate::component_context::ComponentContext;
 use crate::filesystem::file_entry::FileEntry;
 use crate::front_matter::FrontMatter;
+use crate::front_matter::collection::Collection;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
@@ -67,6 +68,7 @@ impl RhaiTemplateFactory {
         ));
 
         engine.build_type::<AssetManager>();
+        engine.build_type::<Collection>();
         engine.build_type::<FileEntry>();
         engine.build_type::<FrontMatter>();
         engine.build_type::<MarkdownDocumentCollection>();

@@ -1,6 +1,8 @@
 pub mod collection;
 
+use rhai::Array;
 use rhai::CustomType;
+use rhai::Dynamic;
 use rhai::Map;
 use rhai::TypeBuilder;
 use serde::Deserialize;
@@ -46,6 +48,13 @@ impl FrontMatter {
         }
     }
 
+    fn rhai_collections(&mut self) -> Array {
+        self.collections
+            .iter()
+            .map(|collection| Dynamic::from(collection.clone()))
+            .collect::<_>()
+    }
+
     fn rhai_description(&mut self) -> String {
         self.description.clone()
     }
@@ -59,6 +68,7 @@ impl CustomType for FrontMatter {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("FrontMatter")
+            .with_get("collections", Self::rhai_collections)
             .with_get("description", Self::rhai_description)
             .with_get("title", Self::rhai_title);
     }

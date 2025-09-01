@@ -14,6 +14,8 @@ pub fn string_to_mdast(contents: &str) -> Result<Node> {
                 code_indented: false,
                 frontmatter: true,
                 html_flow: false,
+                math_flow: true,
+                math_text: true,
                 mdx_expression_flow: true,
                 mdx_expression_text: true,
                 mdx_jsx_flow: true,

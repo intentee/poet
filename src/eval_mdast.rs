@@ -6,7 +6,9 @@ use markdown::mdast::AttributeValue;
 use markdown::mdast::AttributeValueExpression;
 use markdown::mdast::Blockquote;
 use markdown::mdast::Code;
+use markdown::mdast::Delete;
 use markdown::mdast::Emphasis;
+use markdown::mdast::FootnoteReference;
 use markdown::mdast::Heading;
 use markdown::mdast::Html;
 use markdown::mdast::Image;
@@ -17,13 +19,17 @@ use markdown::mdast::ListItem;
 use markdown::mdast::MdxFlowExpression;
 use markdown::mdast::MdxJsxAttribute;
 use markdown::mdast::MdxJsxFlowElement;
+use markdown::mdast::MdxJsxTextElement;
+use markdown::mdast::MdxTextExpression;
 use markdown::mdast::Node;
 use markdown::mdast::Paragraph;
 use markdown::mdast::Root;
 use markdown::mdast::Strong;
+use markdown::mdast::Table;
+use markdown::mdast::TableCell;
+use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
-use markdown::mdast::Toml;
 use rhai::Dynamic;
 use syntect::html::ClassStyle;
 use syntect::html::ClassedHTMLGenerator;
@@ -75,6 +81,9 @@ pub fn eval_mdast(
             )?);
             result.push_str("</blockquote>");
         }
+        Node::Break(_) => {
+            result.push_str("<br>");
+        }
         Node::Code(Code {
             meta, lang, value, ..
         }) => {
@@ -122,6 +131,19 @@ pub fn eval_mdast(
 
             result.push_str("</code></pre>");
         }
+        Node::Definition(node) => {
+            warn!("Definitions are not supported: {node:?}");
+        }
+        Node::Delete(Delete { children, .. }) => {
+            result.push_str("<del>");
+            result.push_str(&eval_children(
+                children,
+                component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
+            result.push_str("</del>");
+        }
         Node::Emphasis(Emphasis { children, .. }) => {
             result.push_str("<em>");
             result.push_str(&eval_children(
@@ -131,6 +153,22 @@ pub fn eval_mdast(
                 syntax_set,
             )?);
             result.push_str("</em>");
+        }
+        Node::FootnoteDefinition(node) => {
+            warn!("Footnote definitions are not supported: {node:?}");
+        }
+        Node::FootnoteReference(FootnoteReference {
+            identifier, label, ..
+        }) => {
+            result.push_str(&format!(
+                "<a href=\"#footnote-{}\" role=\"doc-noteref\">{}</a>",
+                identifier,
+                if let Some(label) = label {
+                    label
+                } else {
+                    identifier
+                },
+            ));
         }
         Node::Heading(Heading {
             children, depth, ..
@@ -147,7 +185,6 @@ pub fn eval_mdast(
             result.push_str(&format!("</{}>", tag));
         }
         Node::Html(Html { value, .. }) => {
-            println!("HTML: {value}");
             result.push_str(value);
         }
         Node::Image(Image {
@@ -172,8 +209,14 @@ pub fn eval_mdast(
 
             result.push('>');
         }
+        Node::ImageReference(node) => {
+            warn!("Image references are not supported: {node:?}");
+        }
         Node::InlineCode(InlineCode { value, .. }) => {
             result.push_str(&format!("<code>{}</code>", escape_html(value)));
+        }
+        Node::InlineMath(node) => {
+            warn!("Inline math expressions are not supported: {node:?}");
         }
         Node::Link(Link {
             children,
@@ -181,8 +224,6 @@ pub fn eval_mdast(
             url,
             ..
         }) => {
-            println!("title={title:?}, url={url}");
-
             let link = if is_external_link(url) {
                 url.clone()
             } else {
@@ -206,6 +247,9 @@ pub fn eval_mdast(
                 syntax_set,
             )?);
             result.push_str("</a>");
+        }
+        Node::LinkReference(node) => {
+            warn!("Link references are not supported: {node:?}");
         }
         Node::List(List {
             children, ordered, ..
@@ -239,7 +283,14 @@ pub fn eval_mdast(
             )?);
             result.push_str("</li>");
         }
-        Node::MdxFlowExpression(MdxFlowExpression { value, .. }) => {
+        Node::Math(node) => {
+            warn!("Math expressions are not supported: {node:?}");
+        }
+        Node::MdxjsEsm(node) => {
+            warn!("MDX ESM expressions are not supported: {node:?}");
+        }
+        Node::MdxFlowExpression(MdxFlowExpression { value, .. })
+        | Node::MdxTextExpression(MdxTextExpression { value, .. }) => {
             result.push_str(
                 &rhai_template_renderer
                     .render_expression(component_context.clone(), value)?
@@ -247,6 +298,12 @@ pub fn eval_mdast(
             );
         }
         Node::MdxJsxFlowElement(MdxJsxFlowElement {
+            attributes,
+            children,
+            name,
+            ..
+        })
+        | Node::MdxJsxTextElement(MdxJsxTextElement {
             attributes,
             children,
             name,
@@ -359,17 +416,47 @@ pub fn eval_mdast(
             )?);
             result.push_str("</strong>");
         }
+        Node::Table(Table { children, .. }) => {
+            result.push_str("<table>");
+            result.push_str(&eval_children(
+                children,
+                component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
+            result.push_str("</table>");
+        }
+        Node::TableCell(TableCell { children, .. }) => {
+            result.push_str("<td>");
+            result.push_str(&eval_children(
+                children,
+                component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
+            result.push_str("</td>");
+        }
+        Node::TableRow(TableRow { children, .. }) => {
+            result.push_str("<tr>");
+            result.push_str(&eval_children(
+                children,
+                component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
+            result.push_str("</tr>");
+        }
         Node::Text(Text { value, .. }) => {
             result.push_str(value);
         }
         Node::ThematicBreak(ThematicBreak { .. }) => {
             result.push_str("<hr>");
         }
-        Node::Toml(Toml { .. }) => {
+        Node::Toml(_) => {
             // ignore frontmatter during this pass
         }
-        item => {
-            warn!("Unhandled node type: {:?}", item);
+        Node::Yaml(node) => {
+            warn!("YAML front-matter is not supported, use TOML instead: {node:?}");
         }
     }
 

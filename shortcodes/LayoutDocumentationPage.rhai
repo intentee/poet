@@ -1,3 +1,19 @@
+fn figure_out_collection(context) {
+  for collection in context.front_matter.collections {
+    if "documentation_pages" == collection.name {
+      return "documentation_pages";
+    }
+  }
+
+  for collection in context.front_matter.collections {
+    if "api_pages" == collection.name {
+      return "api_pages";
+    }
+  }
+
+  "*not_found*"
+}
+
 fn render_menu(context, node, level, nested) {
   switch level {
     0 => component {
@@ -33,7 +49,7 @@ fn template(context, props, content) {
           </label>
           <div class="docs__nav__content">
             {render_hierarchy(
-              context.collection("documentation_pages").hierarchy,
+              context.collection(figure_out_collection(context)).hierarchy,
               render_menu.curry(context)
             )}
           </div>

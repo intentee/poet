@@ -28,8 +28,8 @@ impl AssetManager {
         }
     }
 
-    fn rhai_image(&mut self, asset: String) -> Result<String, Box<EvalAltResult>> {
-        if let Some(static_paths) = self.esbuild_metafile.find_static_paths_for_input(&asset) {
+    pub fn image(&self, asset: &str) -> Result<String, String> {
+        if let Some(static_paths) = self.esbuild_metafile.find_static_paths_for_input(asset) {
             if static_paths.len() != 1 {
                 return Err("Unexpectedly multiple assets resolved to the same input".into());
             }
@@ -39,7 +39,11 @@ impl AssetManager {
             }
         }
 
-        Err(format!("Asset not found: '{asset}'").into())
+        Err(format!("Asset not found: '{asset}'"))
+    }
+
+    fn rhai_image(&mut self, asset: String) -> Result<String, Box<EvalAltResult>> {
+        Ok(self.image(&asset)?)
     }
 
     fn rhai_preload(&mut self, asset: String) {

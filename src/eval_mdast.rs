@@ -9,6 +9,7 @@ use markdown::mdast::Code;
 use markdown::mdast::Emphasis;
 use markdown::mdast::Heading;
 use markdown::mdast::Html;
+use markdown::mdast::Image;
 use markdown::mdast::InlineCode;
 use markdown::mdast::Link;
 use markdown::mdast::List;
@@ -141,6 +142,28 @@ pub fn eval_mdast(
         Node::Html(Html { value, .. }) => {
             result.push_str(value);
         }
+        Node::Image(Image {
+            alt, url, title, ..
+        }) => {
+            result.push_str(&format!("<img alt=\"{}\" ", escape_html(alt)));
+
+            let src = if url.starts_with("http:") || url.starts_with("https:") {
+                url
+            } else {
+                &match rhai_component_context.asset_manager.image(url) {
+                    Ok(src) => src,
+                    Err(err) => return Err(anyhow!(err)),
+                }
+            };
+
+            result.push_str(&format!("src=\"{}\"", escape_html(src)));
+
+            if let Some(title) = title {
+                result.push_str(&format!(" title=\"{}\"", escape_html(title)));
+            }
+
+            result.push('>');
+        }
         Node::InlineCode(InlineCode { value, .. }) => {
             result.push_str(&format!("<code>{}</code>", escape_html(value)));
         }
@@ -262,9 +285,6 @@ pub fn eval_mdast(
                     Dynamic::from(evaluated_children),
                 )?);
             } else {
-                println!("NOT A COMPONENT");
-                println!("name: {name:?}, children: {children:?} props: {props:?}");
-
                 result.push_str(&format!("<{} ", tag_name.name));
 
                 for (name, value) in props {
@@ -277,6 +297,16 @@ pub fn eval_mdast(
                 }
 
                 result.push('>');
+
+                if !children.is_empty() {
+                    result.push_str(&eval_children(
+                        children,
+                        rhai_component_context,
+                        rhai_template_renderer,
+                        syntax_set,
+                    )?);
+                    result.push_str(&format!("</{}>", tag_name.name));
+                }
             }
         }
         Node::Paragraph(Paragraph { children, .. }) => {

@@ -12,6 +12,7 @@ use super::output_combined_symbol::OutputCombinedSymbol;
 use super::output_semantic_symbol::OutputSemanticSymbol;
 use super::output_symbol::OutputSymbol;
 use super::tag::Tag;
+use crate::rhai_components::tag_name::TagName;
 
 pub fn combine_output_symbols(
     state: &Dynamic,
@@ -146,7 +147,9 @@ pub fn combine_output_symbols(
                         attributes: vec![],
                         is_closing: false,
                         is_self_closing: false,
-                        name: String::new(),
+                        tag_name: TagName {
+                            name: String::new(),
+                        },
                     }));
                 }
                 last_symbol => {
@@ -169,10 +172,10 @@ pub fn combine_output_symbols(
             },
             OutputCombinedSymbol::TagName(name) => match semantic_symbols.back_mut() {
                 Some(OutputSemanticSymbol::Tag(Tag {
-                    name: existing_name,
+                    tag_name: existing_name,
                     ..
                 })) => {
-                    *existing_name = name;
+                    existing_name.name = name;
                 }
                 _ => {
                     return Err(LexError::UnexpectedInput("Unexpected tag name".to_string())

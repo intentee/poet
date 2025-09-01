@@ -29,7 +29,28 @@ use syntect::util::LinesWithEndings;
 
 use crate::escape_html::escape_html;
 use crate::rhai_component_context::RhaiComponentContext;
+use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
+
+fn eval_children(
+    children: &Vec<Node>,
+    rhai_component_context: &RhaiComponentContext,
+    rhai_template_renderer: &RhaiTemplateRenderer,
+    syntax_set: &SyntaxSet,
+) -> Result<String> {
+    let mut content = String::new();
+
+    for child in children {
+        content.push_str(&eval_mdast(
+            child,
+            rhai_component_context,
+            rhai_template_renderer,
+            syntax_set,
+        )?);
+    }
+
+    Ok(content)
+}
 
 pub fn eval_mdast(
     mdast: &Node,
@@ -42,16 +63,12 @@ pub fn eval_mdast(
     match mdast {
         Node::Blockquote(Blockquote { children, .. }) => {
             result.push_str("<blockquote>");
-
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
-
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
             result.push_str("</blockquote>");
         }
         Node::Code(Code {
@@ -99,33 +116,26 @@ pub fn eval_mdast(
         }
         Node::Emphasis(Emphasis { children, .. }) => {
             result.push_str("<em>");
-
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
-
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
             result.push_str("</em>");
         }
         Node::Heading(Heading {
             children, depth, ..
         }) => {
             let tag = format!("h{}", depth);
+
             result.push_str(&format!("<{}>", tag));
-
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
-
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
             result.push_str(&format!("</{}>", tag));
         }
         Node::Html(Html { value, .. }) => {
@@ -147,16 +157,12 @@ pub fn eval_mdast(
             }
 
             result.push('>');
-
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
-
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
             result.push_str("</a>");
         }
         Node::List(List {
@@ -168,14 +174,12 @@ pub fn eval_mdast(
                 result.push_str("<ul>");
             }
 
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
 
             if *ordered {
                 result.push_str("</ol>");
@@ -185,16 +189,12 @@ pub fn eval_mdast(
         }
         Node::ListItem(ListItem { children, .. }) => {
             result.push_str("<li>");
-
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
-
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
             result.push_str("</li>");
         }
         Node::MdxJsxFlowElement(MdxJsxFlowElement {
@@ -203,84 +203,99 @@ pub fn eval_mdast(
             name,
             ..
         }) => {
-            result.push_str(
-                &rhai_template_renderer.render(
-                    &name
-                        .clone()
-                        .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
+            let tag_name = TagName {
+                name: name
+                    .clone()
+                    .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
+            };
+
+            let props = {
+                let mut props = rhai::Map::new();
+
+                for attribute in attributes {
+                    match attribute {
+                        AttributeContent::Expression(_) => {
+                            return Err(anyhow!(
+                                "Attribute expressions in Markdown are not supported"
+                            ));
+                        }
+                        AttributeContent::Property(MdxJsxAttribute { name, value }) => {
+                            props.insert(
+                                name.into(),
+                                match value {
+                                    Some(value) => match value {
+                                        AttributeValue::Literal(literal) => literal.into(),
+                                        AttributeValue::Expression(AttributeValueExpression {
+                                            value,
+                                            ..
+                                        }) => rhai_template_renderer.render_expression(
+                                            rhai_component_context.clone(),
+                                            value,
+                                        )?,
+                                    },
+                                    None => true.into(),
+                                },
+                            );
+                        }
+                    }
+                }
+
+                props
+            };
+
+            if tag_name.is_void_element() && !children.is_empty() {
+                return Err(anyhow!("Void element cannot have children"));
+            }
+
+            let evaluated_children = eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?;
+
+            if tag_name.is_component() {
+                result.push_str(&rhai_template_renderer.render(
+                    &tag_name.name,
                     rhai_component_context.clone(),
-                    Dynamic::from_map({
-                        let mut props = rhai::Map::new();
+                    Dynamic::from_map(props),
+                    Dynamic::from(evaluated_children),
+                )?);
+            } else {
+                println!("NOT A COMPONENT");
+                println!("name: {name:?}, children: {children:?} props: {props:?}");
 
-                        for attribute in attributes {
-                            match attribute {
-                                AttributeContent::Expression(_) => {
-                                    return Err(anyhow!(
-                                        "Attribute expressions in Markdown are not supported"
-                                    ));
-                                }
-                                AttributeContent::Property(MdxJsxAttribute { name, value }) => {
-                                    props.insert(
-                                        name.into(),
-                                        match value {
-                                            Some(value) => match value {
-                                                AttributeValue::Literal(literal) => literal.into(),
-                                                AttributeValue::Expression(
-                                                    AttributeValueExpression { value, .. },
-                                                ) => rhai_template_renderer.render_expression(
-                                                    rhai_component_context.clone(),
-                                                    value,
-                                                )?,
-                                            },
-                                            None => true.into(),
-                                        },
-                                    );
-                                }
-                            }
-                        }
+                result.push_str(&format!("<{} ", tag_name.name));
 
-                        props
-                    }),
-                    Dynamic::from({
-                        let mut content = String::new();
+                for (name, value) in props {
+                    if value.is_bool() {
+                        result.push_str(&format!("{name} "));
+                    } else {
+                        result
+                            .push_str(&format!("{name}=\"{}\" ", escape_html(&value.to_string())));
+                    }
+                }
 
-                        for child in children {
-                            content.push_str(&eval_mdast(
-                                child,
-                                rhai_component_context,
-                                rhai_template_renderer,
-                                syntax_set,
-                            )?);
-                        }
-
-                        content
-                    }),
-                )?,
-            );
+                result.push('>');
+            }
         }
         Node::Paragraph(Paragraph { children, .. }) => {
             result.push_str("<p>");
-
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
-
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
             result.push_str("</p>");
         }
         Node::Root(Root { children, .. }) => {
-            for child in children {
-                result.push_str(&eval_mdast(
-                    child,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
         }
         Node::Text(Text { value, .. }) => {
             result.push_str(value);

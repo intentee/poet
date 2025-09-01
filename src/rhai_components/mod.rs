@@ -16,6 +16,7 @@ mod output_symbol;
 pub mod parse_component;
 mod parser_state;
 mod tag;
+pub mod tag_name;
 pub mod tag_stack_node;
 
 #[cfg(test)]

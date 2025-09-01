@@ -14,7 +14,7 @@ export function run({ development, once = false, rustJobs }) {
         break;
       case matches("resources/ts/**/*.css"):
         schedule("tcm");
-      case matches("resources/**/*.css"):
+      case matches("resources/**/*.{avif,css,gif,jpg,jpeg,svg,webp}"):
         schedule(esbuildJob);
         return;
       case matches("src/**/*.rs"):

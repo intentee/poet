@@ -31,6 +31,17 @@
   padding: 0 var(--spacing-base) var(--spacing-base) var(--spacing-base);
 }
 
+.footer__links__link {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+
+  img {
+    height: 20px;
+    width: 20px;
+  }
+}
+
 /* Main */
 
 .primary-main {
@@ -134,7 +145,7 @@
   }
 }
 
-.primary-navigation__link svg {
+.primary-navigation__link img {
   height: var(--primary-navigation-icon-height);
   width: var(--primary-navigation-icon-width);
 }

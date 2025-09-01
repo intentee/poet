@@ -17,7 +17,7 @@ jarmuz({
     case matches("resources/ts/**/*.css"):
       schedule("tcm");
     case matches("poet.toml"):
-    case matches("resources/**/*.css"):
+    case matches("resources/**/*.{avif,css,gif,jpg,jpeg,svg,webp}"):
       schedule("esbuild-development");
       return;
   }

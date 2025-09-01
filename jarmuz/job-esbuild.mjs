@@ -44,6 +44,7 @@ export function jobEsbuild({ development }) {
 
     const entryPoints = await glob([
       "resources/css/{fragment,global,layout,page}-*.css",
+      "resources/images/**/*.{avif,gif,jpg,jpeg,png,svg,webp}",
       "resources/ts/{controller,global,worker}{_,-}*.{ts,tsx}",
     ]);
 
@@ -70,8 +71,8 @@ export function jobEsbuild({ development }) {
         ".webp": "file",
         ".woff2": "file",
       },
-      assetNames: `[name]_${buildId}`,
-      entryNames: `[name]_${buildId}`,
+      assetNames: `[name]_[hash]`,
+      entryNames: `[name]_[hash]`,
       metafile: true,
       define: {
         "process.env.NODE_ENV": JSON.stringify(

@@ -41,6 +41,7 @@ pub fn watch_project_files(
 ) -> Result<WatchProjectHandle> {
     let content_directory = source_directory.join("content");
     let esbuild_metafile_path = source_directory.join("esbuild-meta.json").canonicalize()?;
+    let resources_directory = source_directory.join("resources");
     let shortcodes_directory = source_directory.join("shortcodes");
 
     let on_poet_config_file_changed = Arc::new(Notify::new());
@@ -49,6 +50,7 @@ pub fn watch_project_files(
     let content_directory_clone = content_directory.clone();
     let on_poet_config_file_changed_clone = on_poet_config_file_changed.clone();
     let on_content_file_changed_clone = on_content_file_changed.clone();
+    let resources_directory_clone = resources_directory.clone();
     let shortcodes_directory_clone = shortcodes_directory.clone();
 
     let mut debouncer = new_debouncer(
@@ -67,6 +69,7 @@ pub fn watch_project_files(
                                 }
 
                                 if is_inside_directory(&content_directory_clone, path)
+                                    || is_inside_directory(&resources_directory_clone, path)
                                     || is_inside_directory(&shortcodes_directory_clone, path)
                                     || esbuild_metafile_path == *path
                                 {
@@ -99,6 +102,7 @@ pub fn watch_project_files(
     )?;
 
     debouncer.watch(content_directory, RecursiveMode::Recursive)?;
+    debouncer.watch(resources_directory, RecursiveMode::Recursive)?;
     debouncer.watch(shortcodes_directory, RecursiveMode::Recursive)?;
     debouncer.watch(source_directory.clone(), RecursiveMode::NonRecursive)?;
 

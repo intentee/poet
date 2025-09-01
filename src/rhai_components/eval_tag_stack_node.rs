@@ -44,7 +44,7 @@ pub fn eval_tag_stack_node(
             let mut result = String::new();
 
             if let Some(opening_tag) = &opening_tag
-                && !opening_tag.is_component()
+                && !opening_tag.tag_name.is_component()
             {
                 result.push_str(&eval_tag(eval_context, expression_collection, opening_tag)?);
             }
@@ -60,15 +60,15 @@ pub fn eval_tag_stack_node(
 
             if let Some(opening_tag) = &opening_tag
                 && *is_closed
-                && !opening_tag.is_component()
+                && !opening_tag.tag_name.is_component()
             {
-                result.push_str(&format!("</{}>", opening_tag.name));
+                result.push_str(&format!("</{}>", opening_tag.tag_name.name));
 
                 return Ok(result);
             }
 
             if let Some(opening_tag) = &opening_tag
-                && opening_tag.is_component()
+                && opening_tag.tag_name.is_component()
             {
                 let props = {
                     let mut props = Map::new();
@@ -96,7 +96,7 @@ pub fn eval_tag_stack_node(
                 Ok(eval_context
                     .call_fn::<Dynamic>(
                         component_registry
-                            .get_global_fn_name(&opening_tag.name)
+                            .get_global_fn_name(&opening_tag.tag_name.name)
                             .map_err(|err| {
                                 EvalAltResult::ErrorRuntime(
                                     format!("Component not found: {err}").into(),

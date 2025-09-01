@@ -30,10 +30,10 @@ pub fn combine_tag_stack(
                 Some(OutputSemanticSymbol::Tag(tag)) => {
                     if tag.is_closing {
                         if let Some(opening_tag) = &opening_tag {
-                            if opening_tag.name != tag.name {
+                            if opening_tag.tag_name.name != tag.tag_name.name {
                                 return Err(LexError::UnexpectedInput(format!(
                                     "Mismatched closing tag: expected </{}>, got </{}>",
-                                    opening_tag.name, tag.name
+                                    opening_tag.tag_name.name, tag.tag_name.name
                                 ))
                                 .into_err(Position::NONE));
                             }
@@ -42,7 +42,7 @@ pub fn combine_tag_stack(
                         } else {
                             return Err(LexError::UnexpectedInput(format!(
                                 "Unexpected closing tag: </{}>",
-                                tag.name
+                                tag.tag_name.name
                             ))
                             .into_err(Position::NONE));
                         }
@@ -50,7 +50,7 @@ pub fn combine_tag_stack(
                         *is_closed = true;
 
                         Ok(())
-                    } else if tag.is_self_closing || tag.is_void_element() {
+                    } else if tag.is_self_closing || tag.tag_name.is_void_element() {
                         children.push(TagStackNode::Tag {
                             children: vec![],
                             is_closed: false,
@@ -86,7 +86,7 @@ pub fn combine_tag_stack(
                         return Err(LexError::UnexpectedInput(format!(
                             "Unclosed tag: <{}>",
                             match opened_tags.back() {
-                                Some(tag) => &tag.name,
+                                Some(tag) => &tag.tag_name.name,
                                 None =>
                                     return Err(LexError::UnexpectedInput(
                                         "No opened tags found".to_string(),

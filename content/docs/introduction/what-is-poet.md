@@ -20,10 +20,6 @@ parent = "docs/introduction/index"
     my note `inline` content xD
 </div>
 
-<Note>
-    <Note>
-        <Note>
-            my nested note xD
-        </Note>
-    </Note>
-</Note>
+```bash
+poet watch .
+```

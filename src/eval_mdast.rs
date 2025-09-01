@@ -109,9 +109,13 @@ pub fn eval_mdast(
             meta, lang, value, ..
         }) => {
             result.push_str(&format!(
-                r#"<pre class="code{}"{}><code>"#,
+                r#"<pre class="code{}"{}{}><code>"#,
                 match lang {
                     Some(lang) => format!(" language-{}", lang),
+                    None => "".to_string(),
+                },
+                match lang {
+                    Some(lang) => format!(" data-lang=\"{}\"", escape_html(lang)),
                     None => "".to_string(),
                 },
                 match meta {
@@ -173,6 +177,7 @@ pub fn eval_mdast(
             result.push_str(&format!("</{}>", tag));
         }
         Node::Html(Html { value, .. }) => {
+            println!("HTML: {value}");
             result.push_str(value);
         }
         Node::Image(Image {
@@ -333,6 +338,9 @@ pub fn eval_mdast(
 
                 if !children.is_empty() {
                     result.push_str(&evaluated_children);
+                }
+
+                if !children.is_empty() || !tag_name.is_void_element() {
                     result.push_str(&format!("</{}>", tag_name.name));
                 }
             }

@@ -5,9 +5,9 @@ use rhai::Dynamic;
 use rhai::Engine;
 use rhai::Scope;
 
-use crate::rhai_component_context::RhaiComponentContext;
+use crate::component_context::ComponentContext;
 
-pub type ShortcodeRenderer = dyn Fn(RhaiComponentContext, Dynamic, Dynamic) -> Result<String>;
+pub type ShortcodeRenderer = dyn Fn(ComponentContext, Dynamic, Dynamic) -> Result<String>;
 
 pub struct RhaiTemplateRenderer {
     expression_engine: Engine,
@@ -28,7 +28,7 @@ impl RhaiTemplateRenderer {
     pub fn render(
         &self,
         name: &str,
-        context: RhaiComponentContext,
+        context: ComponentContext,
         props: Dynamic,
         content: Dynamic,
     ) -> Result<String> {
@@ -41,7 +41,7 @@ impl RhaiTemplateRenderer {
 
     pub fn render_expression(
         &self,
-        context: RhaiComponentContext,
+        context: ComponentContext,
         expression: &str,
     ) -> Result<Dynamic> {
         let mut scope = Scope::new();

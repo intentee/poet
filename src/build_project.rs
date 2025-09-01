@@ -13,6 +13,7 @@ use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::component_context::ComponentContext;
 use crate::eval_mdast::eval_mdast;
 use crate::filesystem::Filesystem;
 use crate::filesystem::memory::Memory;
@@ -23,7 +24,6 @@ use crate::markdown_document::MarkdownDocument;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
-use crate::rhai_component_context::RhaiComponentContext;
 use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
@@ -135,7 +135,7 @@ pub async fn build_project(
             },
     } in &markdown_document_list
     {
-        let rhai_component_context = RhaiComponentContext {
+        let component_context = ComponentContext {
             asset_manager: AssetManager::from_esbuild_metafile(
                 esbuild_metafile.clone(),
                 asset_path_renderer.clone(),
@@ -149,14 +149,14 @@ pub async fn build_project(
 
         let layout_content = eval_mdast(
             mdast,
-            &rhai_component_context,
+            &component_context,
             &rhai_template_renderer,
             &syntax_set,
         )?;
 
         let processed_file = rhai_template_renderer.render(
             &front_matter.layout,
-            rhai_component_context.clone(),
+            component_context.clone(),
             Dynamic::from_map(front_matter.props.clone()),
             layout_content.into(),
         )?;

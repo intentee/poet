@@ -9,12 +9,12 @@ use rhai::Func;
 use rhai::module_resolvers::FileModuleResolver;
 
 use crate::asset_manager::AssetManager;
+use crate::component_context::ComponentContext;
 use crate::filesystem::file_entry::FileEntry;
 use crate::front_matter::FrontMatter;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
-use crate::rhai_component_context::RhaiComponentContext;
 use crate::rhai_components::component_meta_module::ComponentMetaModule;
 use crate::rhai_components::component_reference::ComponentReference;
 use crate::rhai_components::component_registry::ComponentRegistry;
@@ -72,7 +72,7 @@ impl RhaiTemplateFactory {
         engine.build_type::<MarkdownDocumentCollection>();
         engine.build_type::<MarkdownDocumentReference>();
         engine.build_type::<MarkdownDocumentTreeNode>();
-        engine.build_type::<RhaiComponentContext>();
+        engine.build_type::<ComponentContext>();
         engine.build_type::<RhaiMarkdownDocumentHierarchy>();
         engine.register_fn("render_hierarchy", render_hierarchy);
 
@@ -101,7 +101,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
             engine.register_global_module(meta_module.into_global_module(&engine)?.into());
 
             let renderer =
-                Func::<(RhaiComponentContext, Dynamic, Dynamic), String>::create_from_script(
+                Func::<(ComponentContext, Dynamic, Dynamic), String>::create_from_script(
                     // closure consumes the engine
                     engine,
                     &component_reference.file_entry.contents,
@@ -111,7 +111,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
             templates.insert(
                 component_reference.name.clone(),
                 Box::new(
-                    move |context: RhaiComponentContext,
+                    move |context: ComponentContext,
                           content: Dynamic,
                           props: Dynamic|
                           -> Result<String> {

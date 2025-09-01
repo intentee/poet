@@ -10,11 +10,12 @@ pub fn string_to_mdast(contents: &str) -> Result<Node> {
         contents,
         &ParseOptions {
             constructs: Constructs {
-                autolink: true,
+                autolink: false,
+                code_indented: false,
                 frontmatter: true,
                 html_flow: false,
-                mdx_expression_flow: false,
-                mdx_expression_text: false,
+                mdx_expression_flow: true,
+                mdx_expression_text: true,
                 mdx_jsx_flow: true,
                 mdx_jsx_text: true,
                 ..Constructs::gfm()

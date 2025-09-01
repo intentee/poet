@@ -12,10 +12,6 @@ parent = "docs/introduction/index"
 
 **wow**
 
-<Note>
-    my note xD
-</Note>
-
 <div class="formatted-text__note">
     my note `inline` content xD
 </div>
@@ -23,3 +19,5 @@ parent = "docs/introduction/index"
 ```bash
 poet watch .
 ```
+
+[Do foo](docs/getting-started/index)

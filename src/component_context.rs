@@ -11,7 +11,7 @@ use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 
 #[derive(Clone)]
-pub struct RhaiComponentContext {
+pub struct ComponentContext {
     pub asset_manager: AssetManager,
     pub collections: Arc<HashMap<String, MarkdownDocumentCollection>>,
     pub front_matter: FrontMatter,
@@ -20,9 +20,38 @@ pub struct RhaiComponentContext {
     pub markdown_document_by_basename: Arc<HashMap<String, MarkdownDocumentReference>>,
 }
 
-impl RhaiComponentContext {
+impl ComponentContext {
     pub fn get_assets(&mut self) -> AssetManager {
         self.asset_manager.clone()
+    }
+
+    pub fn link_to(&self, path: &str) -> Result<String, String> {
+        let basename = if path.starts_with("#") {
+            if let Some(basename) = self
+                .markdown_basename_by_id
+                .get(match path.strip_prefix('#') {
+                    Some(id) => id,
+                    None => return Err("Unable to strip prefix from document id".into()),
+                })
+            {
+                basename
+            } else {
+                return Err(format!("Document with id does not exist: {path}"));
+            }
+        } else {
+            path
+        };
+
+        if let Some(reference) = self.markdown_document_by_basename.get(basename) {
+            match reference.canonical_link() {
+                Ok(canonical_link) => Ok(canonical_link),
+                Err(err) => Err(format!(
+                    "Unable to generate canonical link for {basename}: {err}"
+                )),
+            }
+        } else {
+            Err(format!("Document does not exist: {path}"))
+        }
     }
 
     fn rhai_collection(
@@ -45,39 +74,14 @@ impl RhaiComponentContext {
     }
 
     fn rhai_link_to(&mut self, path: &str) -> Result<String, Box<EvalAltResult>> {
-        let basename = if path.starts_with("#") {
-            if let Some(basename) = self
-                .markdown_basename_by_id
-                .get(match path.strip_prefix('#') {
-                    Some(id) => id,
-                    None => return Err("Unable to strip prefix from document id".into()),
-                })
-            {
-                basename
-            } else {
-                return Err(format!("Document with id does not exist: {path}").into());
-            }
-        } else {
-            path
-        };
-
-        if let Some(reference) = self.markdown_document_by_basename.get(basename) {
-            match reference.canonical_link() {
-                Ok(canonical_link) => Ok(canonical_link),
-                Err(err) => {
-                    Err(format!("Unable to generate canonical link for {basename}: {err}").into())
-                }
-            }
-        } else {
-            Err(format!("Document does not exist: {path}").into())
-        }
+        Ok(self.link_to(path)?)
     }
 }
 
-impl CustomType for RhaiComponentContext {
+impl CustomType for ComponentContext {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("RhaiComponentContext")
+            .with_name("ComponentContext")
             .with_get("assets", Self::get_assets)
             .with_get("front_matter", Self::rhai_front_matter)
             .with_get("is_watching", Self::rhai_is_watching)

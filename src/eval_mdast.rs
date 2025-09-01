@@ -14,6 +14,7 @@ use markdown::mdast::InlineCode;
 use markdown::mdast::Link;
 use markdown::mdast::List;
 use markdown::mdast::ListItem;
+use markdown::mdast::MdxFlowExpression;
 use markdown::mdast::MdxJsxAttribute;
 use markdown::mdast::MdxJsxFlowElement;
 use markdown::mdast::Node;
@@ -29,15 +30,15 @@ use syntect::html::ClassedHTMLGenerator;
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
+use crate::component_context::ComponentContext;
 use crate::escape_html::escape_html;
-use crate::rhai_component_context::RhaiComponentContext;
+use crate::is_external_link::is_external_link;
 use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
-use crate::string_to_mdast::string_to_mdast;
 
 fn eval_children(
     children: &Vec<Node>,
-    rhai_component_context: &RhaiComponentContext,
+    component_context: &ComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
 ) -> Result<String> {
@@ -46,7 +47,7 @@ fn eval_children(
     for child in children {
         content.push_str(&eval_mdast(
             child,
-            rhai_component_context,
+            component_context,
             rhai_template_renderer,
             syntax_set,
         )?);
@@ -55,40 +56,9 @@ fn eval_children(
     Ok(content)
 }
 
-/// JSX elements are initially parsed as Code blocks. They need to be converted to `mdast` again,
-/// and re-evaluated.
-fn eval_jsx_flow_element_children(
-    children: &Vec<Node>,
-    rhai_component_context: &RhaiComponentContext,
-    rhai_template_renderer: &RhaiTemplateRenderer,
-    syntax_set: &SyntaxSet,
-) -> Result<String> {
-    let mut result = String::new();
-
-    for node in children {
-        match node {
-            Node::Code(Code { value, .. }) => {
-                result.push_str(&eval_mdast(
-                    &string_to_mdast(value)?,
-                    rhai_component_context,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?);
-            }
-            _ => {
-                return Err(anyhow!(
-                    "Unexpected JSX child node. Expected only code nodes"
-                ));
-            }
-        }
-    }
-
-    Ok(result)
-}
-
 pub fn eval_mdast(
     mdast: &Node,
-    rhai_component_context: &RhaiComponentContext,
+    component_context: &ComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
 ) -> Result<String> {
@@ -99,7 +69,7 @@ pub fn eval_mdast(
             result.push_str("<blockquote>");
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
@@ -156,7 +126,7 @@ pub fn eval_mdast(
             result.push_str("<em>");
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
@@ -170,7 +140,7 @@ pub fn eval_mdast(
             result.push_str(&format!("<{}>", tag));
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
@@ -185,10 +155,10 @@ pub fn eval_mdast(
         }) => {
             result.push_str(&format!("<img alt=\"{}\" ", escape_html(alt)));
 
-            let src = if url.starts_with("http:") || url.starts_with("https:") {
+            let src = if is_external_link(url) {
                 url
             } else {
-                &match rhai_component_context.asset_manager.file(url) {
+                &match component_context.asset_manager.file(url) {
                     Ok(src) => src,
                     Err(err) => return Err(anyhow!(err)),
                 }
@@ -211,7 +181,18 @@ pub fn eval_mdast(
             url,
             ..
         }) => {
-            result.push_str(&format!("<a href=\"{}\"", url));
+            println!("title={title:?}, url={url}");
+
+            let link = if is_external_link(url) {
+                url.clone()
+            } else {
+                match component_context.link_to(url) {
+                    Ok(link) => link,
+                    Err(err) => return Err(anyhow!(err)),
+                }
+            };
+
+            result.push_str(&format!("<a href=\"{link}\""));
 
             if let Some(title) = title {
                 result.push_str(&format!(" title=\"{}\"", title));
@@ -220,7 +201,7 @@ pub fn eval_mdast(
             result.push('>');
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
@@ -237,7 +218,7 @@ pub fn eval_mdast(
 
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
@@ -252,11 +233,18 @@ pub fn eval_mdast(
             result.push_str("<li>");
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
             result.push_str("</li>");
+        }
+        Node::MdxFlowExpression(MdxFlowExpression { value, .. }) => {
+            result.push_str(
+                &rhai_template_renderer
+                    .render_expression(component_context.clone(), value)?
+                    .to_string(),
+            );
         }
         Node::MdxJsxFlowElement(MdxJsxFlowElement {
             attributes,
@@ -289,10 +277,8 @@ pub fn eval_mdast(
                                         AttributeValue::Expression(AttributeValueExpression {
                                             value,
                                             ..
-                                        }) => rhai_template_renderer.render_expression(
-                                            rhai_component_context.clone(),
-                                            value,
-                                        )?,
+                                        }) => rhai_template_renderer
+                                            .render_expression(component_context.clone(), value)?,
                                     },
                                     None => true.into(),
                                 },
@@ -308,9 +294,9 @@ pub fn eval_mdast(
                 return Err(anyhow!("Void element cannot have children"));
             }
 
-            let evaluated_children = eval_jsx_flow_element_children(
+            let evaluated_children = eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?;
@@ -318,7 +304,7 @@ pub fn eval_mdast(
             if tag_name.is_component() {
                 result.push_str(&rhai_template_renderer.render(
                     &tag_name.name,
-                    rhai_component_context.clone(),
+                    component_context.clone(),
                     Dynamic::from_map(props),
                     Dynamic::from(evaluated_children),
                 )?);
@@ -349,7 +335,7 @@ pub fn eval_mdast(
             result.push_str("<p>");
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
@@ -358,7 +344,7 @@ pub fn eval_mdast(
         Node::Root(Root { children, .. }) => {
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);
@@ -367,7 +353,7 @@ pub fn eval_mdast(
             result.push_str("<strong>");
             result.push_str(&eval_children(
                 children,
-                rhai_component_context,
+                component_context,
                 rhai_template_renderer,
                 syntax_set,
             )?);

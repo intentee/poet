@@ -19,6 +19,7 @@ use markdown::mdast::MdxJsxFlowElement;
 use markdown::mdast::Node;
 use markdown::mdast::Paragraph;
 use markdown::mdast::Root;
+use markdown::mdast::Strong;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
 use markdown::mdast::Toml;
@@ -32,6 +33,7 @@ use crate::escape_html::escape_html;
 use crate::rhai_component_context::RhaiComponentContext;
 use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
+use crate::string_to_mdast::string_to_mdast;
 
 fn eval_children(
     children: &Vec<Node>,
@@ -51,6 +53,37 @@ fn eval_children(
     }
 
     Ok(content)
+}
+
+/// JSX elements are initially parsed as Code blocks. They need to be converted to `mdast` again,
+/// and re-evaluated.
+fn eval_jsx_flow_element_children(
+    children: &Vec<Node>,
+    rhai_component_context: &RhaiComponentContext,
+    rhai_template_renderer: &RhaiTemplateRenderer,
+    syntax_set: &SyntaxSet,
+) -> Result<String> {
+    let mut result = String::new();
+
+    for node in children {
+        match node {
+            Node::Code(Code { value, .. }) => {
+                result.push_str(&eval_mdast(
+                    &string_to_mdast(value)?,
+                    rhai_component_context,
+                    rhai_template_renderer,
+                    syntax_set,
+                )?);
+            }
+            _ => {
+                return Err(anyhow!(
+                    "Unexpected JSX child node. Expected only code nodes"
+                ));
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 pub fn eval_mdast(
@@ -270,7 +303,7 @@ pub fn eval_mdast(
                 return Err(anyhow!("Void element cannot have children"));
             }
 
-            let evaluated_children = eval_children(
+            let evaluated_children = eval_jsx_flow_element_children(
                 children,
                 rhai_component_context,
                 rhai_template_renderer,
@@ -299,12 +332,7 @@ pub fn eval_mdast(
                 result.push('>');
 
                 if !children.is_empty() {
-                    result.push_str(&eval_children(
-                        children,
-                        rhai_component_context,
-                        rhai_template_renderer,
-                        syntax_set,
-                    )?);
+                    result.push_str(&evaluated_children);
                     result.push_str(&format!("</{}>", tag_name.name));
                 }
             }
@@ -326,6 +354,16 @@ pub fn eval_mdast(
                 rhai_template_renderer,
                 syntax_set,
             )?);
+        }
+        Node::Strong(Strong { children, .. }) => {
+            result.push_str("<strong>");
+            result.push_str(&eval_children(
+                children,
+                rhai_component_context,
+                rhai_template_renderer,
+                syntax_set,
+            )?);
+            result.push_str("</strong>");
         }
         Node::Text(Text { value, .. }) => {
             result.push_str(value);

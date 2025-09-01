@@ -9,3 +9,21 @@ parent = "docs/introduction/index"
 +++
 
 ## Hello!
+
+**wow**
+
+<Note>
+    my note xD
+</Note>
+
+<div class="formatted-text__note">
+    my note `inline` content xD
+</div>
+
+<Note>
+    <Note>
+        <Note>
+            my nested note xD
+        </Note>
+    </Note>
+</Note>

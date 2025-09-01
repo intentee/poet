@@ -55,7 +55,7 @@ impl RhaiComponentContext {
             {
                 basename
             } else {
-                return Err(format!("Documetn with id does not exist: {path}").into());
+                return Err(format!("Document with id does not exist: {path}").into());
             }
         } else {
             path

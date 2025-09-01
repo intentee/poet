@@ -2,9 +2,9 @@ fn template(context, props, content) {
   component {
     <div
       class={if "type" in props {
-        `note note--${props.type}`
+        `formatted-text__note formatted-text__note--${props.type}`
       } else {
-        "note"
+        "formatted-text__note"
       }}
     >
       {content}

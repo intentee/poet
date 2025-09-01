@@ -18,6 +18,7 @@ use async_trait::async_trait;
 use clap::Parser;
 use log::error;
 use log::info;
+use log::warn;
 use tokio::fs::create_dir_all;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -28,10 +29,12 @@ use self::watch_project_files::WatchProjectHandle;
 use self::watch_project_files::watch_project_files;
 use super::Handler;
 use super::value_parser::validate_is_directory;
+use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
 use crate::filesystem::memory::Memory;
 use crate::filesystem::storage::Storage;
 use crate::poet_config::PoetConfig;
+use crate::poet_config_holder::PoetConfigHolder;
 use crate::read_poet_config_file::read_poet_config_file;
 
 #[derive(Parser)]
@@ -61,6 +64,7 @@ impl Handler for Watch {
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
+        let poet_config_holder: PoetConfigHolder = Default::default();
 
         let source_filesystem = Storage {
             base_directory: self.source_directory.clone(),
@@ -68,19 +72,70 @@ impl Handler for Watch {
 
         let mut task_set = JoinSet::new();
 
-        let ctrlc_notifier_builder = ctrlc_notifier.clone();
+        let ctrlc_notifier_poet_config = ctrlc_notifier.clone();
+        let poet_config_holder_processor = poet_config_holder.clone();
 
         task_set.spawn(rt::spawn(async move {
-            let do_build_project = async || match build_project(true, &source_filesystem).await {
-                Ok(memory_filesystem) => {
-                    if let Err(err) = output_filesystem_holder_clone
-                        .set_output_filesystem(Arc::new(memory_filesystem))
-                        .await
-                    {
-                        error!("Failed to set output filesystem: {err}");
+            loop {
+                let poet_config = match read_poet_config_file(&poet_config_path).await {
+                    Ok(poet_config) => poet_config,
+                    Err(err) => {
+                        error!(
+                            "Unable to parse config file {}: {err}",
+                            poet_config_path.display()
+                        );
+
+                        on_poet_config_file_changed.notified().await;
+
+                        continue;
+                    }
+                };
+
+                poet_config_holder_processor
+                    .set_poet_config(Some(poet_config))
+                    .await;
+
+                tokio::select! {
+                    _ = on_poet_config_file_changed.notified() => {}
+                    _ = ctrlc_notifier_poet_config.cancelled() => {
+                        break;
                     }
                 }
-                Err(err) => error!("Failed to build project: {err}"),
+            }
+        }));
+
+        let ctrlc_notifier_builder = ctrlc_notifier.clone();
+        let poet_config_holder_builder = poet_config_holder.clone();
+
+        task_set.spawn(rt::spawn(async move {
+            let do_build_project = async || {
+                match poet_config_holder_builder.get_poet_config().await {
+                    Some(poet_config) => {
+                        match build_project(
+                            AssetPathRenderer {
+                                base_path: format!(
+                                    "http://{}/",
+                                    poet_config.watch_server_addr,
+                                ),
+                            },
+                            true,
+                            &source_filesystem,
+                        ).await {
+                            Ok(memory_filesystem) => {
+                                if let Err(err) = output_filesystem_holder_clone
+                                    .set_output_filesystem(Arc::new(memory_filesystem))
+                                    .await
+                                {
+                                    error!("Failed to set output filesystem: {err}");
+                                }
+                            }
+                            Err(err) => error!("Failed to build project: {err}"),
+                        }
+                    },
+                    None => {
+                        warn!("Poet config is not ready yet. Skipping build");
+                    }
+                }
             };
 
             do_build_project().await;
@@ -88,9 +143,10 @@ impl Handler for Watch {
             loop {
                 tokio::select! {
                     _ = on_content_file_changed.notified() => do_build_project().await,
+                    _ = poet_config_holder_builder.update_notifier.notified() => do_build_project().await,
                     _ = ctrlc_notifier_builder.cancelled() => {
                         break;
-                    }
+                    },
                 }
             }
         }));
@@ -111,17 +167,13 @@ impl Handler for Watch {
                     static_files_directory,
                     static_files_public_path,
                     watch_server_addr,
-                } = match read_poet_config_file(&poet_config_path).await {
-                    Ok(poet_config) => poet_config,
-                    Err(err) => {
-                        error!(
-                            "Unable to parse config file {}: {err}",
-                            poet_config_path.display()
-                        );
-
-                        on_poet_config_file_changed.notified().await;
-
-                        continue;
+                } = {
+                    match poet_config_holder.get_poet_config().await {
+                        Some(poet_config) => poet_config.clone(),
+                        None => {
+                            poet_config_holder.update_notifier.notified().await;
+                            continue;
+                        }
                     }
                 };
 
@@ -136,7 +188,7 @@ impl Handler for Watch {
 
                 let app_data_clone = app_data.clone();
                 let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
-                let on_poet_config_file_changed_clone = on_poet_config_file_changed.clone();
+                let poet_config_holder_clone = poet_config_holder.clone();
                 let static_files_directory_clone = static_files_directory.clone();
 
                 if let Err(err) = HttpServer::new(move || {
@@ -158,7 +210,7 @@ impl Handler for Watch {
                 .shutdown_signal(async move {
                     tokio::select! {
                         _ = ctrlc_notifier_server_clone.cancelled() => {}
-                        _ = on_poet_config_file_changed_clone.notified() => {}
+                        _ = poet_config_holder_clone.update_notifier.notified() => {}
                     }
                 })
                 .shutdown_timeout(1)

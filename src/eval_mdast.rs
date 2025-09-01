@@ -150,7 +150,7 @@ pub fn eval_mdast(
             let src = if url.starts_with("http:") || url.starts_with("https:") {
                 url
             } else {
-                &match rhai_component_context.asset_manager.image(url) {
+                &match rhai_component_context.asset_manager.file(url) {
                     Ok(src) => src,
                     Err(err) => return Err(anyhow!(err)),
                 }

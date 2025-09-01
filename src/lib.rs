@@ -1,4 +1,5 @@
 mod asset_manager;
+mod asset_path_renderer;
 mod build_project;
 pub mod cmd;
 mod escape_html;
@@ -12,6 +13,7 @@ mod markdown_document_in_collection;
 mod markdown_document_reference;
 mod markdown_document_tree_node;
 mod poet_config;
+mod poet_config_holder;
 mod read_poet_config_file;
 mod rhai_component_context;
 mod rhai_components;

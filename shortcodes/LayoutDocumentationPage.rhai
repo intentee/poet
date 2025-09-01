@@ -21,6 +21,7 @@ fn render_menu(context, node, level, nested) {
 
 fn template(context, props, content) {
   context.assets.add("resources/css/layout-documentation-page.css");
+  // context.speculation.next(context.collection("documentation_pages").hierarchy.next_after(context.basename));
 
   component {
     <LayoutMinimal>

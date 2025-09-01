@@ -11,6 +11,4 @@ parent = "docs/getting-started/index"
 
 Done
 
-<img alt="GitHub" foo src={context.assets.image("resources/images/logo-github.svg")} />
-
 ![GitHub logo](resources/images/logo-github.svg)

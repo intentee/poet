@@ -12,6 +12,7 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
+use crate::asset_path_renderer::AssetPathRenderer;
 use crate::eval_mdast::eval_mdast;
 use crate::filesystem::Filesystem;
 use crate::filesystem::memory::Memory;
@@ -27,7 +28,11 @@ use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
 
-pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Result<Memory> {
+pub async fn build_project(
+    asset_path_renderer: AssetPathRenderer,
+    is_watching: bool,
+    source_filesystem: &Storage,
+) -> Result<Memory> {
     let memory_filesystem = Memory::default();
     let esbuild_metafile: Arc<EsbuildMetaFile> = match source_filesystem
         .read_file_contents(&PathBuf::from("esbuild-meta.json"))
@@ -131,7 +136,10 @@ pub async fn build_project(is_watching: bool, source_filesystem: &Storage) -> Re
     } in &markdown_document_list
     {
         let rhai_component_context = RhaiComponentContext {
-            asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile.clone()),
+            asset_manager: AssetManager::from_esbuild_metafile(
+                esbuild_metafile.clone(),
+                asset_path_renderer.clone(),
+            ),
             collections: collections_arc.clone(),
             is_watching,
             front_matter: front_matter.clone(),

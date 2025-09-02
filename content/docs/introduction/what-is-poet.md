@@ -36,7 +36,7 @@ if true {
 }
 ```
 
-[Do foo](docs/getting-started/index)
+[Do foo](docs/getting-started/create-your-first-page)
 
 ![resources/media/logo-github.svg]
 

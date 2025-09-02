@@ -1,11 +1,11 @@
 use rhai::CustomType;
 use rhai::TypeBuilder;
 
-use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
+use crate::rhai_markdown_document_tree_node::RhaiMarkdownDocumentTreeNode;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct RhaiMarkdownDocumentHierarchy {
-    pub hierarchy: Vec<MarkdownDocumentTreeNode>,
+    pub hierarchy: Vec<RhaiMarkdownDocumentTreeNode>,
 }
 
 impl CustomType for RhaiMarkdownDocumentHierarchy {
@@ -14,8 +14,8 @@ impl CustomType for RhaiMarkdownDocumentHierarchy {
     }
 }
 
-impl From<Vec<MarkdownDocumentTreeNode>> for RhaiMarkdownDocumentHierarchy {
-    fn from(hierarchy: Vec<MarkdownDocumentTreeNode>) -> Self {
+impl From<Vec<RhaiMarkdownDocumentTreeNode>> for RhaiMarkdownDocumentHierarchy {
+    fn from(hierarchy: Vec<RhaiMarkdownDocumentTreeNode>) -> Self {
         Self { hierarchy }
     }
 }

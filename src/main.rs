@@ -21,7 +21,7 @@ enum Commands {
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
 
     match Cli::parse().command {
         Some(Commands::Generate(handler)) => Ok(handler.handle().await?),

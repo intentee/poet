@@ -1,5 +1,6 @@
 +++
 layout = "LayoutDocumentationPage"
+render = false
 title = "Getting Started"
 
 [[collection]]

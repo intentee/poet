@@ -21,7 +21,10 @@ fn render_menu(context, node, level, nested) {
     _ => component {
       <div class="docs__nav-section">
         <a
-          class="docs__nav-link"
+          class={clsx(#{
+            "docs__nav-link": true,
+            "docs__nav-link--active": context.is_this(node.reference.basename),
+          })}
           href={context.link_to(node.reference.basename)}
         >
           {node.reference.front_matter.title}
@@ -35,6 +38,8 @@ fn template(context, props, content) {
   context.assets.add("resources/css/layout-documentation-page.css");
   // context.speculation.next(context.collection("documentation_pages").hierarchy.next_after(context.basename));
 
+  let menu_hierarchy = context.collection(figure_out_collection(context)).hierarchy;
+
   component {
     <LayoutMinimal>
       <div class="docs">
@@ -45,7 +50,7 @@ fn template(context, props, content) {
           </label>
           <div class="docs__nav__content">
             {render_hierarchy(
-              context.collection(figure_out_collection(context)).hierarchy,
+              menu_hierarchy,
               render_menu.curry(context)
             )}
           </div>

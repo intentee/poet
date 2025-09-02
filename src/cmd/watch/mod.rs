@@ -140,8 +140,6 @@ impl Handler for Watch {
                 }
             };
 
-            do_build_project().await;
-
             loop {
                 tokio::select! {
                     _ = on_content_file_changed.notified() => do_build_project().await,

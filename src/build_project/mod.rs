@@ -3,6 +3,7 @@ mod document_error_collection;
 mod document_rendering_context;
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr as _;
 use std::sync::Arc;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use anyhow::anyhow;
 use esbuild_metafile::EsbuildMetaFile;
+use log::debug;
 use log::info;
 use log::warn;
 use rhai::Dynamic;
@@ -31,6 +33,7 @@ use crate::markdown_document::MarkdownDocument;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
+use crate::rhai_markdown_document_collection::RhaiMarkdownDocumentCollection;
 use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
@@ -38,7 +41,7 @@ use crate::string_to_mdast::string_to_mdast;
 async fn render_document<'render>(
     DocumentRenderingContext {
         asset_path_renderer,
-        collections,
+        available_collections,
         esbuild_metafile,
         is_watching,
         markdown_basename_by_id,
@@ -48,21 +51,24 @@ async fn render_document<'render>(
                 mdast,
                 reference:
                     MarkdownDocumentReference {
-                        basename_path: _,
+                        basename_path,
                         front_matter,
                     },
             },
+        rhai_markdown_document_collections,
         rhai_template_renderer,
         syntax_set,
     }: DocumentRenderingContext<'render>,
 ) -> Result<String> {
     let component_context = ComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
-        collections,
+        available_collections,
+        basename: basename_path.display().to_string(),
         is_watching,
         front_matter: front_matter.clone(),
         markdown_basename_by_id,
         markdown_document_by_basename,
+        rhai_markdown_document_collections,
     };
 
     let layout_content = eval_mdast(
@@ -171,20 +177,54 @@ pub async fn build_project(
         }
     }
 
-    let collections_arc = Arc::new(collections);
+    let available_collections_arc: Arc<HashSet<String>> = Arc::new({
+        let mut available_collections: HashSet<String> = Default::default();
+
+        for key in collections.keys() {
+            available_collections.insert(key.into());
+        }
+
+        available_collections
+    });
     let mut error_collection: DocumentErrorCollection = Default::default();
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
+    let rhai_markdown_document_collections_arc = Arc::new({
+        let mut rhai_markdown_document_collections: HashMap<
+            String,
+            RhaiMarkdownDocumentCollection,
+        > = Default::default();
+
+        for (key, collection) in &collections {
+            rhai_markdown_document_collections.insert(
+                key.clone(),
+                RhaiMarkdownDocumentCollection {
+                    available_collections: available_collections_arc.clone(),
+                    documents: collection.documents.clone(),
+                },
+            );
+        }
+
+        rhai_markdown_document_collections
+    });
 
     for markdown_document in &markdown_document_list {
+        if !markdown_document.reference.front_matter.render {
+            debug!(
+                "Document will not be rendered: {}",
+                markdown_document.reference.basename()
+            );
+        }
+
         match render_document(DocumentRenderingContext {
             asset_path_renderer: asset_path_renderer.clone(),
-            collections: collections_arc.clone(),
+            available_collections: available_collections_arc.clone(),
             esbuild_metafile: esbuild_metafile.clone(),
             is_watching,
             markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
             markdown_document,
             markdown_document_by_basename: markdown_document_by_basename_arc.clone(),
+            rhai_markdown_document_collections: rhai_markdown_document_collections_arc.clone(),
             rhai_template_renderer: &rhai_template_renderer,
             syntax_set: &syntax_set,
         })

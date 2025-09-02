@@ -5,15 +5,15 @@ use rhai::CustomType;
 use rhai::Dynamic;
 use rhai::TypeBuilder;
 
-use crate::markdown_document_reference::MarkdownDocumentReference;
+use crate::rhai_markdown_document_reference::RhaiMarkdownDocumentReference;
 
-#[derive(Clone, Debug)]
-pub struct MarkdownDocumentTreeNode {
-    pub children: LinkedList<MarkdownDocumentTreeNode>,
-    pub reference: MarkdownDocumentReference,
+#[derive(Clone)]
+pub struct RhaiMarkdownDocumentTreeNode {
+    pub children: LinkedList<RhaiMarkdownDocumentTreeNode>,
+    pub reference: RhaiMarkdownDocumentReference,
 }
 
-impl MarkdownDocumentTreeNode {
+impl RhaiMarkdownDocumentTreeNode {
     fn rhai_children(&mut self) -> Array {
         self.children
             .iter()
@@ -21,15 +21,15 @@ impl MarkdownDocumentTreeNode {
             .collect::<Vec<_>>()
     }
 
-    fn rhai_reference(&mut self) -> MarkdownDocumentReference {
+    fn rhai_reference(&mut self) -> RhaiMarkdownDocumentReference {
         self.reference.clone()
     }
 }
 
-impl CustomType for MarkdownDocumentTreeNode {
+impl CustomType for RhaiMarkdownDocumentTreeNode {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("MarkdownDocumentTreeNode")
+            .with_name("RhaiMarkdownDocumentTreeNode")
             .with_get("children", Self::rhai_children)
             .with_get("reference", Self::rhai_reference);
     }

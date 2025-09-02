@@ -39,7 +39,10 @@ fn template(context, props, content) {
               <div class="primary-navigation__group">
                 <a
                   href={context.link_to("#getting-started")}
-                  class="primary-navigation__link"
+                  class={clsx(#{
+                    "primary-navigation__link": true,
+                    "primary-navigation__link--active": context.front_matter.collections.has("documentation_pages"),
+                  })}
                 >
                   Docs
                 </a>

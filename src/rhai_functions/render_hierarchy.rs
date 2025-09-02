@@ -3,12 +3,12 @@ use rhai::EvalAltResult;
 use rhai::FnPtr;
 use rhai::NativeCallContext;
 
-use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
 use crate::rhai_markdown_document_hierarchy::RhaiMarkdownDocumentHierarchy;
+use crate::rhai_markdown_document_tree_node::RhaiMarkdownDocumentTreeNode;
 
 fn render_node(
     context: &NativeCallContext,
-    node: &MarkdownDocumentTreeNode,
+    node: &RhaiMarkdownDocumentTreeNode,
     callback: &FnPtr,
     nesting_level: i64,
 ) -> Result<Dynamic, Box<EvalAltResult>> {

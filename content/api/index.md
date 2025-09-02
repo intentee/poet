@@ -1,8 +1,8 @@
 +++
 layout = "LayoutDocumentationPage"
 render = false
-title = "Introduction"
+title = "API"
 
 [[collection]]
-name = "documentation_pages"
+name = "api_pages"
 +++

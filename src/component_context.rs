@@ -12,6 +12,7 @@ use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_front_matter::RhaiFrontMatter;
 use crate::rhai_markdown_document_collection::RhaiMarkdownDocumentCollection;
 use crate::rhai_markdown_document_reference::RhaiMarkdownDocumentReference;
+use crate::table_of_contents::TableOfContents;
 
 #[derive(Clone)]
 pub struct ComponentContext {
@@ -23,6 +24,7 @@ pub struct ComponentContext {
     pub markdown_document_by_basename: Arc<HashMap<String, MarkdownDocumentReference>>,
     pub reference: MarkdownDocumentReference,
     pub rhai_markdown_document_collections: Arc<HashMap<String, RhaiMarkdownDocumentCollection>>,
+    pub table_of_contents: Option<TableOfContents>,
 }
 
 impl ComponentContext {
@@ -48,6 +50,20 @@ impl ComponentContext {
             }
         } else {
             Err(format!("Document does not exist: {path}"))
+        }
+    }
+
+    pub fn with_table_of_contents(self, table_of_contents: TableOfContents) -> Self {
+        Self {
+            available_collections: self.available_collections,
+            asset_manager: self.asset_manager,
+            front_matter: self.front_matter,
+            is_watching: self.is_watching,
+            markdown_basename_by_id: self.markdown_basename_by_id,
+            markdown_document_by_basename: self.markdown_document_by_basename,
+            reference: self.reference,
+            rhai_markdown_document_collections: self.rhai_markdown_document_collections,
+            table_of_contents: Some(table_of_contents),
         }
     }
 
@@ -111,6 +127,14 @@ impl ComponentContext {
             reference: self.reference.clone(),
         }
     }
+
+    fn rhai_table_of_contents(&mut self) -> Result<TableOfContents, Box<EvalAltResult>> {
+        if let Some(table_of_contents) = &self.table_of_contents {
+            Ok(table_of_contents.clone())
+        } else {
+            Err("Table of contents is not available. Do not use table of contents variable in document headers.".into())
+        }
+    }
 }
 
 impl CustomType for ComponentContext {
@@ -121,6 +145,7 @@ impl CustomType for ComponentContext {
             .with_get("front_matter", Self::rhai_front_matter)
             .with_get("is_watching", Self::rhai_is_watching)
             .with_get("reference", Self::rhai_reference)
+            .with_get("table_of_contents", Self::rhai_table_of_contents)
             .with_fn("collection", Self::rhai_collection)
             .with_fn("is_current_page", Self::rhai_is_current_page)
             .with_fn("link_to", Self::rhai_link_to);

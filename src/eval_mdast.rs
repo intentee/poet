@@ -37,12 +37,13 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
 use crate::component_context::ComponentContext;
-use crate::escape_html::escape_html;
+use crate::escape_html_attribute::escape_html_attribute;
 use crate::is_external_link::is_external_link;
+use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
-fn eval_children(
+pub fn eval_children(
     children: &Vec<Node>,
     component_context: &ComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
@@ -94,11 +95,11 @@ pub fn eval_mdast(
                     None => "".to_string(),
                 },
                 match lang {
-                    Some(lang) => format!(" data-lang=\"{}\"", escape_html(lang)),
+                    Some(lang) => format!(" data-lang=\"{}\"", escape_html_attribute(lang)),
                     None => "".to_string(),
                 },
                 match meta {
-                    Some(meta) => format!(r#" data-meta="{}""#, escape_html(meta)),
+                    Some(meta) => format!(r#" data-meta="{}""#, escape_html_attribute(meta)),
                     None => "".to_string(),
                 }
             ));
@@ -122,11 +123,11 @@ pub fn eval_mdast(
                     None => {
                         warn!("No syntax found for language: {}", lang);
 
-                        result.push_str(&escape_html(value));
+                        result.push_str(&escape_html_attribute(value));
                     }
                 }
             } else {
-                result.push_str(&escape_html(value));
+                result.push_str(&escape_html_attribute(value));
             }
 
             result.push_str("</code></pre>");
@@ -175,7 +176,11 @@ pub fn eval_mdast(
         }) => {
             let tag = format!("h{}", depth);
 
-            result.push_str(&format!("<{}>", tag));
+            result.push_str(&format!(
+                "<{} id=\"{}\">",
+                tag,
+                escape_html_attribute(&mdast_children_to_heading_id(children)?)
+            ));
             result.push_str(&eval_children(
                 children,
                 component_context,
@@ -190,7 +195,7 @@ pub fn eval_mdast(
         Node::Image(Image {
             alt, url, title, ..
         }) => {
-            result.push_str(&format!("<img alt=\"{}\" ", escape_html(alt)));
+            result.push_str(&format!("<img alt=\"{}\" ", escape_html_attribute(alt)));
 
             let src = if is_external_link(url) {
                 url
@@ -201,10 +206,10 @@ pub fn eval_mdast(
                 }
             };
 
-            result.push_str(&format!("src=\"{}\"", escape_html(src)));
+            result.push_str(&format!("src=\"{}\"", escape_html_attribute(src)));
 
             if let Some(title) = title {
-                result.push_str(&format!(" title=\"{}\"", escape_html(title)));
+                result.push_str(&format!(" title=\"{}\"", escape_html_attribute(title)));
             }
 
             result.push('>');
@@ -213,7 +218,7 @@ pub fn eval_mdast(
             warn!("Image references are not supported: {node:?}");
         }
         Node::InlineCode(InlineCode { value, .. }) => {
-            result.push_str(&format!("<code>{}</code>", escape_html(value)));
+            result.push_str(&format!("<code>{}</code>", escape_html_attribute(value)));
         }
         Node::InlineMath(node) => {
             warn!("Inline math expressions are not supported: {node:?}");
@@ -372,8 +377,10 @@ pub fn eval_mdast(
                     if value.is_bool() {
                         result.push_str(&format!("{name} "));
                     } else {
-                        result
-                            .push_str(&format!("{name}=\"{}\" ", escape_html(&value.to_string())));
+                        result.push_str(&format!(
+                            "{name}=\"{}\" ",
+                            escape_html_attribute(&value.to_string())
+                        ));
                     }
                 }
 

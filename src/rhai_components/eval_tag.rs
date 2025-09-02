@@ -4,7 +4,7 @@ use rhai::EvalContext;
 use super::attribute_value::AttributeValue;
 use super::expression_collection::ExpressionCollection;
 use super::tag::Tag;
-use crate::escape_html::escape_html;
+use crate::escape_html_attribute::escape_html_attribute;
 
 pub fn eval_tag(
     eval_context: &mut EvalContext,
@@ -33,7 +33,7 @@ pub fn eval_tag(
             result.push('"');
             match value {
                 AttributeValue::Expression(expression_reference) => {
-                    result.push_str(&escape_html(
+                    result.push_str(&escape_html_attribute(
                         &expression_collection
                             .eval_expression(eval_context, expression_reference)?
                             .to_string(),

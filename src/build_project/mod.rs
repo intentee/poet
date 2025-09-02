@@ -28,6 +28,7 @@ use crate::filesystem::memory::Memory;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::filesystem::storage::Storage;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
+use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
 use crate::markdown_document::MarkdownDocument;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
@@ -69,18 +70,28 @@ async fn render_document<'render>(
         markdown_document_by_basename,
         reference: reference.clone(),
         rhai_markdown_document_collections,
+        table_of_contents: None,
     };
 
-    let layout_content = eval_mdast(
+    let table_of_contents = find_table_of_contents_in_mdast(
         mdast,
         &component_context,
         rhai_template_renderer,
         syntax_set,
     )?;
 
+    let component_context_with_toc = component_context.with_table_of_contents(table_of_contents);
+
+    let layout_content = eval_mdast(
+        mdast,
+        &component_context_with_toc,
+        rhai_template_renderer,
+        syntax_set,
+    )?;
+
     rhai_template_renderer.render(
         &front_matter.layout,
-        component_context.clone(),
+        component_context_with_toc.clone(),
         Dynamic::from_map(front_matter.props.clone()),
         layout_content.into(),
     )
@@ -145,20 +156,22 @@ pub async fn build_project(
 
             let basename_path = file.get_stem_path_relative_to(&PathBuf::from("content"));
             let basename = basename_path.display().to_string();
-
-            if let Some(id) = &front_matter.id {
-                if markdown_basename_by_id.contains_key(id) {
-                    return Err(anyhow!("Duplicate document id: #{id} in '{basename}'"));
-                }
-
-                markdown_basename_by_id.insert(id.clone(), basename.clone());
-            }
-
             let markdown_document_reference = MarkdownDocumentReference {
                 basename_path,
                 front_matter: front_matter.clone(),
                 generated_page_base_path: generated_page_base_path.clone(),
             };
+
+            if let Some(id) = &front_matter.id {
+                if markdown_basename_by_id.contains_key(id) {
+                    error_collection.register_error(
+                        anyhow!("Duplicate document id: #{id} in '{basename}'"),
+                        markdown_document_reference.clone(),
+                    );
+                }
+
+                markdown_basename_by_id.insert(id.clone(), basename.clone());
+            }
 
             markdown_document_by_basename.insert(basename, markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {

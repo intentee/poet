@@ -30,6 +30,8 @@ use crate::rhai_markdown_document_tree_node::RhaiMarkdownDocumentTreeNode;
 use crate::rhai_safe_random_affix::rhai_safe_random_affix;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::rhai_template_renderer::ShortcodeRenderer;
+use crate::table_of_contents::TableOfContents;
+use crate::table_of_contents::heading::Heading;
 
 pub struct RhaiTemplateFactory {
     base_directory: PathBuf,
@@ -75,12 +77,14 @@ impl RhaiTemplateFactory {
         engine.build_type::<CollectionPlacement>();
         engine.build_type::<ComponentContext>();
         engine.build_type::<FileEntry>();
+        engine.build_type::<Heading>();
         engine.build_type::<RhaiCollectionPlacementList>();
         engine.build_type::<RhaiFrontMatter>();
         engine.build_type::<RhaiMarkdownDocumentCollection>();
         engine.build_type::<RhaiMarkdownDocumentHierarchy>();
         engine.build_type::<RhaiMarkdownDocumentReference>();
         engine.build_type::<RhaiMarkdownDocumentTreeNode>();
+        engine.build_type::<TableOfContents>();
         engine.register_fn("clsx", clsx);
         engine.register_fn("error", error);
         engine.register_fn("render_hierarchy", render_hierarchy);

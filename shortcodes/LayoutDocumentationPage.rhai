@@ -66,16 +66,23 @@ fn template(context, props, content) {
             Page navigation placeholder
           </div>
         </div>
-        <nav class="page__nav">
-          <div class="page__item">
-            <a
-              href="#"
-              class="page__link"
-            >
-              wow
-            </a>
-          </div>
-        </nav>
+        <nav class="page__nav">{
+          let rendered = [];
+
+          for heading in context.table_of_contents.headings {
+            if heading.depth == 2 {
+              rendered.push(component {
+                <div class="page__item">
+                  <a class="page__link" href={`#${heading.id}`}>
+                    {heading.content}
+                  </a>
+                </div>
+              });
+            }
+          }
+
+          rendered
+        }</nav>
       </div>
     </LayoutMinimal>
   }

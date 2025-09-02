@@ -86,7 +86,7 @@ impl ComponentContext {
         }
     }
 
-    fn rhai_is_this(&mut self, other: String) -> Result<bool, Box<EvalAltResult>> {
+    fn rhai_is_current_page(&mut self, other: String) -> Result<bool, Box<EvalAltResult>> {
         let basename = self.resolve_id(&other)?;
 
         if self.markdown_document_by_basename.contains_key(&basename) {
@@ -113,7 +113,7 @@ impl CustomType for ComponentContext {
             .with_get("front_matter", Self::rhai_front_matter)
             .with_get("is_watching", Self::rhai_is_watching)
             .with_fn("collection", Self::rhai_collection)
-            .with_fn("is_this", Self::rhai_is_this)
+            .with_fn("is_current_page", Self::rhai_is_current_page)
             .with_fn("link_to", Self::rhai_link_to);
     }
 }

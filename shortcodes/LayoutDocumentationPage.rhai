@@ -23,7 +23,7 @@ fn render_menu(context, node, level, nested) {
         <a
           class={clsx(#{
             "docs__nav-link": true,
-            "docs__nav-link--active": context.is_this(node.reference.basename),
+            "docs__nav-link--active": context.is_current_page(node.reference.basename),
           })}
           href={context.link_to(node.reference.basename)}
         >

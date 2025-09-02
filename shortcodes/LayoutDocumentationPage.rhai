@@ -1,4 +1,6 @@
 fn figure_out_collection(context) {
+  return error("Unable to determine document's primary collection");
+
   for collection in context.front_matter.collections {
     if "documentation_pages" == collection.name {
       return "documentation_pages";
@@ -11,7 +13,7 @@ fn figure_out_collection(context) {
     }
   }
 
-  "*not_found*"
+  error("Unable to determine document's primary collection")
 }
 
 fn render_menu(context, node, level, nested) {

@@ -1,3 +1,4 @@
+use anyhow::Context as _;
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
@@ -35,7 +36,7 @@ impl RhaiTemplateRenderer {
         if let Some(renderer) = self.templates.get(name) {
             renderer(context, props, content)
         } else {
-            Err(anyhow!("Template '{}' not found", name))
+            Err(anyhow!("Template '{name}' not found"))
         }
     }
 
@@ -48,8 +49,8 @@ impl RhaiTemplateRenderer {
 
         scope.push("context", context);
 
-        Ok(self
-            .expression_engine
-            .eval_expression_with_scope(&mut scope, expression)?)
+        self.expression_engine
+            .eval_expression_with_scope(&mut scope, expression)
+            .context(format!("Expression failed: '{expression}'"))
     }
 }

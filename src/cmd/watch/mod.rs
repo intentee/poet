@@ -126,10 +126,10 @@ impl Handler for Watch {
                                     .set_output_filesystem(Arc::new(memory_filesystem))
                                     .await
                                 {
-                                    error!("Failed to set output filesystem: {err}");
+                                    error!("Failed to set output filesystem: {err:#?}");
                                 }
                             }
-                            Err(err) => error!("Failed to build project: {err}"),
+                            Err(err) => error!("Failed to build project: {err:#}"),
                         }
                     },
                     None => {

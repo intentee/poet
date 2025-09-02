@@ -1,9 +1,8 @@
 import * as esbuild from "esbuild";
 import { emptyDir } from "fs-extra";
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { glob } from "glob";
 import { load } from "js-toml";
-import { writeFile } from "node:fs/promises";
 import path from "path";
 
 import { basic } from "jarmuz/job-types";
@@ -43,8 +42,8 @@ export function jobEsbuild({ development }) {
     const inject = await glob(["resources/ts/polyfill_*.{ts,tsx}"]);
 
     const entryPoints = await glob([
-      "resources/css/{fragment,global,layout,page}-*.css",
-      "resources/images/**/*.{avif,gif,jpg,jpeg,png,svg,webp}",
+      "resources/css/{component,fragment,global,layout,page}-*.css",
+      "resources/media/**/*.{avif,gif,jpg,jpeg,png,svg,webp}",
       "resources/ts/{controller,global,worker}{_,-}*.{ts,tsx}",
     ]);
 

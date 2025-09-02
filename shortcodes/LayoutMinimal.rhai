@@ -50,7 +50,7 @@ fn template(context, props, content) {
                   class="primary-navigation__link"
                   target="_blank"
                 >
-                  <img alt="GitHub" src={context.assets.file("resources/images/logo-github.svg")}>
+                  <img alt="GitHub" src={context.assets.file("resources/media/logo-github.svg")}>
                 </a>
               </div>
             </div>
@@ -68,28 +68,28 @@ fn template(context, props, content) {
                 href="https://bsky.app/profile/intentee.bsky.social"
                 target="_blank"
               >
-                <img alt="Bluesky" src={context.assets.file("resources/images/logo-bluesky.svg")}>
+                <img alt="Bluesky" src={context.assets.file("resources/media/logo-bluesky.svg")}>
               </a>
               <a
                 class="footer__links__link"
                 href="https://discord.gg/92x3Z8a4gj"
                 target="_blank"
               >
-                <img alt="Discord" src={context.assets.file("resources/images/logo-discord.svg")}>
+                <img alt="Discord" src={context.assets.file("resources/media/logo-discord.svg")}>
               </a>
               <a
                 class="footer__links__link"
                 href="https://www.linkedin.com/company/intentee"
                 target="_blank"
               >
-                <img alt="LinkedIn" src={context.assets.file("resources/images/logo-linkedin.svg")}>
+                <img alt="LinkedIn" src={context.assets.file("resources/media/logo-linkedin.svg")}>
               </a>
               <a
                 class="footer__links__link"
                 href="https://x.com/intentee"
                 target="_blank"
               >
-                <img alt="X" src={context.assets.file("resources/images/logo-x.svg")}>
+                <img alt="X" src={context.assets.file("resources/media/logo-x.svg")}>
               </a>
             </div>
           </footer>

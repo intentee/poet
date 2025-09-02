@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use anyhow::Context as _;
 use anyhow::Result;
 use dashmap::DashMap;
 use rhai::Dynamic;
@@ -21,6 +22,7 @@ use crate::rhai_components::component_reference::ComponentReference;
 use crate::rhai_components::component_registry::ComponentRegistry;
 use crate::rhai_components::evaluator_factory::EvaluatorFactory;
 use crate::rhai_components::parse_component::parse_component;
+use crate::rhai_functions::error;
 use crate::rhai_functions::render_hierarchy;
 use crate::rhai_markdown_document_hierarchy::RhaiMarkdownDocumentHierarchy;
 use crate::rhai_safe_random_affix::rhai_safe_random_affix;
@@ -76,6 +78,7 @@ impl RhaiTemplateFactory {
         engine.build_type::<MarkdownDocumentTreeNode>();
         engine.build_type::<ComponentContext>();
         engine.build_type::<RhaiMarkdownDocumentHierarchy>();
+        engine.register_fn("error", error);
         engine.register_fn("render_hierarchy", render_hierarchy);
 
         engine.register_custom_syntax_without_look_ahead_raw(
@@ -110,6 +113,12 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
                     "template",
                 )?;
 
+            let template_relative_path = component_reference
+                .file_entry
+                .relative_path
+                .display()
+                .to_string();
+
             templates.insert(
                 component_reference.name.clone(),
                 Box::new(
@@ -117,7 +126,9 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
                           content: Dynamic,
                           props: Dynamic|
                           -> Result<String> {
-                        Ok(renderer(context, content, props)?)
+                        renderer(context, content, props).context(format!(
+                            "Template rendering failed: {template_relative_path}",
+                        ))
                     },
                 ),
             );

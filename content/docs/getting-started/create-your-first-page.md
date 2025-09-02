@@ -11,7 +11,7 @@ parent = "docs/getting-started/index"
 
 Done
 
-![GitHub logo](resources/images/logo-github.svg)
+![GitHub logo](resources/media/logo-github.svg)
 
 foo\
 bar\

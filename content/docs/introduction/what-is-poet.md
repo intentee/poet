@@ -38,6 +38,6 @@ if true {
 
 [Do foo](docs/getting-started/index)
 
-![resources/images/logo-github.svg]
+![resources/media/logo-github.svg]
 
 [^1]: some inline jsx

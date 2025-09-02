@@ -1,3 +1,5 @@
+mod document_rendering_context;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr as _;
@@ -13,6 +15,7 @@ use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::build_project::document_rendering_context::DocumentRenderingContext;
 use crate::component_context::ComponentContext;
 use crate::eval_mdast::eval_mdast;
 use crate::filesystem::Filesystem;
@@ -27,6 +30,53 @@ use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
+
+async fn render_document<'render>(
+    DocumentRenderingContext {
+        asset_path_renderer,
+        collections,
+        esbuild_metafile,
+        is_watching,
+        markdown_basename_by_id,
+        markdown_document_by_basename,
+        markdown_document:
+            MarkdownDocument {
+                mdast,
+                reference:
+                    reference @ MarkdownDocumentReference {
+                        basename_path: _,
+                        front_matter,
+                    },
+            },
+        rhai_template_renderer,
+        syntax_set,
+    }: DocumentRenderingContext<'render>,
+) -> Result<String> {
+    info!("Processing document: {}", reference.basename());
+
+    let component_context = ComponentContext {
+        asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
+        collections,
+        is_watching,
+        front_matter: front_matter.clone(),
+        markdown_basename_by_id,
+        markdown_document_by_basename,
+    };
+
+    let layout_content = eval_mdast(
+        mdast,
+        &component_context,
+        rhai_template_renderer,
+        syntax_set,
+    )?;
+
+    rhai_template_renderer.render(
+        &front_matter.layout,
+        component_context.clone(),
+        Dynamic::from_map(front_matter.props.clone()),
+        layout_content.into(),
+    )
+}
 
 pub async fn build_project(
     asset_path_renderer: AssetPathRenderer,
@@ -60,8 +110,6 @@ pub async fn build_project(
 
     for file in &files {
         if file.is_rhai() {
-            info!("Processing shortcode file: {:?}", file.relative_path);
-
             rhai_template_factory.register_component_file(file.clone());
         }
     }
@@ -80,8 +128,6 @@ pub async fn build_project(
 
     for file in &files {
         if file.is_markdown() {
-            info!("Processing content file: {:?}", file.relative_path);
-
             let mdast = string_to_mdast(&file.contents)?;
             let front_matter = find_front_matter_in_mdast(&mdast)?.ok_or_else(|| {
                 anyhow!("No front matter found in file: {:?}", file.relative_path)
@@ -124,51 +170,27 @@ pub async fn build_project(
 
     let collections_arc = Arc::new(collections);
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
-    let markdown_document_index_arc = Arc::new(markdown_document_by_basename);
+    let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
 
-    for MarkdownDocument {
-        mdast,
-        reference:
-            reference @ MarkdownDocumentReference {
-                basename_path: _,
-                front_matter,
-            },
-    } in &markdown_document_list
-    {
-        let component_context = ComponentContext {
-            asset_manager: AssetManager::from_esbuild_metafile(
-                esbuild_metafile.clone(),
-                asset_path_renderer.clone(),
-            ),
+    for markdown_document in &markdown_document_list {
+        let processed_file = render_document(DocumentRenderingContext {
+            asset_path_renderer: asset_path_renderer.clone(),
             collections: collections_arc.clone(),
+            esbuild_metafile: esbuild_metafile.clone(),
             is_watching,
-            front_matter: front_matter.clone(),
             markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
-            markdown_document_by_basename: markdown_document_index_arc.clone(),
-        };
-
-        let layout_content = eval_mdast(
-            mdast,
-            &component_context,
-            &rhai_template_renderer,
-            &syntax_set,
-        )?;
-
-        let processed_file = rhai_template_renderer.render(
-            &front_matter.layout,
-            component_context.clone(),
-            Dynamic::from_map(front_matter.props.clone()),
-            layout_content.into(),
-        )?;
-
-        info!(
-            "Writing target file: {}, {}",
-            reference.basename_path.display(),
-            reference.target_file_relative_path()?.display(),
-        );
+            markdown_document,
+            markdown_document_by_basename: markdown_document_by_basename_arc.clone(),
+            rhai_template_renderer: &rhai_template_renderer,
+            syntax_set: &syntax_set,
+        })
+        .await?;
 
         memory_filesystem
-            .set_file_contents(&reference.target_file_relative_path()?, &processed_file)
+            .set_file_contents(
+                &markdown_document.reference.target_file_relative_path()?,
+                &processed_file,
+            )
             .await?;
     }
 

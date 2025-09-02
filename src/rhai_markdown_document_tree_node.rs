@@ -14,6 +14,18 @@ pub struct RhaiMarkdownDocumentTreeNode {
 }
 
 impl RhaiMarkdownDocumentTreeNode {
+    pub fn flatten(&self) -> Vec<RhaiMarkdownDocumentReference> {
+        let mut flat: Vec<RhaiMarkdownDocumentReference> = Vec::new();
+
+        flat.push(self.reference.clone());
+
+        for node in &self.children {
+            flat.append(&mut node.flatten());
+        }
+
+        flat
+    }
+
     fn rhai_children(&mut self) -> Array {
         self.children
             .iter()

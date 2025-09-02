@@ -254,6 +254,8 @@ pub async fn build_project(
                 "Document will not be rendered: {}",
                 markdown_document.reference.basename()
             );
+
+            continue;
         }
 
         match render_document(DocumentRenderingContext {

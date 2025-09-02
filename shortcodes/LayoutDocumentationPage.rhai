@@ -62,9 +62,33 @@ fn template(context, props, content) {
             </h1>
             {content}
           </div>
-          <div class="docs__related-pages">
-            Page navigation placeholder
-          </div>
+          <div class="docs__related-pages">{
+            let prev = menu_hierarchy.before(context.reference.basename);
+
+            if prev != () {
+              component {
+                <a
+                  class="docs__related-pages__link docs__related-pages__link--prev"
+                  href={prev.canonical_link}
+                >
+                  <span class="docs__related-pages__link__text">{prev.front_matter.title}</span>
+                </a>
+              }
+            }
+          }{
+            let next = menu_hierarchy.after(context.reference.basename);
+
+            if next != () {
+              component {
+                <a
+                  class="docs__related-pages__link docs__related-pages__link--next"
+                  href={next.canonical_link}
+                >
+                  <span class="docs__related-pages__link__text">{next.front_matter.title}</span>
+                </a>
+              }
+            }
+          }</div>
         </div>
         <nav class="page__nav">{
           let rendered = [];

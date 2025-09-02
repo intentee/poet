@@ -9,7 +9,7 @@ use rhai::TypeBuilder;
 use crate::front_matter::FrontMatter;
 use crate::rhai_front_matter::rhai_collection_placement_list::RhaiCollectionPlacementList;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RhaiFrontMatter {
     pub available_collections: Arc<HashSet<String>>,
     pub front_matter: FrontMatter,

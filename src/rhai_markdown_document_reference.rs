@@ -5,7 +5,7 @@ use rhai::TypeBuilder;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_front_matter::RhaiFrontMatter;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RhaiMarkdownDocumentReference {
     pub front_matter: RhaiFrontMatter,
     pub reference: MarkdownDocumentReference,

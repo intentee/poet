@@ -156,6 +156,7 @@ mod tests {
         MarkdownDocumentReference {
             basename_path: name.into(),
             front_matter: FrontMatter::mock(name),
+            generated_page_base_path: "/".to_string(),
         }
     }
 

@@ -11,16 +11,17 @@ use crate::front_matter::FrontMatter;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_front_matter::RhaiFrontMatter;
 use crate::rhai_markdown_document_collection::RhaiMarkdownDocumentCollection;
+use crate::rhai_markdown_document_reference::RhaiMarkdownDocumentReference;
 
 #[derive(Clone)]
 pub struct ComponentContext {
     pub available_collections: Arc<HashSet<String>>,
     pub asset_manager: AssetManager,
-    pub basename: String,
     pub front_matter: FrontMatter,
     pub is_watching: bool,
     pub markdown_basename_by_id: Arc<HashMap<String, String>>,
     pub markdown_document_by_basename: Arc<HashMap<String, MarkdownDocumentReference>>,
+    pub reference: MarkdownDocumentReference,
     pub rhai_markdown_document_collections: Arc<HashMap<String, RhaiMarkdownDocumentCollection>>,
 }
 
@@ -90,7 +91,7 @@ impl ComponentContext {
         let basename = self.resolve_id(&other)?;
 
         if self.markdown_document_by_basename.contains_key(&basename) {
-            Ok(self.basename == basename)
+            Ok(self.reference.basename() == basename)
         } else {
             Err(format!("Document does not exist: {basename}").into())
         }
@@ -103,6 +104,13 @@ impl ComponentContext {
     fn rhai_link_to(&mut self, path: &str) -> Result<String, Box<EvalAltResult>> {
         Ok(self.link_to(path)?)
     }
+
+    fn rhai_reference(&mut self) -> RhaiMarkdownDocumentReference {
+        RhaiMarkdownDocumentReference {
+            front_matter: self.rhai_front_matter(),
+            reference: self.reference.clone(),
+        }
+    }
 }
 
 impl CustomType for ComponentContext {
@@ -112,6 +120,7 @@ impl CustomType for ComponentContext {
             .with_get("assets", Self::get_assets)
             .with_get("front_matter", Self::rhai_front_matter)
             .with_get("is_watching", Self::rhai_is_watching)
+            .with_get("reference", Self::rhai_reference)
             .with_fn("collection", Self::rhai_collection)
             .with_fn("is_current_page", Self::rhai_is_current_page)
             .with_fn("link_to", Self::rhai_link_to);

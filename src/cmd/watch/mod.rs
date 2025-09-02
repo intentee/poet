@@ -111,13 +111,13 @@ impl Handler for Watch {
             let do_build_project = async || {
                 match poet_config_holder_builder.get_poet_config().await {
                     Some(poet_config) => {
+                        let base_path = format!("http://{}/", poet_config.watch_server_addr);
+
                         match build_project(
                             AssetPathRenderer {
-                                base_path: format!(
-                                    "http://{}/",
-                                    poet_config.watch_server_addr,
-                                ),
+                                base_path: base_path.clone(),
                             },
+                            base_path,
                             true,
                             &source_filesystem,
                         ).await {

@@ -9,6 +9,7 @@ fn template(context, props, content) {
     <!DOCTYPE html>
     <html lang="en">
       <head>
+        <link rel="canonical" href={context.reference.canonical_link}>
         <meta charset="UTF-8">
         {if !context.front_matter.description.is_empty() {
           component {

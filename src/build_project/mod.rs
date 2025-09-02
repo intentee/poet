@@ -50,9 +50,10 @@ async fn render_document<'render>(
             MarkdownDocument {
                 mdast,
                 reference:
-                    MarkdownDocumentReference {
-                        basename_path,
+                    reference @ MarkdownDocumentReference {
+                        basename_path: _,
                         front_matter,
+                        generated_page_base_path: _,
                     },
             },
         rhai_markdown_document_collections,
@@ -63,11 +64,11 @@ async fn render_document<'render>(
     let component_context = ComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
         available_collections,
-        basename: basename_path.display().to_string(),
         is_watching,
         front_matter: front_matter.clone(),
         markdown_basename_by_id,
         markdown_document_by_basename,
+        reference: reference.clone(),
         rhai_markdown_document_collections,
     };
 
@@ -88,6 +89,7 @@ async fn render_document<'render>(
 
 pub async fn build_project(
     asset_path_renderer: AssetPathRenderer,
+    generated_page_base_path: String,
     is_watching: bool,
     source_filesystem: &Storage,
 ) -> Result<Memory> {
@@ -156,6 +158,7 @@ pub async fn build_project(
             let markdown_document_reference = MarkdownDocumentReference {
                 basename_path,
                 front_matter: front_matter.clone(),
+                generated_page_base_path: generated_page_base_path.clone(),
             };
 
             for collection in &front_matter.collections.placements {
@@ -233,7 +236,10 @@ pub async fn build_project(
             Ok(processed_file) => {
                 memory_filesystem
                     .set_file_contents(
-                        &markdown_document.reference.target_file_relative_path()?,
+                        &match markdown_document.reference.target_file_relative_path() {
+                            Ok(relative_path) => relative_path,
+                            Err(err) => return Err(anyhow!(err)),
+                        },
                         &processed_file,
                     )
                     .await?;

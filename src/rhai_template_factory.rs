@@ -13,7 +13,8 @@ use crate::asset_manager::AssetManager;
 use crate::component_context::ComponentContext;
 use crate::filesystem::file_entry::FileEntry;
 use crate::front_matter::FrontMatter;
-use crate::front_matter::collection::Collection;
+use crate::front_matter::collection_placement::CollectionPlacement;
+use crate::front_matter::collection_placement_list::CollectionPlacementList;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
@@ -70,7 +71,8 @@ impl RhaiTemplateFactory {
         ));
 
         engine.build_type::<AssetManager>();
-        engine.build_type::<Collection>();
+        engine.build_type::<CollectionPlacement>();
+        engine.build_type::<CollectionPlacementList>();
         engine.build_type::<FileEntry>();
         engine.build_type::<FrontMatter>();
         engine.build_type::<MarkdownDocumentCollection>();
@@ -127,7 +129,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
                           props: Dynamic|
                           -> Result<String> {
                         renderer(context, content, props).context(format!(
-                            "Template rendering failed: {template_relative_path}",
+                            "Shortcode rendering failed: {template_relative_path}",
                         ))
                     },
                 ),

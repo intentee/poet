@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -84,6 +85,26 @@ impl CustomType for MarkdownDocumentReference {
             .with_name("MarkdownDocumentReference")
             .with_get("basename", Self::rhai_basename)
             .with_get("front_matter", Self::rhai_front_matter);
+    }
+}
+
+impl Eq for MarkdownDocumentReference {}
+
+impl Ord for MarkdownDocumentReference {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.basename_path.cmp(&other.basename_path)
+    }
+}
+
+impl PartialEq for MarkdownDocumentReference {
+    fn eq(&self, other: &Self) -> bool {
+        self.basename_path == other.basename_path
+    }
+}
+
+impl PartialOrd for MarkdownDocumentReference {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 

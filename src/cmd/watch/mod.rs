@@ -127,6 +127,8 @@ impl Handler for Watch {
                                     .await
                                 {
                                     error!("Failed to set output filesystem: {err:#?}");
+                                } else {
+                                    info!("Build successful");
                                 }
                             }
                             Err(err) => error!("Failed to build project: {err:#}"),

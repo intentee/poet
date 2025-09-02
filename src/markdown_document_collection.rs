@@ -18,7 +18,9 @@ fn find_children(
     sorted_documents: &mut LinkedList<MarkdownDocumentInCollection>,
 ) -> LinkedList<MarkdownDocumentTreeNode> {
     let children = sorted_documents
-        .extract_if(|document| document.collection.parent == Some(parent.reference.basename()))
+        .extract_if(|document| {
+            document.collection_placement.parent == Some(parent.reference.basename())
+        })
         .collect::<LinkedList<_>>();
 
     children
@@ -40,7 +42,7 @@ impl MarkdownDocumentCollection {
     pub fn build_hierarchy(&self) -> Result<Vec<MarkdownDocumentTreeNode>> {
         let mut sorted_documents = self.sort_by_successors()?;
         let roots = sorted_documents
-            .extract_if(|document| document.collection.parent.is_none())
+            .extract_if(|document| document.collection_placement.parent.is_none())
             .collect::<LinkedList<MarkdownDocumentInCollection>>();
 
         Ok(roots
@@ -67,7 +69,7 @@ impl MarkdownDocumentCollection {
 
         // Second pass, register edges
         for document in &self.documents {
-            if let Some(after) = &document.collection.after {
+            if let Some(after) = &document.collection_placement.after {
                 successors_graph.try_add_edge(
                     *basename_to_node
                         .get(after)
@@ -130,7 +132,7 @@ impl CustomType for MarkdownDocumentCollection {
 mod tests {
     use super::*;
     use crate::front_matter::FrontMatter;
-    use crate::front_matter::collection::Collection;
+    use crate::front_matter::collection_placement::CollectionPlacement;
     use crate::markdown_document_reference::MarkdownDocumentReference;
 
     fn create_document_reference(name: &str) -> MarkdownDocumentReference {
@@ -145,7 +147,7 @@ mod tests {
         let mut collection = MarkdownDocumentCollection::default();
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: None,
                 name: "my_collection".to_string(),
                 parent: None,
@@ -154,7 +156,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
                 parent: None,
@@ -163,7 +165,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
                 parent: None,
@@ -172,7 +174,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("1".to_string()),
                 name: "my_collection".to_string(),
                 parent: None,
@@ -181,7 +183,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("2".to_string()),
                 name: "my_collection".to_string(),
                 parent: None,
@@ -205,7 +207,7 @@ mod tests {
         let mut collection = MarkdownDocumentCollection::default();
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: None,
                 name: "my_collection".to_string(),
                 parent: None,
@@ -214,7 +216,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
                 parent: Some("3".to_string()),
@@ -223,7 +225,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
                 parent: Some("3".to_string()),
@@ -232,7 +234,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("1".to_string()),
                 name: "my_collection".to_string(),
                 parent: None,
@@ -241,7 +243,7 @@ mod tests {
         });
 
         collection.documents.push(MarkdownDocumentInCollection {
-            collection: Collection {
+            collection_placement: CollectionPlacement {
                 after: Some("2".to_string()),
                 name: "my_collection".to_string(),
                 parent: Some("1".to_string()),

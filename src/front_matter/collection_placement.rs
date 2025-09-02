@@ -5,7 +5,7 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Collection {
+pub struct CollectionPlacement {
     #[serde(default)]
     pub after: Option<String>,
     pub name: String,
@@ -13,16 +13,16 @@ pub struct Collection {
     pub parent: Option<String>,
 }
 
-impl Collection {
+impl CollectionPlacement {
     fn rhai_name(&mut self) -> String {
         self.name.clone()
     }
 }
 
-impl CustomType for Collection {
+impl CustomType for CollectionPlacement {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("Collection")
+            .with_name("CollectionPlacement")
             .with_get("name", Self::rhai_name);
     }
 }

@@ -1,14 +1,13 @@
-pub mod collection;
+pub mod collection_placement;
+pub mod collection_placement_list;
 
-use rhai::Array;
 use rhai::CustomType;
-use rhai::Dynamic;
 use rhai::Map;
 use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
-use self::collection::Collection;
+use crate::front_matter::collection_placement_list::CollectionPlacementList;
 
 // #[derive(Debug, Deserialize, Serialize)]
 // pub struct Excerpt {
@@ -28,7 +27,7 @@ pub struct FrontMatter {
     // pub references: Vec<String>,
     // pub truth_source_for: Vec<String>,
     #[serde(default, rename = "collection")]
-    pub collections: Vec<Collection>,
+    pub collections: CollectionPlacementList,
     // pub excerpts: Vec<Excerpt>,
     #[serde(default)]
     pub props: Map,
@@ -48,11 +47,8 @@ impl FrontMatter {
         }
     }
 
-    fn rhai_collections(&mut self) -> Array {
-        self.collections
-            .iter()
-            .map(|collection| Dynamic::from(collection.clone()))
-            .collect::<_>()
+    fn rhai_collections(&mut self) -> CollectionPlacementList {
+        self.collections.clone()
     }
 
     fn rhai_description(&mut self) -> String {

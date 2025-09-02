@@ -1,3 +1,5 @@
+mod document_error;
+mod document_error_collection;
 mod document_rendering_context;
 
 use std::collections::HashMap;
@@ -15,6 +17,8 @@ use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::build_project::document_error::DocumentError;
+use crate::build_project::document_error_collection::DocumentErrorCollection;
 use crate::build_project::document_rendering_context::DocumentRenderingContext;
 use crate::component_context::ComponentContext;
 use crate::eval_mdast::eval_mdast;
@@ -43,7 +47,7 @@ async fn render_document<'render>(
             MarkdownDocument {
                 mdast,
                 reference:
-                    reference @ MarkdownDocumentReference {
+                    MarkdownDocumentReference {
                         basename_path: _,
                         front_matter,
                     },
@@ -52,8 +56,6 @@ async fn render_document<'render>(
         syntax_set,
     }: DocumentRenderingContext<'render>,
 ) -> Result<String> {
-    info!("Processing document: {}", reference.basename());
-
     let component_context = ComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
         collections,
@@ -101,6 +103,7 @@ pub async fn build_project(
         }
     }
     .into();
+
     let files = source_filesystem.read_project_files().await?;
     let rhai_template_factory = RhaiTemplateFactory::new(
         source_filesystem.base_directory.clone(),
@@ -114,7 +117,7 @@ pub async fn build_project(
         }
     }
 
-    info!("Compiling the templates...");
+    info!("Processing shortcodes...");
 
     let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
 
@@ -149,13 +152,13 @@ pub async fn build_project(
                 front_matter: front_matter.clone(),
             };
 
-            for collection in &front_matter.collections {
+            for collection in &front_matter.collections.placements {
                 collections
                     .entry(collection.name.clone())
                     .or_default()
                     .documents
                     .push(MarkdownDocumentInCollection {
-                        collection: collection.clone(),
+                        collection_placement: collection.clone(),
                         reference: markdown_document_reference.clone(),
                     })
             }
@@ -169,11 +172,12 @@ pub async fn build_project(
     }
 
     let collections_arc = Arc::new(collections);
+    let mut error_collection: DocumentErrorCollection = Default::default();
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
 
     for markdown_document in &markdown_document_list {
-        let processed_file = render_document(DocumentRenderingContext {
+        match render_document(DocumentRenderingContext {
             asset_path_renderer: asset_path_renderer.clone(),
             collections: collections_arc.clone(),
             esbuild_metafile: esbuild_metafile.clone(),
@@ -184,15 +188,34 @@ pub async fn build_project(
             rhai_template_renderer: &rhai_template_renderer,
             syntax_set: &syntax_set,
         })
-        .await?;
-
-        memory_filesystem
-            .set_file_contents(
-                &markdown_document.reference.target_file_relative_path()?,
-                &processed_file,
-            )
-            .await?;
+        .await
+        {
+            Ok(processed_file) => {
+                memory_filesystem
+                    .set_file_contents(
+                        &markdown_document.reference.target_file_relative_path()?,
+                        &processed_file,
+                    )
+                    .await?;
+            }
+            Err(err) => {
+                error_collection
+                    .errors
+                    .entry(markdown_document.reference.clone())
+                    .or_default()
+                    .push(DocumentError {
+                        err,
+                        markdown_document_reference: markdown_document.reference.clone(),
+                    });
+            }
+        }
     }
 
-    Ok(memory_filesystem)
+    if error_collection.errors.is_empty() {
+        Ok(memory_filesystem)
+    } else {
+        error_collection.render();
+
+        Err(anyhow!("failed due to the previous errors"))
+    }
 }

@@ -1,19 +1,13 @@
 fn figure_out_collection(context) {
-  return error("Unable to determine document's primary collection");
-
-  for collection in context.front_matter.collections {
-    if "documentation_pages" == collection.name {
-      return "documentation_pages";
-    }
+  switch [
+    context.front_matter.collections.has("api_pages"),
+    context.front_matter.collections.has("documentation_pages")
+  ] {
+    [true, true] => error("Document is both in docs pages and api pages"),
+    [true, false] => "api_pages",
+    [false, true] => "documentation_pages",
+    [false, false] => error("Unable to determine document primary collection"),
   }
-
-  for collection in context.front_matter.collections {
-    if "api_pages" == collection.name {
-      return "api_pages";
-    }
-  }
-
-  error("Unable to determine document's primary collection")
 }
 
 fn render_menu(context, node, level, nested) {

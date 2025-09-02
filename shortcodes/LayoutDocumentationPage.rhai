@@ -72,6 +72,7 @@ fn template(context, props, content) {
               href="#"
               class="page__link"
             >
+              wow
             </a>
           </div>
         </nav>

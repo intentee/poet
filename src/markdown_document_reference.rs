@@ -18,7 +18,12 @@ impl MarkdownDocumentReference {
     }
 
     pub fn canonical_link(&self) -> Result<String, String> {
-        Ok(format!("{}{}", self.generated_page_base_path, self.basename_link_stem()?).to_string())
+        Ok(format!(
+            "{}{}",
+            self.generated_page_base_path,
+            self.basename_link_stem()?
+        )
+        .to_string())
     }
 
     /// Starts without leading slash
@@ -105,7 +110,11 @@ mod tests {
         assert_eq!(reference.canonical_link().unwrap(), "/");
 
         assert_eq!(
-            reference.target_file_relative_path().unwrap().display().to_string(),
+            reference
+                .target_file_relative_path()
+                .unwrap()
+                .display()
+                .to_string(),
             "index.html"
         );
 
@@ -123,7 +132,11 @@ mod tests {
         assert_eq!(reference.canonical_link().unwrap(), "/bar/");
 
         assert_eq!(
-            reference.target_file_relative_path().unwrap().display().to_string(),
+            reference
+                .target_file_relative_path()
+                .unwrap()
+                .display()
+                .to_string(),
             "bar/index.html"
         );
 
@@ -141,7 +154,11 @@ mod tests {
         assert_eq!(reference.canonical_link().unwrap(), "/foo/bar/");
 
         assert_eq!(
-            reference.target_file_relative_path().unwrap().display().to_string(),
+            reference
+                .target_file_relative_path()
+                .unwrap()
+                .display()
+                .to_string(),
             "foo/bar/index.html"
         );
 
@@ -159,7 +176,11 @@ mod tests {
         assert_eq!(reference.canonical_link().unwrap(), "/foo/");
 
         assert_eq!(
-            reference.target_file_relative_path().unwrap().display().to_string(),
+            reference
+                .target_file_relative_path()
+                .unwrap()
+                .display()
+                .to_string(),
             "foo/index.html"
         );
 

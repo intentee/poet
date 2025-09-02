@@ -19,7 +19,6 @@ use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
-use crate::build_project::document_error::DocumentError;
 use crate::build_project::document_error_collection::DocumentErrorCollection;
 use crate::build_project::document_rendering_context::DocumentRenderingContext;
 use crate::component_context::ComponentContext;
@@ -93,7 +92,7 @@ pub async fn build_project(
     is_watching: bool,
     source_filesystem: &Storage,
 ) -> Result<Memory> {
-    let memory_filesystem = Memory::default();
+    let mut error_collection: DocumentErrorCollection = Default::default();
     let esbuild_metafile: Arc<EsbuildMetaFile> = match source_filesystem
         .read_file_contents(&PathBuf::from("esbuild-meta.json"))
         .await?
@@ -111,8 +110,8 @@ pub async fn build_project(
         }
     }
     .into();
-
     let files = source_filesystem.read_project_files().await?;
+    let memory_filesystem = Memory::default();
     let rhai_template_factory = RhaiTemplateFactory::new(
         source_filesystem.base_directory.clone(),
         PathBuf::from("shortcodes"),
@@ -161,23 +160,49 @@ pub async fn build_project(
                 generated_page_base_path: generated_page_base_path.clone(),
             };
 
-            for collection in &front_matter.collections.placements {
-                collections
-                    .entry(collection.name.clone())
-                    .or_default()
-                    .documents
-                    .push(MarkdownDocumentInCollection {
-                        collection_placement: collection.clone(),
-                        reference: markdown_document_reference.clone(),
-                    })
-            }
-
             markdown_document_by_basename.insert(basename, markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {
                 mdast,
                 reference: markdown_document_reference,
             });
         }
+    }
+
+    for reference in markdown_document_by_basename.values() {
+        for collection in &reference.front_matter.collections.placements {
+            if let Some(after) = &collection.after
+                && !markdown_document_by_basename.contains_key(after)
+            {
+                error_collection.register_error(
+                    anyhow!("Succeeding document does not exist: '{after}'"),
+                    reference.clone(),
+                );
+            }
+
+            if let Some(parent) = &collection.parent
+                && !markdown_document_by_basename.contains_key(parent)
+            {
+                error_collection.register_error(
+                    anyhow!("Parent document does not exist: '{parent}'"),
+                    reference.clone(),
+                );
+            }
+
+            collections
+                .entry(collection.name.clone())
+                .or_default()
+                .documents
+                .push(MarkdownDocumentInCollection {
+                    collection_placement: collection.clone(),
+                    reference: reference.clone(),
+                })
+        }
+    }
+
+    if !error_collection.is_empty() {
+        error_collection.render();
+
+        return Err(anyhow!("failed before generating pages"));
     }
 
     let available_collections_arc: Arc<HashSet<String>> = Arc::new({
@@ -189,7 +214,6 @@ pub async fn build_project(
 
         available_collections
     });
-    let mut error_collection: DocumentErrorCollection = Default::default();
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
     let rhai_markdown_document_collections_arc = Arc::new({
@@ -244,20 +268,11 @@ pub async fn build_project(
                     )
                     .await?;
             }
-            Err(err) => {
-                error_collection
-                    .errors
-                    .entry(markdown_document.reference.clone())
-                    .or_default()
-                    .push(DocumentError {
-                        err,
-                        markdown_document_reference: markdown_document.reference.clone(),
-                    });
-            }
+            Err(err) => error_collection.register_error(err, markdown_document.reference.clone()),
         }
     }
 
-    if error_collection.errors.is_empty() {
+    if error_collection.is_empty() {
         Ok(memory_filesystem)
     } else {
         error_collection.render();

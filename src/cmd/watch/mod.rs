@@ -201,7 +201,6 @@ impl Handler for Watch {
                             )
                             .prefer_utf8(true),
                         )
-                        .configure(http_route::favicon::register)
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)
                 })

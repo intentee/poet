@@ -132,13 +132,17 @@ impl ComponentContext {
     fn rhai_primary_collection(
         &mut self,
     ) -> Result<MarkdownDocumentCollection, Box<EvalAltResult>> {
-        if self.front_matter.collections.placements.len() == 1 {
-            let placements = self.front_matter.collections.placements.clone();
+        match self.front_matter.collections.placements.len() {
+            0 => return Err("Document does not belong to any collection".into()),
+            1 => {
+                let placements = self.front_matter.collections.placements.clone();
 
-            if let Some(placement) = placements.first() {
-                return self.rhai_collection(&placement.name);
-            }
-        }
+                if let Some(placement) = placements.first() {
+                    return self.rhai_collection(&placement.name);
+                }
+            },
+            _ => {}
+        };
 
         Err("Unable to determine the primary collection".into())
     }

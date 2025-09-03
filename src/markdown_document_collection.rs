@@ -32,9 +32,10 @@ fn find_children(
         .collect::<LinkedList<MarkdownDocumentTreeNode>>()
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct MarkdownDocumentCollection {
     pub documents: Vec<MarkdownDocumentInCollection>,
+    pub name: String,
 }
 
 impl MarkdownDocumentCollection {
@@ -105,6 +106,10 @@ impl MarkdownDocumentCollection {
         }
     }
 
+    fn rhai_name(&mut self) -> String {
+        self.name.clone()
+    }
+
     fn rhai_hierarchy(
         &mut self,
     ) -> core::result::Result<MarkdownDocumentHierarchy, Box<EvalAltResult>> {
@@ -119,7 +124,8 @@ impl CustomType for MarkdownDocumentCollection {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("MarkdownDocumentCollection")
-            .with_get("hierarchy", Self::rhai_hierarchy);
+            .with_get("hierarchy", Self::rhai_hierarchy)
+            .with_get("name", Self::rhai_name);
     }
 }
 
@@ -142,6 +148,7 @@ mod tests {
     fn test_sort_by_successors() -> Result<()> {
         let mut collection = MarkdownDocumentCollection {
             documents: Default::default(),
+            name: "my_collection".to_string(),
         };
 
         collection.documents.push(MarkdownDocumentInCollection {
@@ -204,6 +211,7 @@ mod tests {
     fn test_hierarchy() -> Result<()> {
         let mut collection = MarkdownDocumentCollection {
             documents: Default::default(),
+            name: "my_collection".to_string(),
         };
 
         collection.documents.push(MarkdownDocumentInCollection {

@@ -34,7 +34,7 @@ fn template(context, props, content) {
         <input checked type="checkbox" id="docs-nav-toggle">
         <nav class="docs__nav">
           <label class="docs__nav__toggle" for="docs-nav-toggle">
-            Mobile docs navigation placeholder
+            {context.primary_collection.name}
           </label>
           <div class="docs__nav__content">
             {render_hierarchy(

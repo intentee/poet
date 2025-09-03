@@ -203,7 +203,10 @@ pub async fn build_project(
 
             markdown_document_collections
                 .entry(collection.name.clone())
-                .or_default()
+                .or_insert_with(|| MarkdownDocumentCollection {
+                    documents: Default::default(),
+                    name: collection.name.clone(),
+                })
                 .documents
                 .push(MarkdownDocumentInCollection {
                     collection_placement: collection.clone(),

@@ -140,7 +140,7 @@ impl ComponentContext {
                 if let Some(placement) = placements.first() {
                     return self.rhai_collection(&placement.name);
                 }
-            },
+            }
             _ => {}
         };
 

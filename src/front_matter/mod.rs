@@ -33,6 +33,7 @@ pub struct FrontMatter {
     #[serde(default, rename = "collection")]
     pub collections: CollectionPlacementList,
     // pub excerpts: Vec<Excerpt>,
+    pub primary_collection: Option<String>,
     #[serde(default)]
     pub props: Map,
     #[serde(default = "default_render")]
@@ -48,6 +49,7 @@ impl FrontMatter {
             id: None,
             layout: "SomeLayout".to_string(),
             collections: Default::default(),
+            primary_collection: None,
             props: Default::default(),
             render: true,
             title: name.to_string(),

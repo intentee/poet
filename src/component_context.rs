@@ -141,7 +141,19 @@ impl ComponentContext {
                     return self.rhai_collection(&placement.name);
                 }
             }
-            _ => {}
+            _ => {
+                if let Some(primary_collection) = &self.front_matter.primary_collection {
+                    let placements = self.front_matter.collections.placements.clone();
+
+                    for placement in placements {
+                        if placement.name == *primary_collection {
+                            return self.rhai_collection(&placement.name);
+                        }
+                    }
+                } else {
+                    return Err("Document has multiple collections, but it doesn't specify the primary collection (which normally isn't a problem, but you tried to use the '.primary_collection' field)".into());
+                }
+            }
         };
 
         Err("Unable to determine the primary collection".into())

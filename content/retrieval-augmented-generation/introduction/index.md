@@ -1,12 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
-primary_collection = "nlp"
 render = false
 title = "Introduction"
 
 [[collection]]
-name = "nlp"
+name = "rag"
 
 [[collection]]
-name = "analyze_content"
+name = "leverage_content"
 +++

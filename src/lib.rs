@@ -20,7 +20,6 @@ mod markdown_document_tree_node;
 mod mdast_children_to_heading_id;
 mod poet_config;
 mod poet_config_holder;
-mod project_context;
 mod read_poet_config_file;
 mod rhai_components;
 mod rhai_functions;

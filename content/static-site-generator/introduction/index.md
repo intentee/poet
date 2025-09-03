@@ -1,12 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
-primary_collection = "nlp"
 render = false
 title = "Introduction"
 
 [[collection]]
-name = "nlp"
+name = "static_site_generator"
 
 [[collection]]
-name = "analyze_content"
+name = "create_content"
 +++

@@ -181,7 +181,25 @@ pub async fn build_project(
         }
     }
 
+    // Validate before/after/parent documents in collections
     for reference in markdown_document_by_basename.values() {
+        // Validate primary collections
+        if let Some(primary_collection) = &reference.front_matter.primary_collection
+            && !reference
+                .front_matter
+                .collections
+                .placements
+                .iter()
+                .any(|placement| placement.name == *primary_collection)
+        {
+            error_collection.register_error(
+                anyhow!(
+                    "Document does belong to the collection it claims to be it's primary collection"
+                ),
+                reference.clone(),
+            );
+        }
+
         for collection in &reference.front_matter.collections.placements {
             if let Some(after) = &collection.after
                 && !markdown_document_by_basename.contains_key(after)
@@ -221,15 +239,12 @@ pub async fn build_project(
         return Err(anyhow!("failed before generating pages"));
     }
 
-    let available_collections_arc: Arc<HashSet<String>> = Arc::new({
-        let mut available_collections: HashSet<String> = Default::default();
-
-        for key in markdown_document_collections.keys() {
-            available_collections.insert(key.into());
-        }
-
-        available_collections
-    });
+    let available_collections_arc: Arc<HashSet<String>> = Arc::new(
+        markdown_document_collections
+            .keys()
+            .map(|key| key.to_string())
+            .collect::<HashSet<String>>(),
+    );
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
     let markdown_document_collections_arc = Arc::new(markdown_document_collections);

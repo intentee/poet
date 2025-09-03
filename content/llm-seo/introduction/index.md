@@ -4,5 +4,8 @@ render = false
 title = "Introduction"
 
 [[collection]]
-name = "mcp_llm_seo"
+name = "llm_seo"
+
+[[collection]]
+name = "leverage_content"
 +++

@@ -4,5 +4,8 @@ render = false
 title = "Introduction"
 
 [[collection]]
-name = "rhai_components"
+name = "templating_engine"
+
+[[collection]]
+name = "create_content"
 +++

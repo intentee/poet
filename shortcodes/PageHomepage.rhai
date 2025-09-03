@@ -8,10 +8,16 @@ fn template(context, props, content) {
           Poet 🪶
         </h1>
         <h2 class="homepage__subtitle">
-          Open-source static site generator that exposes MCP server.
+          Open-source static site generator that optionally provides you
+          with MCP server, RAG, and AI platforms discoverability
+          (also works with self-hosted AI)
+        </h2>
+        <h2 class="homepage__subtitle">
+          Comes in with custom templating engine for modern needs
+          (somewhat like React, but better for static pages :))
         </h2>
         <div class="homepage__cta">
-          <a href={context.link_to("#documentation-initial-page")} class="homepage__cta__button homepage__cta__button--primary">
+          <a href={context.link_to("#static-site-generator-initial-page")} class="homepage__cta__button homepage__cta__button--primary">
             Get Started
           </a>
           <a href={context.link_to("#install")} class="homepage__cta__button">

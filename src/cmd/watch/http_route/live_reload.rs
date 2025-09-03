@@ -60,14 +60,18 @@ async fn respond(
                         }
                         Ok(None) => {
                             warn!("Unable to get file info for live reload: {path_string}");
+                            break;
                         }
-                        Err(err) => error!("Unable to resolve generated file path: {err}"),
+                        Err(err) => {
+                            error!("Unable to resolve generated file path: {err}");
+                            break;
+                        }
                     }
                 }
                 Ok(None) => {
                     warn!("Server is still starting up, or there are no successful builds yet")
                 }
-                Err(err) => error!("Failed to get buffered requests snapshot: {err}"),
+                Err(err) => error!("Failed to get output filesystem snapshot: {err}"),
             }
         }
     });

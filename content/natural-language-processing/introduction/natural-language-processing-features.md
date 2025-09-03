@@ -1,9 +1,13 @@
 +++
-id = "natural-language-processing-initial-page"
+id = "nlp-initial-page"
 layout = "LayoutDocumentationPage"
+primary_collection = "nlp"
 title = "Natural language processing features"
 
 [[collection]]
-name = "natural_language_processing"
+name = "nlp"
 parent = "natural-language-processing/introduction/index"
+
+[[collection]]
+name = "analyze_content"
 +++

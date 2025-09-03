@@ -3,7 +3,7 @@ fn template(context, props, content) {
     context.assets.add("resources/ts/global-live-reload.ts");
   }
 
-  context.assets.add("resources/css/layout-common.css");
+  context.assets.add("resources/css/layout-minimal.css");
 
   component {
     <!DOCTYPE html>
@@ -32,100 +32,133 @@ fn template(context, props, content) {
         {context.assets.render()}
       </head>
       <body>
-        <div class="page">
-          <nav class="primary-navigation">
-            <div class="primary-navigation__group primary-navigation__group--logo">
-              <a href={context.link_to("index")} class="primary-navigation__link primary-navigation__link--logo">
-              Poet 🪶
+        <nav class="page-navigation">
+          <a class="page-navigation__site-name" href={context.link_to("index")}>
+            Poet
+          </a>
+          <div class="page-navigation__track page-navigation__track--top"></div>
+          <div class="page-navigation__track page-navigation__track--bottom">
+            <div class="page-navigation__group">
+              <a
+                href={context.link_to("#static-site-generator-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "active": context.belongs_to("static_site_generator"),
+                  "section-active": context.belongs_to("create_content"),
+                  "section-create-content": true,
+                })}
+              >
+                Static Site Generator
+              </a>
+              <a
+                href={context.link_to("#templating-engine-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "active": context.belongs_to("templating_engine"),
+                  "section-active": context.belongs_to("create_content"),
+                  "section-create-content": true,
+                })}
+              >
+                Templating Engine
+              </a>
+              <a
+                href={context.link_to("#consistency-guard-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "active": context.belongs_to("consistency_guard"),
+                  "section-active": context.belongs_to("create_content"),
+                  "section-create-content": true,
+                })}
+              >
+                Consistency Guard
               </a>
             </div>
-            <div class="primary-navigation__group-wrapper">
-              <div class="primary-navigation__group">
-                <a
-                  href={context.link_to("#documentation-initial-page")}
-                  class={clsx(#{
-                    "primary-navigation__link": true,
-                    "primary-navigation__link--active": context.belongs_to("documentation"),
-                  })}
-                >
-                  Static Site Generator
-                </a>
-                <a
-                  href={context.link_to("#rhai-components-initial-page")}
-                  class={clsx(#{
-                    "primary-navigation__link": true,
-                    "primary-navigation__link--active": context.belongs_to("rhai_components"),
-                  })}
-                >
-                  Rhai Components
-                </a>
-                <a
-                  href={context.link_to("#mcp-llm-seo-initial-page")}
-                  class={clsx(#{
-                    "primary-navigation__link": true,
-                    "primary-navigation__link--active": context.belongs_to("mcp_llm_seo"),
-                  })}
-                >
-                  MCP, LLM SEO
-                </a>
-                <a
-                  href={context.link_to("#natural-language-processing-initial-page")}
-                  class={clsx(#{
-                    "primary-navigation__link": true,
-                    "primary-navigation__link--active": context.belongs_to("natural_language_processing"),
-                  })}
-                >
-                  Natural Language Processing
-                </a>
-                <a
-                  href="https://github.com/intentee/poet"
-                  class="primary-navigation__link"
-                  target="_blank"
-                >
-                  <img alt="GitHub" src={context.assets.file("resources/media/logo-github.svg")}>
-                </a>
-              </div>
-            </div>
-          </nav>
-          <main class="primary-main">
-            {content}
-          </main>
-          <footer class="footer">
-            <p>
-              Made with ❤️ by <a href="https://intentee.com" target="_blank">Intentee</a> and contributors.
-            </p>
-            <div class="footer__links">
+            <div class="page-navigation__group">
               <a
-                class="footer__links__link"
-                href="https://bsky.app/profile/intentee.bsky.social"
-                target="_blank"
+                href={context.link_to("#mcp-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "active": context.belongs_to("mcp"),
+                  "section-active": context.belongs_to("leverage_content"),
+                  "section-leverage-content": true,
+                })}
               >
-                <img alt="Bluesky" src={context.assets.file("resources/media/logo-bluesky.svg")}>
+                Model Context Protocol
               </a>
               <a
-                class="footer__links__link"
-                href="https://discord.gg/92x3Z8a4gj"
-                target="_blank"
+                href={context.link_to("#rag-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "active": context.belongs_to("rag"),
+                  "section-active": context.belongs_to("leverage_content"),
+                  "section-leverage-content": true,
+                })}
               >
-                <img alt="Discord" src={context.assets.file("resources/media/logo-discord.svg")}>
+                RAG
               </a>
               <a
-                class="footer__links__link"
-                href="https://www.linkedin.com/company/intentee"
-                target="_blank"
+                href={context.link_to("#llm-seo-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "active": context.belongs_to("llm_seo"),
+                  "section-active": context.belongs_to("leverage_content"),
+                  "section-leverage-content": true,
+                })}
               >
-                <img alt="LinkedIn" src={context.assets.file("resources/media/logo-linkedin.svg")}>
-              </a>
-              <a
-                class="footer__links__link"
-                href="https://x.com/intentee"
-                target="_blank"
-              >
-                <img alt="X" src={context.assets.file("resources/media/logo-x.svg")}>
+                LLM SEO
               </a>
             </div>
-          </footer>
-        </div>
+            <div class="page-navigation__group">
+              <a
+                href={context.link_to("#nlp-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "active": context.belongs_to("nlp"),
+                  "section-active": context.belongs_to("analyze_content"),
+                  "section-analyze-content": true,
+                })}
+              >
+                Natural Language Processing
+              </a>
+            </div>
+          </div>
+        </nav>
+        {content}
+        <footer>
+          <p>
+            Made with ❤️ by <a href="https://intentee.com" target="_blank">Intentee</a> and contributors.
+          </p>
+            <a
+              href="https://bsky.app/profile/intentee.bsky.social"
+              target="_blank"
+            >
+              <img alt="Bluesky" src={context.assets.file("resources/media/logo-bluesky.svg")}>
+            </a>
+            <a
+              href="https://discord.gg/92x3Z8a4gj"
+              target="_blank"
+            >
+              <img alt="Discord" src={context.assets.file("resources/media/logo-discord.svg")}>
+            </a>
+            <a
+              href="https://github.com/intentee/poet"
+              target="_blank"
+            >
+              <img alt="GitHub" src={context.assets.file("resources/media/logo-github.svg")}>
+            </a>
+            <a
+              href="https://www.linkedin.com/company/intentee"
+              target="_blank"
+            >
+              <img alt="LinkedIn" src={context.assets.file("resources/media/logo-linkedin.svg")}>
+            </a>
+            <a
+              href="https://x.com/intentee"
+              target="_blank"
+            >
+              <img alt="X" src={context.assets.file("resources/media/logo-x.svg")}>
+            </a>
+        </footer>
       </body>
     </html>
   }

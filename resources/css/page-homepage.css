@@ -19,7 +19,6 @@
 
 .homepage__cta__button {
   border: 2px solid var(--color-border);
-  border-radius: 20px 30% 20px 20px;
   display: inline-flex;
   padding: var(--spacing-half) var(--spacing-base);
   text-decoration: none;
@@ -32,7 +31,6 @@
 
 .homepage__title {
   font-weight: bold;
-  font-style: italic;
   line-height: 1;
   text-shadow:
     5px 0 0 #ffff0022,

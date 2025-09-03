@@ -1,5 +1,6 @@
 import { Idiomorph } from "idiomorph";
 
+const DEBOUNCE_MILLIS = 1000;
 const DOCTYPE = "<!DOCTYPE html>";
 const LIVE_RELOAD_API_URL = `/api/v1/live_reload${window.location.pathname}`;
 
@@ -8,7 +9,8 @@ function keepSocketAlive() {
 
   liveReloadSocket.onclose = function (event) {
     console.warn("[poet] live reload socket closed", event);
-    keepSocketAlive();
+
+    setTimeout(keepSocketAlive, DEBOUNCE_MILLIS);
   };
 
   liveReloadSocket.onmessage = function (event) {

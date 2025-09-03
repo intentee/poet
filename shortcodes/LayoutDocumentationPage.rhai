@@ -1,15 +1,3 @@
-fn figure_out_collection(context) {
-  switch [
-    context.front_matter.collections.has("api_pages"),
-    context.front_matter.collections.has("documentation_pages")
-  ] {
-    [true, true] => error("Document is both in docs pages and api pages"),
-    [true, false] => "api_pages",
-    [false, true] => "documentation_pages",
-    [false, false] => error("Unable to determine document primary collection"),
-  }
-}
-
 fn render_menu(context, node, level, nested) {
   switch level {
     0 => component {
@@ -38,7 +26,7 @@ fn template(context, props, content) {
   context.assets.add("resources/css/layout-documentation-page.css");
   // context.speculation.next(context.collection("documentation_pages").hierarchy.next_after(context.basename));
 
-  let menu_hierarchy = context.collection(figure_out_collection(context)).hierarchy;
+  let menu_hierarchy = context.primary_collection.hierarchy;
 
   component {
     <LayoutMinimal>

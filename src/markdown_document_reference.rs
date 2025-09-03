@@ -2,6 +2,9 @@ use std::cmp::Ordering;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use rhai::CustomType;
+use rhai::EvalAltResult;
+use rhai::TypeBuilder;
 
 use crate::front_matter::FrontMatter;
 
@@ -70,6 +73,28 @@ impl MarkdownDocumentReference {
                 Ok(format!("{parent}/{file_stem}/"))
             }
         }
+    }
+
+    fn rhai_basename(&mut self) -> String {
+        self.basename()
+    }
+
+    fn rhai_canonical_link(&mut self) -> Result<String, Box<EvalAltResult>> {
+        Ok(self.canonical_link()?)
+    }
+
+    fn rhai_front_matter(&mut self) -> FrontMatter {
+        self.front_matter.clone()
+    }
+}
+
+impl CustomType for MarkdownDocumentReference {
+    fn build(mut builder: TypeBuilder<Self>) {
+        builder
+            .with_name("MarkdownDocumentReference")
+            .with_get("basename", Self::rhai_basename)
+            .with_get("canonical_link", Self::rhai_canonical_link)
+            .with_get("front_matter", Self::rhai_front_matter);
     }
 }
 

@@ -4,5 +4,5 @@ render = false
 title = "Introduction"
 
 [[collection]]
-name = "documentation"
+name = "rhai_components"
 +++

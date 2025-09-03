@@ -3,17 +3,17 @@ use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
-use crate::rhai_markdown_document_reference::RhaiMarkdownDocumentReference;
-use crate::rhai_markdown_document_tree_node::RhaiMarkdownDocumentTreeNode;
+use crate::markdown_document_reference::MarkdownDocumentReference;
+use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
 
 #[derive(Clone)]
-pub struct RhaiMarkdownDocumentHierarchy {
-    pub hierarchy: Vec<RhaiMarkdownDocumentTreeNode>,
+pub struct MarkdownDocumentHierarchy {
+    pub hierarchy: Vec<MarkdownDocumentTreeNode>,
 }
 
-impl RhaiMarkdownDocumentHierarchy {
-    fn flatten(&self) -> Vec<RhaiMarkdownDocumentReference> {
-        let mut flat: Vec<RhaiMarkdownDocumentReference> = Vec::new();
+impl MarkdownDocumentHierarchy {
+    fn flatten(&self) -> Vec<MarkdownDocumentReference> {
+        let mut flat: Vec<MarkdownDocumentReference> = Vec::new();
 
         for node in &self.hierarchy {
             flat.append(&mut node.flatten());
@@ -26,12 +26,12 @@ impl RhaiMarkdownDocumentHierarchy {
         let mut flat_peekable = self
             .flatten()
             .into_iter()
-            .filter(|node| node.front_matter.front_matter.render)
+            .filter(|node| node.front_matter.render)
             .peekable();
 
         while let Some(node) = flat_peekable.next() {
-            if node.reference.basename() == basename {
-                let next: Option<&RhaiMarkdownDocumentReference> = flat_peekable.peek();
+            if node.basename() == basename {
+                let next: Option<&MarkdownDocumentReference> = flat_peekable.peek();
 
                 if let Some(next) = next {
                     return Ok(Dynamic::from(next.clone()));
@@ -45,11 +45,11 @@ impl RhaiMarkdownDocumentHierarchy {
     }
 
     fn rhai_before(&mut self, basename: String) -> Result<Dynamic, Box<EvalAltResult>> {
-        let mut previous: Option<RhaiMarkdownDocumentReference> = None;
+        let mut previous: Option<MarkdownDocumentReference> = None;
 
         for node in self.flatten() {
-            if node.front_matter.front_matter.render {
-                if node.reference.basename() == basename {
+            if node.front_matter.render {
+                if node.basename() == basename {
                     if let Some(previous) = previous {
                         return Ok(Dynamic::from(previous));
                     } else {
@@ -65,17 +65,17 @@ impl RhaiMarkdownDocumentHierarchy {
     }
 }
 
-impl CustomType for RhaiMarkdownDocumentHierarchy {
+impl CustomType for MarkdownDocumentHierarchy {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("RhaiMarkdownDocumentHierarchy")
+            .with_name("MarkdownDocumentHierarchy")
             .with_fn("after", Self::rhai_after)
             .with_fn("before", Self::rhai_before);
     }
 }
 
-impl From<Vec<RhaiMarkdownDocumentTreeNode>> for RhaiMarkdownDocumentHierarchy {
-    fn from(hierarchy: Vec<RhaiMarkdownDocumentTreeNode>) -> Self {
+impl From<Vec<MarkdownDocumentTreeNode>> for MarkdownDocumentHierarchy {
+    fn from(hierarchy: Vec<MarkdownDocumentTreeNode>) -> Self {
         Self { hierarchy }
     }
 }

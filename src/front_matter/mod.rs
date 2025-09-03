@@ -1,7 +1,9 @@
 pub mod collection_placement;
 pub mod collection_placement_list;
 
+use rhai::CustomType;
 use rhai::Map;
+use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -50,5 +52,24 @@ impl FrontMatter {
             render: true,
             title: name.to_string(),
         }
+    }
+}
+
+impl FrontMatter {
+    fn rhai_description(&mut self) -> String {
+        self.description.clone()
+    }
+
+    fn rhai_title(&mut self) -> String {
+        self.title.clone()
+    }
+}
+
+impl CustomType for FrontMatter {
+    fn build(mut builder: TypeBuilder<Self>) {
+        builder
+            .with_name("FrontMatter")
+            .with_get("description", Self::rhai_description)
+            .with_get("title", Self::rhai_title);
     }
 }

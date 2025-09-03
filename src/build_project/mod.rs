@@ -33,7 +33,6 @@ use crate::markdown_document::MarkdownDocument;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
-use crate::rhai_markdown_document_collection::RhaiMarkdownDocumentCollection;
 use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
@@ -45,7 +44,6 @@ async fn render_document<'render>(
         esbuild_metafile,
         is_watching,
         markdown_basename_by_id,
-        markdown_document_by_basename,
         markdown_document:
             MarkdownDocument {
                 mdast,
@@ -56,7 +54,8 @@ async fn render_document<'render>(
                         generated_page_base_path: _,
                     },
             },
-        rhai_markdown_document_collections,
+        markdown_document_by_basename,
+        markdown_document_collections,
         rhai_template_renderer,
         syntax_set,
     }: DocumentRenderingContext<'render>,
@@ -69,7 +68,7 @@ async fn render_document<'render>(
         markdown_basename_by_id,
         markdown_document_by_basename,
         reference: reference.clone(),
-        rhai_markdown_document_collections,
+        markdown_document_collections,
         table_of_contents: None,
     };
 
@@ -141,9 +140,10 @@ pub async fn build_project(
 
     info!("Processing content files...");
 
-    let mut collections: HashMap<String, MarkdownDocumentCollection> = HashMap::new();
     let mut markdown_basename_by_id: HashMap<String, String> = HashMap::new();
     let mut markdown_document_by_basename: HashMap<String, MarkdownDocumentReference> =
+        HashMap::new();
+    let mut markdown_document_collections: HashMap<String, MarkdownDocumentCollection> =
         HashMap::new();
     let mut markdown_document_list: Vec<MarkdownDocument> = Vec::new();
 
@@ -201,7 +201,7 @@ pub async fn build_project(
                 );
             }
 
-            collections
+            markdown_document_collections
                 .entry(collection.name.clone())
                 .or_default()
                 .documents
@@ -221,7 +221,7 @@ pub async fn build_project(
     let available_collections_arc: Arc<HashSet<String>> = Arc::new({
         let mut available_collections: HashSet<String> = Default::default();
 
-        for key in collections.keys() {
+        for key in markdown_document_collections.keys() {
             available_collections.insert(key.into());
         }
 
@@ -229,24 +229,7 @@ pub async fn build_project(
     });
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
-    let rhai_markdown_document_collections_arc = Arc::new({
-        let mut rhai_markdown_document_collections: HashMap<
-            String,
-            RhaiMarkdownDocumentCollection,
-        > = Default::default();
-
-        for (key, collection) in &collections {
-            rhai_markdown_document_collections.insert(
-                key.clone(),
-                RhaiMarkdownDocumentCollection {
-                    available_collections: available_collections_arc.clone(),
-                    documents: collection.documents.clone(),
-                },
-            );
-        }
-
-        rhai_markdown_document_collections
-    });
+    let markdown_document_collections_arc = Arc::new(markdown_document_collections);
 
     for markdown_document in &markdown_document_list {
         if !markdown_document.reference.front_matter.render {
@@ -266,7 +249,7 @@ pub async fn build_project(
             markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
             markdown_document,
             markdown_document_by_basename: markdown_document_by_basename_arc.clone(),
-            rhai_markdown_document_collections: rhai_markdown_document_collections_arc.clone(),
+            markdown_document_collections: markdown_document_collections_arc.clone(),
             rhai_template_renderer: &rhai_template_renderer,
             syntax_set: &syntax_set,
         })

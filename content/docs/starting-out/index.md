@@ -1,8 +1,9 @@
 +++
 layout = "LayoutDocumentationPage"
 render = false
-title = "Introduction"
+title = "Starting out"
 
 [[collection]]
+after = "docs/introduction/index"
 name = "documentation"
 +++

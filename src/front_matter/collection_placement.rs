@@ -1,5 +1,3 @@
-use rhai::CustomType;
-use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -11,18 +9,4 @@ pub struct CollectionPlacement {
     pub name: String,
     #[serde(default)]
     pub parent: Option<String>,
-}
-
-impl CollectionPlacement {
-    fn rhai_name(&mut self) -> String {
-        self.name.clone()
-    }
-}
-
-impl CustomType for CollectionPlacement {
-    fn build(mut builder: TypeBuilder<Self>) {
-        builder
-            .with_name("CollectionPlacement")
-            .with_get("name", Self::rhai_name);
-    }
 }

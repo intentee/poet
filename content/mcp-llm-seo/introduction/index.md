@@ -1,8 +1,8 @@
 +++
 layout = "LayoutDocumentationPage"
 render = false
-title = "Getting Started"
+title = "Introduction"
 
 [[collection]]
-name = "documentation_pages"
+name = "mcp_llm_seo"
 +++

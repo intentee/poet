@@ -3,8 +3,8 @@ layout = "LayoutDocumentationPage"
 title = "Create your first page"
 
 [[collection]]
-name = "documentation_pages"
-parent = "docs/getting-started/index"
+name = "documentation"
+parent = "docs/starting-out/index"
 +++
 
 ## Your first page

@@ -42,16 +42,41 @@ fn template(context, props, content) {
             <div class="primary-navigation__group-wrapper">
               <div class="primary-navigation__group">
                 <a
-                  href={context.link_to("#getting-started")}
+                  href={context.link_to("#documentation-initial-page")}
                   class={clsx(#{
                     "primary-navigation__link": true,
-                    "primary-navigation__link--active": context.front_matter.collections.has("documentation_pages"),
+                    "primary-navigation__link--active": context.belongs_to("documentation"),
                   })}
                 >
-                  Docs
+                  Static Site Generator
                 </a>
-              </div>
-              <div class="primary-navigation__group">
+                <a
+                  href={context.link_to("#rhai-components-initial-page")}
+                  class={clsx(#{
+                    "primary-navigation__link": true,
+                    "primary-navigation__link--active": context.belongs_to("rhai_components"),
+                  })}
+                >
+                  Rhai Components
+                </a>
+                <a
+                  href={context.link_to("#mcp-llm-seo-initial-page")}
+                  class={clsx(#{
+                    "primary-navigation__link": true,
+                    "primary-navigation__link--active": context.belongs_to("mcp_llm_seo"),
+                  })}
+                >
+                  MCP, LLM SEO
+                </a>
+                <a
+                  href={context.link_to("#natural-language-processing-initial-page")}
+                  class={clsx(#{
+                    "primary-navigation__link": true,
+                    "primary-navigation__link--active": context.belongs_to("natural_language_processing"),
+                  })}
+                >
+                  Natural Language Processing
+                </a>
                 <a
                   href="https://github.com/intentee/poet"
                   class="primary-navigation__link"

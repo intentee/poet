@@ -10,11 +10,7 @@ import { basic } from "jarmuz/job-types";
 const metafileFilename = "esbuild-meta.json";
 
 export function jobEsbuild({ development }) {
-  basic(async function ({
-    baseDirectory,
-    buildId,
-    printSubtreeList,
-  }) {
+  basic(async function ({ baseDirectory, buildId, printSubtreeList }) {
     let start = performance.now();
 
     console.log(`Building assets: ${buildId}`);
@@ -93,7 +89,9 @@ export function jobEsbuild({ development }) {
     await writeFile(metafileFilename, JSON.stringify(result.metafile));
 
     console.log(`Build metafile written to: ${metafileFilename}`);
-    console.log(`Build finished with ID: ${buildId} in ${Math.round(performance.now() - start)} milliseconds`);
+    console.log(
+      `Build finished with ID: ${buildId} in ${Math.round(performance.now() - start)} milliseconds`,
+    );
 
     if (result.errors.length > 0 || result.warnings.length > 0) {
       return false;

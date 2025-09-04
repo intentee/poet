@@ -8,7 +8,7 @@
   --duration-transition-hover: 100ms;
   --font-family-body: "Inter", sans-serif;
   --font-family-monospace: "Noto Sans Mono", monospace;
-  --height-primary-navigation: 100px;
+  --height-primary-navigation-track: 55px;
   --line-height-base: 1.5;
   --spacing-2x: calc(2 * var(--spacing-base));
   --spacing-base: 16px;

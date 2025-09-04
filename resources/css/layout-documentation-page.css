@@ -14,24 +14,36 @@
   display: flex;
   flex-direction: column;
   grid-area: menu;
-  padding: var(--spacing-2x);
+  padding: var(--spacing-2x) var(--spacing-base);
   row-gap: var(--spacing-2x);
 }
 
-.documentation-page__menu__link:not(.documentation-page__menu__link--active) {
+.documentation-page__menu__link {
+  border: 2px solid transparent;
+  padding: var(--spacing-half) var(--spacing-base);
   text-decoration: none;
+}
+
+.documentation-page__menu__link.documentation-page__menu__link--active {
+  background-color: var(--color-highlight);
+  border-color: var(--color-border);
+  border-radius: 20px 20% 20px 20px;
 }
 
 .documentation-page__menu__section {
   display: flex;
   flex-direction: column;
-  row-gap: var(--spacing-base);
 }
 
 .documentation-page__menu__section__content {
+  align-items: flex-start;
   display: flex;
   flex-direction: column;
-  row-gap: var(--spacing-base);
+}
+
+.documentation-page__menu__section__title {
+  font-weight: bold;
+  padding: var(--spacing-half) var(--spacing-base);
 }
 
 .documentation-page__related-pages {

@@ -48,7 +48,7 @@ impl Filesystem for Memory {
         }
     }
 
-    async fn set_file_contents(&self, path: &Path, contents: &str) -> Result<()> {
+    fn set_file_contents_sync(&self, path: &Path, contents: &str) -> Result<()> {
         self.files.insert(
             path.to_str()
                 .ok_or_else(|| anyhow!("Unable to stringify path"))?

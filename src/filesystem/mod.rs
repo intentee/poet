@@ -17,7 +17,9 @@ pub trait Filesystem {
 
     async fn read_file_contents(&self, path: &Path) -> Result<ReadFileContentsResult>;
 
-    async fn set_file_contents(&self, path: &Path, content: &str) -> Result<()>;
+    // async fn set_file_contents(&self, path: &Path, content: &str) -> Result<()>;
+
+    fn set_file_contents_sync(&self, path: &Path, content: &str) -> Result<()>;
 }
 
 #[cfg(test)]
@@ -32,24 +34,17 @@ mod tests {
         TFilesystem: Filesystem,
     {
         println!("{log_prefix} - Creating 'content/test.txt'");
-        filesystem
-            .set_file_contents(Path::new("content/test.txt"), "Hello, World! 1")
-            .await?;
+        filesystem.set_file_contents_sync(Path::new("content/test.txt"), "Hello, World! 1")?;
 
         println!("{log_prefix} - Creating 'content/test2.txt'");
-        filesystem
-            .set_file_contents(Path::new("content/test2.txt"), "Hello, World! 2")
-            .await?;
+        filesystem.set_file_contents_sync(Path::new("content/test2.txt"), "Hello, World! 2")?;
 
         println!("{log_prefix} - Creating 'content/test/3.txt'");
-        filesystem
-            .set_file_contents(Path::new("content/test/3.txt"), "Hello, World! 3")
-            .await?;
+        filesystem.set_file_contents_sync(Path::new("content/test/3.txt"), "Hello, World! 3")?;
 
         println!("{log_prefix} - Creating 'content/test/4/5/6.txt'");
         filesystem
-            .set_file_contents(Path::new("content/test/4/5/6.txt"), "Hello, World! 456")
-            .await?;
+            .set_file_contents_sync(Path::new("content/test/4/5/6.txt"), "Hello, World! 456")?;
 
         println!("{log_prefix} - Reading project files");
         let mut files = filesystem.read_project_files().await?;

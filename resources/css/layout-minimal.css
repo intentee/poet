@@ -58,6 +58,11 @@
   z-index: var(--z-index-primary-navigation);
 }
 
+.page-navigation__dropdowns {
+  display: grid;
+  grid-template-columns: repeat(3, 175px);
+}
+
 .page-navigation__dropdown {
   display: flex;
   justify-content: center;
@@ -74,11 +79,10 @@
 
 .page-navigation__dropdown.page-navigation__dropdown--collection-active {
   position: relative;
-  text-decoration-color: var(--color-link-text-decoration);
-  text-decoration-line: underline;
-  text-decoration-style: solid;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 2px;
+
+  > a {
+    font-weight: bold;
+  }
 }
 
 .page-navigation__dropdown__content {

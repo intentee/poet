@@ -125,6 +125,9 @@ mod tests {
         let renderer = Func::<(DummyContext, Dynamic, Dynamic), String>::create_from_script(
             engine,
             r#"
+                import "LayoutHomepage" as LayoutHomepage;
+                import "Note" as Note;
+
                 fn template(context, props, content) {
                     context.assets.add("resouces/controller_foo.tsx");
 

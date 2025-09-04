@@ -14,6 +14,7 @@ use esbuild_metafile::EsbuildMetaFile;
 use log::debug;
 use log::info;
 use log::warn;
+use rayon::prelude::*;
 use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
@@ -37,7 +38,7 @@ use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
 
-async fn render_document<'render>(
+fn render_document<'render>(
     DocumentRenderingContext {
         asset_path_renderer,
         available_collections,
@@ -106,7 +107,7 @@ pub async fn build_project(
     info!("Processing content files...");
 
     let _build_timer = BuildTimer::new();
-    let mut error_collection: DocumentErrorCollection = Default::default();
+    let error_collection: DocumentErrorCollection = Default::default();
     let esbuild_metafile: Arc<EsbuildMetaFile> = match source_filesystem
         .read_file_contents(&PathBuf::from("esbuild-meta.json"))
         .await?
@@ -237,44 +238,53 @@ pub async fn build_project(
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
     let markdown_document_collections_arc = Arc::new(markdown_document_collections);
 
-    for markdown_document in &markdown_document_list {
-        if !markdown_document.reference.front_matter.render {
-            debug!(
-                "Document will not be rendered: {}",
-                markdown_document.reference.basename()
-            );
+    markdown_document_list
+        .par_iter()
+        .for_each(|markdown_document| {
+            if !markdown_document.reference.front_matter.render {
+                debug!(
+                    "Document will not be rendered: {}",
+                    markdown_document.reference.basename()
+                );
 
-            continue;
-        }
+                return;
+            }
 
-        match render_document(DocumentRenderingContext {
-            asset_path_renderer: asset_path_renderer.clone(),
-            available_collections: available_collections_arc.clone(),
-            esbuild_metafile: esbuild_metafile.clone(),
-            is_watching,
-            markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
-            markdown_document,
-            markdown_document_by_basename: markdown_document_by_basename_arc.clone(),
-            markdown_document_collections: markdown_document_collections_arc.clone(),
-            rhai_template_renderer: &rhai_template_renderer,
-            syntax_set: &syntax_set,
-        })
-        .await
-        {
-            Ok(processed_file) => {
-                memory_filesystem
-                    .set_file_contents(
+            match render_document(DocumentRenderingContext {
+                asset_path_renderer: asset_path_renderer.clone(),
+                available_collections: available_collections_arc.clone(),
+                esbuild_metafile: esbuild_metafile.clone(),
+                is_watching,
+                markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
+                markdown_document,
+                markdown_document_by_basename: markdown_document_by_basename_arc.clone(),
+                markdown_document_collections: markdown_document_collections_arc.clone(),
+                rhai_template_renderer: &rhai_template_renderer,
+                syntax_set: &syntax_set,
+            }) {
+                Ok(processed_file) => {
+                    if let Err(err) = memory_filesystem.set_file_contents_sync(
                         &match markdown_document.reference.target_file_relative_path() {
                             Ok(relative_path) => relative_path,
-                            Err(err) => return Err(anyhow!(err)),
+                            Err(err) => {
+                                error_collection.register_error(
+                                    anyhow!(err),
+                                    markdown_document.reference.clone(),
+                                );
+
+                                return;
+                            }
                         },
                         &processed_file,
-                    )
-                    .await?;
+                    ) {
+                        error_collection.register_error(err, markdown_document.reference.clone());
+                    }
+                }
+                Err(err) => {
+                    error_collection.register_error(err, markdown_document.reference.clone())
+                }
             }
-            Err(err) => error_collection.register_error(err, markdown_document.reference.clone()),
-        }
-    }
+        });
 
     if error_collection.is_empty() {
         Ok(memory_filesystem)

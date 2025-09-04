@@ -20,7 +20,7 @@ fn default_render() -> bool {
 //     pub content: String,
 // }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FrontMatter {
     #[serde(default)]

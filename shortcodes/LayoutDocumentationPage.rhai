@@ -1,11 +1,11 @@
 fn render_menu(context, node, level, nested) {
   switch level {
     0 => component {
-      <div class="documentation-page__menu-section">
-        <div class="documentation-page__menu-section__title">
+      <div class="documentation-page__menu__section">
+        <div class="documentation-page__menu__section__title">
           {node.reference.front_matter.title}
         </div>
-        <div class="documentation-page__menu-section__content">
+        <div class="documentation-page__menu__section__content">
           {nested}
         </div>
       </div>
@@ -61,51 +61,36 @@ fn template(context, props, content) {
             </h1>
             {content}
           </div>
-          {
-            let prev = menu_hierarchy.before(context.reference.basename);
+          <div class="documentation-page__related-pages">
+            {
+              let prev = menu_hierarchy.before(context.reference.basename);
 
-            if prev != () {
-              component {
-                <a
-                  class="docs__related-pages__link docs__related-pages__link--prev"
-                  href={prev.canonical_link}
-                >
-                  <span class="docs__related-pages__link__text">{prev.front_matter.title}</span>
-                </a>
+              if prev != () {
+                component {
+                  <a
+                    class="documentation-page__related-pages__link documentation-page__related-pages__link--prev"
+                    href={prev.canonical_link}
+                  >
+                    <span class="documentation-page__related-pages__link__text">{prev.front_matter.title}</span>
+                  </a>
+                }
               }
             }
-          }
-          {
-            let next = menu_hierarchy.after(context.reference.basename);
+            {
+              let next = menu_hierarchy.after(context.reference.basename);
 
-            if next != () {
-              component {
-                <a
-                  class="docs__related-pages__link docs__related-pages__link--next"
-                  href={next.canonical_link}
-                >
-                  <span class="docs__related-pages__link__text">{next.front_matter.title}</span>
-                </a>
+              if next != () {
+                component {
+                  <a
+                    class="documentation-page__related-pages__link documentation-page__related-pages__link--next"
+                    href={next.canonical_link}
+                  >
+                    <span class="documentation-page__related-pages__link__text">{next.front_matter.title}</span>
+                  </a>
+                }
               }
             }
-          }
-          {
-            let rendered = [];
-
-            for heading in context.table_of_contents.headings {
-              if heading.depth == 2 {
-                rendered.push(component {
-                  <div class="page__item">
-                    <a class="page__link" href={`#${heading.id}`}>
-                      {heading.content}
-                    </a>
-                  </div>
-                });
-              }
-            }
-
-            rendered
-          }
+          </div>
         </div>
       </div>
     </LayoutMinimal>

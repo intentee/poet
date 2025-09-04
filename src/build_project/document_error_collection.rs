@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
+use dashmap::DashMap;
 
 use crate::build_project::document_error::DocumentError;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 
 #[derive(Default)]
 pub struct DocumentErrorCollection {
-    errors: BTreeMap<MarkdownDocumentReference, Vec<DocumentError>>,
+    errors: DashMap<MarkdownDocumentReference, Vec<DocumentError>>,
 }
 
 impl DocumentErrorCollection {
@@ -14,7 +14,7 @@ impl DocumentErrorCollection {
     }
 
     pub fn register_error(
-        &mut self,
+        &self,
         err: anyhow::Error,
         markdown_document_reference: MarkdownDocumentReference,
     ) {
@@ -28,8 +28,8 @@ impl DocumentErrorCollection {
     }
 
     pub fn render(&self) {
-        for errors in self.errors.values() {
-            for error in errors {
+        for errors in self.errors.iter() {
+            for error in errors.value() {
                 error.render();
             }
         }

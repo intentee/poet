@@ -1,4 +1,6 @@
 use std::cmp::Ordering;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -99,6 +101,12 @@ impl CustomType for MarkdownDocumentReference {
 }
 
 impl Eq for MarkdownDocumentReference {}
+
+impl Hash for MarkdownDocumentReference {
+    fn hash<THasher: Hasher>(&self, state: &mut THasher) {
+        self.basename_path.hash(state);
+    }
+}
 
 impl Ord for MarkdownDocumentReference {
     fn cmp(&self, other: &Self) -> Ordering {

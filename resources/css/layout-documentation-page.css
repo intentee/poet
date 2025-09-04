@@ -18,16 +18,54 @@
   row-gap: var(--spacing-2x);
 }
 
-.documentation-page__menu-section {
+.documentation-page__menu__link:not(.documentation-page__menu__link--active) {
+  text-decoration: none;
+}
+
+.documentation-page__menu__section {
   display: flex;
   flex-direction: column;
   row-gap: var(--spacing-base);
 }
 
-.documentation-page__menu-section__content {
+.documentation-page__menu__section__content {
   display: flex;
   flex-direction: column;
   row-gap: var(--spacing-base);
+}
+
+.documentation-page__related-pages {
+  column-gap: var(--spacing-2x);
+  display: grid;
+  grid-template-areas: "prev next";
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: var(--spacing-base);
+}
+
+.documentation-page__related-pages__link {
+  align-items: center;
+  column-gap: var(--spacing-half);
+  display: flex;
+  font-style: italic;
+  padding: var(--spacing-base) 0;
+  text-decoration: none;
+}
+
+.documentation-page__related-pages__link.documentation-page__related-pages__link--next {
+  grid-area: next;
+  text-align: right;
+
+  &::after {
+    content: "→";
+  }
+}
+
+.documentation-page__related-pages__link.documentation-page__related-pages__link--prev {
+  grid-area: prev;
+
+  &::before {
+    content: "←";
+  }
 }
 
 .documentation-page__toc {

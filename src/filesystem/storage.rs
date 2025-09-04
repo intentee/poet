@@ -68,15 +68,14 @@ impl Filesystem for Storage {
         Ok(ReadFileContentsResult::Found(contents))
     }
 
-    async fn set_file_contents(&self, relative_path: &Path, contents: &str) -> Result<()> {
+    fn set_file_contents_sync(&self, relative_path: &Path, contents: &str) -> Result<()> {
         let full_path = self.base_directory.join(relative_path);
 
         if let Some(parent) = full_path.parent() {
-            fs::create_dir_all(parent).await?;
+            std::fs::create_dir_all(parent)?;
         }
 
-        fs::write(&full_path, contents)
-            .await
+        std::fs::write(&full_path, contents)
             .context(format!("Failed to write file: {}", full_path.display()))?;
 
         Ok(())

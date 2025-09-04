@@ -1,6 +1,5 @@
 fn template(context, props, content) {
   context.assets.add("resources/css/layout-minimal.css");
-  context.assets.add("resources/ts/global-turbo.ts");
 
   if context.is_watching {
     context.assets.add("resources/ts/global-live-reload.ts");
@@ -42,95 +41,97 @@ fn template(context, props, content) {
               <a class="page-navigation__link page-navigation__link--site-name" href={context.link_to("index")}>
                 Poet 🪶
               </a>
-              <LayoutMinimalDropdown
-                collection="create_content"
-                href={context.link_to("#static-site-generator-initial-page")}
-                label="Create content"
-              >
-                <a
+              <div class="page-navigation__dropdowns">
+                <LayoutMinimalDropdown
+                  collection="create_content"
                   href={context.link_to("#static-site-generator-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("static_site_generator"),
-                  })}
+                  label="Create content"
                 >
-                  Static Site Generator
-                </a>
-                <a
-                  href={context.link_to("#templating-engine-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("templating_engine"),
-                  })}
-                >
-                  Templating Engine
-                </a>
-                <a
-                  href={context.link_to("#consistency-guard-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("consistency_guard"),
-                    "section-create-content": true,
-                  })}
-                >
-                  Consistency Guard
-                </a>
-              </LayoutMinimalDropdown>
-              <LayoutMinimalDropdown
-                collection="leverage_content"
-                href={context.link_to("#mcp-initial-page")}
-                label="Leverage content"
-              >
-                <a
+                  <a
+                    href={context.link_to("#static-site-generator-initial-page")}
+                    class={clsx(#{
+                      "page-navigation__link": true,
+                      "page-navigation__link--dropdown": true,
+                      "active": context.belongs_to("static_site_generator"),
+                    })}
+                  >
+                    Static Site Generator
+                  </a>
+                  <a
+                    href={context.link_to("#templating-engine-initial-page")}
+                    class={clsx(#{
+                      "page-navigation__link": true,
+                      "page-navigation__link--dropdown": true,
+                      "active": context.belongs_to("templating_engine"),
+                    })}
+                  >
+                    Templating Engine
+                  </a>
+                  <a
+                    href={context.link_to("#consistency-guard-initial-page")}
+                    class={clsx(#{
+                      "page-navigation__link": true,
+                      "page-navigation__link--dropdown": true,
+                      "active": context.belongs_to("consistency_guard"),
+                      "section-create-content": true,
+                    })}
+                  >
+                    Consistency Guard
+                  </a>
+                </LayoutMinimalDropdown>
+                <LayoutMinimalDropdown
+                  collection="leverage_content"
                   href={context.link_to("#mcp-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("mcp"),
-                  })}
+                  label="Leverage content"
                 >
-                  Model Context Protocol
-                </a>
-                <a
-                  href={context.link_to("#rag-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("rag"),
-                  })}
-                >
-                  RAG
-                </a>
-                <a
-                  href={context.link_to("#llm-seo-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("llm_seo"),
-                  })}
-                >
-                  LLM SEO
-                </a>
-              </LayoutMinimalDropdown>
-              <LayoutMinimalDropdown
-                collection="analyze_content"
-                href={context.link_to("#nlp-initial-page")}
-                label="Analyze content"
-              >
-                <a
+                  <a
+                    href={context.link_to("#mcp-initial-page")}
+                    class={clsx(#{
+                      "page-navigation__link": true,
+                      "page-navigation__link--dropdown": true,
+                      "active": context.belongs_to("mcp"),
+                    })}
+                  >
+                    Model Context Protocol
+                  </a>
+                  <a
+                    href={context.link_to("#rag-initial-page")}
+                    class={clsx(#{
+                      "page-navigation__link": true,
+                      "page-navigation__link--dropdown": true,
+                      "active": context.belongs_to("rag"),
+                    })}
+                  >
+                    RAG
+                  </a>
+                  <a
+                    href={context.link_to("#llm-seo-initial-page")}
+                    class={clsx(#{
+                      "page-navigation__link": true,
+                      "page-navigation__link--dropdown": true,
+                      "active": context.belongs_to("llm_seo"),
+                    })}
+                  >
+                    LLM SEO
+                  </a>
+                </LayoutMinimalDropdown>
+                <LayoutMinimalDropdown
+                  collection="analyze_content"
                   href={context.link_to("#nlp-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("nlp"),
-                  })}
+                  label="Analyze content"
                 >
-                  Natural Language Processing
-                </a>
-              </LayoutMinimalDropdown>
+                  <a
+                    href={context.link_to("#nlp-initial-page")}
+                    class={clsx(#{
+                      "page-navigation__link": true,
+                      "page-navigation__link--dropdown": true,
+                      "active": context.belongs_to("nlp"),
+                    })}
+                  >
+                    Natural Language Processing
+                  </a>
+                </LayoutMinimalDropdown>
+              </div>
             </div>
             <a
               class="page-navigation__link"

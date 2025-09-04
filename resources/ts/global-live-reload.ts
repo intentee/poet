@@ -64,14 +64,6 @@ function setupLiveReload() {
 
   console.log("[poet] setting up live reload");
 
-  document.addEventListener("turbo:visit", function (event) {
-    let newUrl = new URL(event.detail.url);
-
-    currentLiveReloadPath = newUrl.pathname;
-    intendsClose = true;
-    liveReloadSocket!.close();
-  });
-
   currentLiveReloadPath = window.location.pathname;
 
   keepSocketAlive();

@@ -1,0 +1,21 @@
+.documentation-page {
+  display: grid;
+  grid-template-areas: "menu content toc";
+  grid-template-columns: 300px 1fr 200px;
+  width: 100%;
+}
+
+.documentation-page__content {
+  grid-area: content;
+  padding: var(--spacing-2x);
+}
+
+.documentation-page__menu {
+  grid-area: menu;
+  padding: var(--spacing-2x);
+}
+
+.documentation-page__toc {
+  grid-area: toc;
+  padding: var(--spacing-2x);
+}

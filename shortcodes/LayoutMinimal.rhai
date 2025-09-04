@@ -1,9 +1,10 @@
 fn template(context, props, content) {
+  context.assets.add("resources/css/layout-minimal.css");
+  context.assets.add("resources/ts/global-turbo.ts");
+
   if context.is_watching {
     context.assets.add("resources/ts/global-live-reload.ts");
   }
-
-  context.assets.add("resources/css/layout-minimal.css");
 
   component {
     <!DOCTYPE html>
@@ -13,7 +14,10 @@ fn template(context, props, content) {
         <link rel="icon" href={context.assets.file("resources/media/favicon.svg")}>
 
         <meta charset="UTF-8">
+        <meta name="turbo-refresh-method" content="morph">
+        <meta name="turbo-refresh-scroll" content="preserve">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+
         {if !context.front_matter.description.is_empty() {
           component {
             <meta name="description" content={context.front_matter.description}>
@@ -32,60 +36,59 @@ fn template(context, props, content) {
         {context.assets.render()}
       </head>
       <body>
-        <nav class="page-navigation">
-          <div class="page-navigation__track">
-            <div class="page-navigation__group">
-              <a class="page-navigation__link page-navigation__link--site-name" href={context.link_to("index")}>
-                Poet 🪶
+        <div class="page">
+          <nav class="page-navigation">
+            <a class="page-navigation__link page-navigation__link--site-name" href={context.link_to("index")}>
+              Poet 🪶
+            </a>
+            <LayoutMinimalDropdown
+              collection="create_content"
+              href={context.link_to("#static-site-generator-initial-page")}
+              label="Create content"
+            >
+              <a
+                href={context.link_to("#static-site-generator-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "page-navigation__link--dropdown": true,
+                  "active": context.belongs_to("static_site_generator"),
+                })}
+              >
+                Static Site Generator
               </a>
-              <LayoutMinimalDropdown label="Create content">
-                <a
-                  href={context.link_to("#static-site-generator-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("static_site_generator"),
-                    "section-active": context.belongs_to("create_content"),
-                    "section-create-content": true,
-                  })}
-                >
-                  Static Site Generator
-                </a>
-                <a
-                  href={context.link_to("#templating-engine-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("templating_engine"),
-                    "section-active": context.belongs_to("create_content"),
-                    "section-create-content": true,
-                  })}
-                >
-                  Templating Engine
-                </a>
-                <a
-                  href={context.link_to("#consistency-guard-initial-page")}
-                  class={clsx(#{
-                    "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
-                    "active": context.belongs_to("consistency_guard"),
-                    "section-active": context.belongs_to("create_content"),
-                    "section-create-content": true,
-                  })}
-                >
-                  Consistency Guard
-                </a>
-              </LayoutMinimalDropdown>
-            </div>
-            <LayoutMinimalDropdown label="Leverage content">
+              <a
+                href={context.link_to("#templating-engine-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "page-navigation__link--dropdown": true,
+                  "active": context.belongs_to("templating_engine"),
+                })}
+              >
+                Templating Engine
+              </a>
+              <a
+                href={context.link_to("#consistency-guard-initial-page")}
+                class={clsx(#{
+                  "page-navigation__link": true,
+                  "page-navigation__link--dropdown": true,
+                  "active": context.belongs_to("consistency_guard"),
+                  "section-create-content": true,
+                })}
+              >
+                Consistency Guard
+              </a>
+            </LayoutMinimalDropdown>
+            <LayoutMinimalDropdown
+              collection="leverage_content"
+              href={context.link_to("#mcp-initial-page")}
+              label="Leverage content"
+            >
               <a
                 href={context.link_to("#mcp-initial-page")}
                 class={clsx(#{
                   "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
+                  "page-navigation__link--dropdown": true,
                   "active": context.belongs_to("mcp"),
-                  "section-active": context.belongs_to("leverage_content"),
-                  "section-leverage-content": true,
                 })}
               >
                 Model Context Protocol
@@ -94,10 +97,8 @@ fn template(context, props, content) {
                 href={context.link_to("#rag-initial-page")}
                 class={clsx(#{
                   "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
+                  "page-navigation__link--dropdown": true,
                   "active": context.belongs_to("rag"),
-                  "section-active": context.belongs_to("leverage_content"),
-                  "section-leverage-content": true,
                 })}
               >
                 RAG
@@ -106,67 +107,71 @@ fn template(context, props, content) {
                 href={context.link_to("#llm-seo-initial-page")}
                 class={clsx(#{
                   "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
+                  "page-navigation__link--dropdown": true,
                   "active": context.belongs_to("llm_seo"),
-                  "section-active": context.belongs_to("leverage_content"),
-                  "section-leverage-content": true,
                 })}
               >
                 LLM SEO
               </a>
             </LayoutMinimalDropdown>
-            <LayoutMinimalDropdown label="Analyze content">
+            <LayoutMinimalDropdown
+              collection="analyze_content"
+              href={context.link_to("#nlp-initial-page")}
+              label="Analyze content"
+            >
               <a
                 href={context.link_to("#nlp-initial-page")}
                 class={clsx(#{
                   "page-navigation__link": true,
-                    "page-navigation__link--dropdown": true,
+                  "page-navigation__link--dropdown": true,
                   "active": context.belongs_to("nlp"),
-                  "section-active": context.belongs_to("analyze_content"),
-                  "section-analyze-content": true,
                 })}
               >
                 Natural Language Processing
               </a>
             </LayoutMinimalDropdown>
-          </div>
-        </nav>
-        {content}
-        <footer>
-          <p>
-            Made with ❤️ by <a href="https://intentee.com" target="_blank">Intentee</a> and contributors.
-          </p>
-          <a
-            href="https://bsky.app/profile/intentee.bsky.social"
-            target="_blank"
-          >
-            <img alt="Bluesky" src={context.assets.file("resources/media/logo-bluesky.svg")}>
-          </a>
-          <a
-            href="https://discord.gg/92x3Z8a4gj"
-            target="_blank"
-          >
-            <img alt="Discord" src={context.assets.file("resources/media/logo-discord.svg")}>
-          </a>
-          <a
-            href="https://github.com/intentee/poet"
-            target="_blank"
-          >
-            <img alt="GitHub" src={context.assets.file("resources/media/logo-github.svg")}>
-          </a>
-          <a
-            href="https://www.linkedin.com/company/intentee"
-            target="_blank"
-          >
-            <img alt="LinkedIn" src={context.assets.file("resources/media/logo-linkedin.svg")}>
-          </a>
-          <a
-            href="https://x.com/intentee"
-            target="_blank"
-          >
-            <img alt="X" src={context.assets.file("resources/media/logo-x.svg")}>
-          </a>
-        </footer>
+          </nav>
+          <main class="page-main">
+            {content}
+          </main>
+          <footer class="page-footer">
+            <p>
+              Made with ❤️ by <a href="https://intentee.com" target="_blank">Intentee</a> and contributors.
+            </p>
+            <div class="page-footer__links">
+              <a
+                href="https://bsky.app/profile/intentee.bsky.social"
+                target="_blank"
+              >
+                <img alt="Bluesky" src={context.assets.file("resources/media/logo-bluesky.svg")}>
+              </a>
+              <a
+                href="https://discord.gg/92x3Z8a4gj"
+                target="_blank"
+              >
+                <img alt="Discord" src={context.assets.file("resources/media/logo-discord.svg")}>
+              </a>
+              <a
+                href="https://github.com/intentee/poet"
+                target="_blank"
+              >
+                <img alt="GitHub" src={context.assets.file("resources/media/logo-github.svg")}>
+              </a>
+              <a
+                href="https://www.linkedin.com/company/intentee"
+                target="_blank"
+              >
+                <img alt="LinkedIn" src={context.assets.file("resources/media/logo-linkedin.svg")}>
+              </a>
+              <a
+                href="https://x.com/intentee"
+                target="_blank"
+              >
+                <img alt="X" src={context.assets.file("resources/media/logo-x.svg")}>
+              </a>
+            </div>
+          </footer>
+        </div>
       </body>
     </html>
   }

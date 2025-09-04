@@ -2,13 +2,15 @@
   --color-body-background: #ffffff;
   --color-body-font: #111;
   --color-border: black;
-  --color-highlight: #ffff00;
+  --color-highlight: wheat;
+  --color-link-text-decoration: cornflowerblue;
   --color-note-background: #ffffdd;
   --color-separator: #eee;
   --duration-transition-hover: 100ms;
   --font-family-body: "Inter", sans-serif;
   --font-family-monospace: "Noto Sans Mono", monospace;
-  --height-primary-navigation-track: 55px;
+  --height-page-navigation: 60px;
+  --height-page-footer: 80px;
   --line-height-base: 1.5;
   --spacing-2x: calc(2 * var(--spacing-base));
   --spacing-base: 16px;

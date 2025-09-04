@@ -27,6 +27,7 @@ ul {
 
 a {
   color: inherit;
+  text-decoration-color: var(--color-link-text-decoration);
   text-decoration-line: underline;
   text-decoration-style: solid;
   text-decoration-thickness: 2px;

@@ -2,15 +2,28 @@ import { Idiomorph } from "idiomorph";
 
 const DEBOUNCE_MILLIS = 1000;
 const DOCTYPE = "<!DOCTYPE html>";
-const LIVE_RELOAD_API_URL = `/api/v1/live_reload${window.location.pathname}`;
+
+let currentLiveReloadPath: string = window.location.pathname;
+let intendsClose = false;
+let liveReloadSocket: null|WebSocket = null;
 
 function keepSocketAlive() {
-  const liveReloadSocket = new WebSocket(LIVE_RELOAD_API_URL);
+  liveReloadSocket = new WebSocket(`/api/v1/live_reload${currentLiveReloadPath}`);
 
   liveReloadSocket.onclose = function (event) {
-    console.warn("[poet] live reload socket closed", event);
+    if (!intendsClose) {
+      console.warn("[poet] live reload socket closed", event);
+    }
 
-    setTimeout(keepSocketAlive, DEBOUNCE_MILLIS);
+    liveReloadSocket = null;
+
+    if (!intendsClose) {
+      setTimeout(keepSocketAlive, DEBOUNCE_MILLIS);
+    } else {
+      setTimeout(keepSocketAlive);
+    }
+
+    intendsClose = false;
   };
 
   liveReloadSocket.onmessage = function (event) {
@@ -30,11 +43,7 @@ function keepSocketAlive() {
   liveReloadSocket.onerror = function (event) {
     console.error("[poet] live reload socket failed", event);
 
-    liveReloadSocket.close();
-  };
-
-  liveReloadSocket.onopen = function (event) {
-    console.log("[poet] live reload socket connected", event);
+    liveReloadSocket?.close();
   };
 }
 
@@ -45,7 +54,17 @@ function setupLiveReload() {
 
   (globalThis as unknown as any).isLiveReloadSetup = true;
 
-  console.log(`[poet] setting up live reload for ${window.location.pathname}`);
+  console.log("[poet] setting up live reload");
+
+  document.addEventListener("turbo:visit", function (event) {
+    let newUrl = new URL(event.detail.url);
+
+    currentLiveReloadPath = newUrl.pathname;
+    intendsClose = true;
+    liveReloadSocket!.close();
+  });
+
+  currentLiveReloadPath = window.location.pathname;
 
   keepSocketAlive();
 }

@@ -9,6 +9,8 @@ use actix_web::web;
 use actix_web::web::Data;
 use actix_web::web::Path;
 use actix_web::web::Payload;
+use actix_ws::Message;
+use futures_util::StreamExt as _;
 use log::debug;
 use log::error;
 use log::warn;
@@ -28,50 +30,64 @@ async fn respond(
     req: HttpRequest,
     stream: Payload,
 ) -> Result<impl Responder, Error> {
-    let (res, mut session, _stream) = actix_ws::handle(&req, stream)?;
+    let (res, mut session, mut stream) = actix_ws::handle(&req, stream)?;
 
     rt::spawn(async move {
         let path_string = path.into_inner();
         let std_path = StdPath::new(&path_string);
 
         loop {
-            app_data
-                .output_filesystem_holder
-                .update_notifier
-                .notified()
-                .await;
+            tokio::select! {
+                msg = stream.next() => {
+                    match msg {
+                        None | Some(Ok(Message::Close(_))) => {
+                            debug!("Closing live reload session");
 
-            match app_data
-                .output_filesystem_holder
-                .get_output_filesystem()
-                .await
-            {
-                Ok(Some(filesystem)) => {
-                    match resolve_generated_page(filesystem, std_path, true).await {
-                        Ok(Some(FileEntry {
-                            contents,
-                            relative_path: _,
-                        })) => {
-                            if let Err(err) = session.text(contents).await {
-                                debug!("Unable to send live reload notification: {err}");
+                            if let Err(err) = session.close(None).await {
+                                error!("Error while closing the session: {err}");
+                            }
 
-                                return;
+                            return;
+                        },
+                        _ => {
+                            warn!("Live reload socket message was ignored: {msg:?}");
+                        }
+                    }
+                },
+                _ = app_data.output_filesystem_holder.update_notifier.notified() => {
+                    match app_data
+                        .output_filesystem_holder
+                        .get_output_filesystem()
+                        .await
+                    {
+                        Ok(Some(filesystem)) => {
+                            match resolve_generated_page(filesystem, std_path, true).await {
+                                Ok(Some(FileEntry {
+                                    contents,
+                                    relative_path: _,
+                                })) => {
+                                    if let Err(err) = session.text(contents).await {
+                                        debug!("Unable to send live reload notification: {err}");
+
+                                        return;
+                                    }
+                                }
+                                Ok(None) => {
+                                    warn!("Unable to get file info for live reload: {path_string}");
+                                    return;
+                                }
+                                Err(err) => {
+                                    error!("Unable to resolve generated file path: {err}");
+                                    return;
+                                }
                             }
                         }
                         Ok(None) => {
-                            warn!("Unable to get file info for live reload: {path_string}");
-                            break;
+                            warn!("Server is still starting up, or there are no successful builds yet")
                         }
-                        Err(err) => {
-                            error!("Unable to resolve generated file path: {err}");
-                            break;
-                        }
+                        Err(err) => error!("Failed to get output filesystem snapshot: {err}"),
                     }
                 }
-                Ok(None) => {
-                    warn!("Server is still starting up, or there are no successful builds yet")
-                }
-                Err(err) => error!("Failed to get output filesystem snapshot: {err}"),
             }
         }
     });

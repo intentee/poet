@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
+    "@hotwired/turbo": "^8.0.13",
     "clsx": "^2.1.1",
     "idiomorph": "^0.7.3",
     "jarmuz": "^0.6.0",

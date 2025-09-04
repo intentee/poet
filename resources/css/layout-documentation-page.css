@@ -11,8 +11,23 @@
 }
 
 .documentation-page__menu {
+  display: flex;
+  flex-direction: column;
   grid-area: menu;
   padding: var(--spacing-2x);
+  row-gap: var(--spacing-2x);
+}
+
+.documentation-page__menu-section {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--spacing-base);
+}
+
+.documentation-page__menu-section__content {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--spacing-base);
 }
 
 .documentation-page__toc {

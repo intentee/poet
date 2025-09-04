@@ -33,47 +33,48 @@ fn template(context, props, content) {
       </head>
       <body>
         <nav class="page-navigation">
-          <a class="page-navigation__site-name" href={context.link_to("index")}>
-            Poet
-          </a>
-          <div class="page-navigation__track page-navigation__track--top"></div>
-          <div class="page-navigation__track page-navigation__track--bottom">
+          <div class="page-navigation__track">
             <div class="page-navigation__group">
-              <a
-                href={context.link_to("#static-site-generator-initial-page")}
-                class={clsx(#{
-                  "page-navigation__link": true,
-                  "active": context.belongs_to("static_site_generator"),
-                  "section-active": context.belongs_to("create_content"),
-                  "section-create-content": true,
-                })}
-              >
-                Static Site Generator
+              <a class="page-navigation__link" href={context.link_to("index")}>
+                Poet
               </a>
-              <a
-                href={context.link_to("#templating-engine-initial-page")}
-                class={clsx(#{
-                  "page-navigation__link": true,
-                  "active": context.belongs_to("templating_engine"),
-                  "section-active": context.belongs_to("create_content"),
-                  "section-create-content": true,
-                })}
-              >
-                Templating Engine
-              </a>
-              <a
-                href={context.link_to("#consistency-guard-initial-page")}
-                class={clsx(#{
-                  "page-navigation__link": true,
-                  "active": context.belongs_to("consistency_guard"),
-                  "section-active": context.belongs_to("create_content"),
-                  "section-create-content": true,
-                })}
-              >
-                Consistency Guard
-              </a>
+              <LayoutMinimalDropdown label="Create content">
+                <a
+                  href={context.link_to("#static-site-generator-initial-page")}
+                  class={clsx(#{
+                    "page-navigation__link": true,
+                    "active": context.belongs_to("static_site_generator"),
+                    "section-active": context.belongs_to("create_content"),
+                    "section-create-content": true,
+                  })}
+                >
+                  Static Site Generator
+                </a>
+                <a
+                  href={context.link_to("#templating-engine-initial-page")}
+                  class={clsx(#{
+                    "page-navigation__link": true,
+                    "active": context.belongs_to("templating_engine"),
+                    "section-active": context.belongs_to("create_content"),
+                    "section-create-content": true,
+                  })}
+                >
+                  Templating Engine
+                </a>
+                <a
+                  href={context.link_to("#consistency-guard-initial-page")}
+                  class={clsx(#{
+                    "page-navigation__link": true,
+                    "active": context.belongs_to("consistency_guard"),
+                    "section-active": context.belongs_to("create_content"),
+                    "section-create-content": true,
+                  })}
+                >
+                  Consistency Guard
+                </a>
+              </LayoutMinimalDropdown>
             </div>
-            <div class="page-navigation__group">
+            <LayoutMinimalDropdown label="Create content">
               <a
                 href={context.link_to("#mcp-initial-page")}
                 class={clsx(#{
@@ -107,8 +108,8 @@ fn template(context, props, content) {
               >
                 LLM SEO
               </a>
-            </div>
-            <div class="page-navigation__group">
+            </LayoutMinimalDropdown>
+            <LayoutMinimalDropdown label="Create content">
               <a
                 href={context.link_to("#nlp-initial-page")}
                 class={clsx(#{
@@ -120,7 +121,7 @@ fn template(context, props, content) {
               >
                 Natural Language Processing
               </a>
-            </div>
+            </LayoutMinimalDropdown>
           </div>
         </nav>
         {content}

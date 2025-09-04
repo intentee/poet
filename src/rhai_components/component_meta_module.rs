@@ -20,7 +20,6 @@ impl ComponentMetaModule {
         for entry in &self.component_registry.components {
             let affix = rhai_safe_random_affix();
             let ComponentReference {
-                file_entry: _,
                 global_fn_name,
                 name,
                 path,
@@ -28,9 +27,9 @@ impl ComponentMetaModule {
 
             meta_script.push_str(&format!(
                 r#"
-                    fn {global_fn_name}(context, props, content) {{
-                        import "{path}" as {name}_{affix};
+                    import "{path}" as {name}_{affix};
 
+                    fn {global_fn_name}(context, props, content) {{
                         {name}_{affix}::template(context, props, content)
                     }}
                 "#

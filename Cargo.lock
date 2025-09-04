@@ -2058,7 +2058,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rhai"
 version = "1.22.2"
-source = "git+https://github.com/rhaiscript/rhai.git?rev=b24210765033210037b8d02c805400480ccc2a57#b24210765033210037b8d02c805400480ccc2a57"
+source = "git+https://github.com/rhaiscript/rhai.git?rev=2e0b676f7c99e2ac374572fabe22b932aafbe2ae#2e0b676f7c99e2ac374572fabe22b932aafbe2ae"
 dependencies = [
  "ahash",
  "bitflags 2.9.2",
@@ -2077,7 +2077,7 @@ dependencies = [
 [[package]]
 name = "rhai_codegen"
 version = "3.1.0"
-source = "git+https://github.com/rhaiscript/rhai.git?rev=b24210765033210037b8d02c805400480ccc2a57#b24210765033210037b8d02c805400480ccc2a57"
+source = "git+https://github.com/rhaiscript/rhai.git?rev=2e0b676f7c99e2ac374572fabe22b932aafbe2ae#2e0b676f7c99e2ac374572fabe22b932aafbe2ae"
 dependencies = [
  "proc-macro2",
  "quote",

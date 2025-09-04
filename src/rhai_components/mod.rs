@@ -38,7 +38,6 @@ mod tests {
     use super::component_registry::ComponentRegistry;
     use super::evaluator_factory::EvaluatorFactory;
     use super::parse_component::parse_component;
-    use crate::filesystem::file_entry::FileEntry;
 
     #[derive(Clone, Default)]
     struct DummyAssetCollection {
@@ -84,20 +83,12 @@ mod tests {
         let component_registry = Arc::new(ComponentRegistry::default());
 
         component_registry.register_component(ComponentReference {
-            file_entry: FileEntry {
-                relative_path: "LayoutHomepage.rhai".into(),
-                contents: "".into(),
-            },
             global_fn_name: "LayoutHomepage_123".to_string(),
             name: "LayoutHomepage".to_string(),
             path: "LayoutHomepage".to_string(),
         });
 
         component_registry.register_component(ComponentReference {
-            file_entry: FileEntry {
-                relative_path: "Note.rhai".into(),
-                contents: "".into(),
-            },
             global_fn_name: "Note_123".to_string(),
             name: "Note".to_string(),
             path: "Note".to_string(),

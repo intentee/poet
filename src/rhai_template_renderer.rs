@@ -7,19 +7,15 @@ use rhai::Engine;
 use rhai::Scope;
 
 use crate::component_context::ComponentContext;
-
-pub type ShortcodeRenderer = dyn Fn(ComponentContext, Dynamic, Dynamic) -> Result<String>;
+use crate::rhai_components::component_reference::ComponentReference;
 
 pub struct RhaiTemplateRenderer {
     expression_engine: Engine,
-    templates: DashMap<String, Box<ShortcodeRenderer>>,
+    templates: DashMap<String, ComponentReference>,
 }
 
 impl RhaiTemplateRenderer {
-    pub fn new(
-        expression_engine: Engine,
-        templates: DashMap<String, Box<ShortcodeRenderer>>,
-    ) -> Self {
+    pub fn new(expression_engine: Engine, templates: DashMap<String, ComponentReference>) -> Self {
         Self {
             expression_engine,
             templates,
@@ -33,8 +29,12 @@ impl RhaiTemplateRenderer {
         props: Dynamic,
         content: Dynamic,
     ) -> Result<String> {
-        if let Some(renderer) = self.templates.get(name) {
-            renderer(context, props, content)
+        if let Some(component_reference) = self.templates.get(name) {
+            Ok(self.expression_engine.eval_fn_call(
+                component_reference.global_fn_name.clone(),
+                None,
+                (context, props, content),
+            )?)
         } else {
             Err(anyhow!("Template '{name}' not found"))
         }

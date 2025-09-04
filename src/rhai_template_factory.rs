@@ -1,12 +1,10 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::Context as _;
 use anyhow::Result;
 use dashmap::DashMap;
-use rhai::Dynamic;
 use rhai::Engine;
-use rhai::Func;
+use rhai::Position;
 use rhai::module_resolvers::FileModuleResolver;
 
 use crate::asset_manager::AssetManager;
@@ -27,7 +25,6 @@ use crate::rhai_functions::error;
 use crate::rhai_functions::render_hierarchy;
 use crate::rhai_safe_random_affix::rhai_safe_random_affix;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
-use crate::rhai_template_renderer::ShortcodeRenderer;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
@@ -51,14 +48,17 @@ impl RhaiTemplateFactory {
 
         self.component_registry
             .register_component(ComponentReference {
-                file_entry,
                 global_fn_name: format!("{}_{}", component_name, rhai_safe_random_affix()),
                 name: component_name.clone(),
                 path: component_name,
             });
     }
+}
 
-    fn prepare_engine(&self) -> Result<Engine> {
+impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<RhaiTemplateRenderer, Self::Error> {
         let evaluator_factory = EvaluatorFactory {
             component_registry: self.component_registry.clone(),
         };
@@ -92,52 +92,31 @@ impl RhaiTemplateFactory {
             evaluator_factory.create_component_evaluator(),
         );
 
-        Ok(engine)
-    }
-}
+        let meta_module = ComponentMetaModule::from(self.component_registry.clone());
 
-impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
-    type Error = anyhow::Error;
+        engine.register_global_module(meta_module.into_global_module(&engine)?.into());
 
-    fn try_into(self) -> Result<RhaiTemplateRenderer, Self::Error> {
-        let templates: DashMap<String, Box<ShortcodeRenderer>> = DashMap::new();
+        let templates: DashMap<String, ComponentReference> = DashMap::new();
 
         for entry in &self.component_registry.components {
             let component_reference = entry.value();
-            let meta_module = ComponentMetaModule::from(self.component_registry.clone());
-            let mut engine = self.prepare_engine()?;
 
-            engine.register_global_module(meta_module.into_global_module(&engine)?.into());
+            let module_resolver = engine.module_resolver();
+            let module = module_resolver.resolve(
+                &engine,
+                None,
+                &component_reference.path,
+                Position::NONE,
+            )?;
 
-            let renderer =
-                Func::<(ComponentContext, Dynamic, Dynamic), String>::create_from_script(
-                    // closure consumes the engine
-                    engine,
-                    &component_reference.file_entry.contents,
-                    "template",
-                )?;
-
-            let template_relative_path = component_reference
-                .file_entry
-                .relative_path
-                .display()
-                .to_string();
+            engine.register_static_module(component_reference.name.clone(), module);
 
             templates.insert(
                 component_reference.name.clone(),
-                Box::new(
-                    move |context: ComponentContext,
-                          content: Dynamic,
-                          props: Dynamic|
-                          -> Result<String> {
-                        renderer(context, content, props).context(format!(
-                            "Shortcode rendering failed: {template_relative_path}",
-                        ))
-                    },
-                ),
+                component_reference.clone(),
             );
         }
 
-        Ok(RhaiTemplateRenderer::new(self.prepare_engine()?, templates))
+        Ok(RhaiTemplateRenderer::new(engine, templates))
     }
 }

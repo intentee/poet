@@ -7,7 +7,6 @@ use rhai::Scope;
 
 use super::component_reference::ComponentReference;
 use super::component_registry::ComponentRegistry;
-use crate::rhai_safe_random_affix::rhai_safe_random_affix;
 
 pub struct ComponentMetaModule {
     component_registry: Arc<ComponentRegistry>,
@@ -18,19 +17,16 @@ impl ComponentMetaModule {
         let mut meta_script = String::new();
 
         for entry in &self.component_registry.components {
-            let affix = rhai_safe_random_affix();
             let ComponentReference {
                 global_fn_name,
                 name,
-                path,
+                path: _,
             } = entry.value();
 
             meta_script.push_str(&format!(
                 r#"
-                    import "{path}" as {name}_{affix};
-
                     fn {global_fn_name}(context, props, content) {{
-                        {name}_{affix}::template(context, props, content)
+                        {name}::template(context, props, content)
                     }}
                 "#
             ));

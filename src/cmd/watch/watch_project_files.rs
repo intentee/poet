@@ -18,6 +18,7 @@ use tokio::sync::Notify;
 pub struct WatchProjectHandle {
     pub debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
     pub on_content_file_changed: Arc<Notify>,
+    pub on_shortcode_file_changed: Arc<Notify>,
     pub on_poet_config_file_changed: Arc<Notify>,
 }
 
@@ -46,9 +47,11 @@ pub fn watch_project_files(
 
     let on_poet_config_file_changed = Arc::new(Notify::new());
     let on_content_file_changed = Arc::new(Notify::new());
+    let on_shortcode_file_changed = Arc::new(Notify::new());
 
     let content_directory_clone = content_directory.clone();
     let on_poet_config_file_changed_clone = on_poet_config_file_changed.clone();
+    let on_shortcode_file_changed_clone = on_shortcode_file_changed.clone();
     let on_content_file_changed_clone = on_content_file_changed.clone();
     let resources_directory_clone = resources_directory.clone();
     let shortcodes_directory_clone = shortcodes_directory.clone();
@@ -68,12 +71,19 @@ pub fn watch_project_files(
                                     continue;
                                 }
 
+                                if is_inside_directory(&shortcodes_directory_clone, path) {
+                                    info!("Shortcode file change detected: {:?}", path.display());
+
+                                    on_shortcode_file_changed_clone.notify_waiters();
+
+                                    return;
+                                }
+
                                 if is_inside_directory(&content_directory_clone, path)
                                     || is_inside_directory(&resources_directory_clone, path)
-                                    || is_inside_directory(&shortcodes_directory_clone, path)
                                     || esbuild_metafile_path == *path
                                 {
-                                    info!("Source file change detected: {:?}", path.display());
+                                    info!("Content file change detected: {:?}", path.display());
 
                                     on_content_file_changed_clone.notify_waiters();
 
@@ -108,7 +118,8 @@ pub fn watch_project_files(
 
     Ok(WatchProjectHandle {
         debouncer,
-        on_poet_config_file_changed,
         on_content_file_changed,
+        on_poet_config_file_changed,
+        on_shortcode_file_changed,
     })
 }

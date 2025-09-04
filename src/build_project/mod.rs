@@ -1,4 +1,3 @@
-mod build_timer;
 mod document_error;
 mod document_error_collection;
 mod document_rendering_context;
@@ -20,12 +19,12 @@ use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
-use crate::build_project::build_timer::BuildTimer;
 use crate::build_project::document_error_collection::DocumentErrorCollection;
 use crate::build_project::document_rendering_context::DocumentRenderingContext;
+use crate::build_timer::BuildTimer;
 use crate::component_context::ComponentContext;
 use crate::eval_mdast::eval_mdast;
-use crate::filesystem::Filesystem;
+use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::filesystem::storage::Storage;
@@ -35,7 +34,6 @@ use crate::markdown_document::MarkdownDocument;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
-use crate::rhai_template_factory::RhaiTemplateFactory;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
 
@@ -102,8 +100,11 @@ pub async fn build_project(
     asset_path_renderer: AssetPathRenderer,
     generated_page_base_path: String,
     is_watching: bool,
-    source_filesystem: &Storage,
+    rhai_template_renderer: RhaiTemplateRenderer,
+    source_filesystem: Arc<Storage>,
 ) -> Result<Memory> {
+    info!("Processing content files...");
+
     let _build_timer = BuildTimer::new();
     let mut error_collection: DocumentErrorCollection = Default::default();
     let esbuild_metafile: Arc<EsbuildMetaFile> = match source_filesystem
@@ -125,23 +126,7 @@ pub async fn build_project(
     .into();
     let files = source_filesystem.read_project_files().await?;
     let memory_filesystem = Memory::default();
-    let rhai_template_factory = RhaiTemplateFactory::new(
-        source_filesystem.base_directory.clone(),
-        PathBuf::from("shortcodes"),
-    );
     let syntax_set = SyntaxSet::load_defaults_newlines();
-
-    for file in &files {
-        if file.is_rhai() {
-            rhai_template_factory.register_component_file(file.clone());
-        }
-    }
-
-    info!("Processing shortcodes...");
-
-    let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
-
-    info!("Processing content files...");
 
     let mut markdown_basename_by_id: HashMap<String, String> = HashMap::new();
     let mut markdown_document_by_basename: HashMap<String, MarkdownDocumentReference> =

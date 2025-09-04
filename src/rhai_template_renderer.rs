@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Context as _;
 use anyhow::Result;
 use anyhow::anyhow;
@@ -9,13 +11,17 @@ use rhai::Scope;
 use crate::component_context::ComponentContext;
 use crate::rhai_components::component_reference::ComponentReference;
 
+#[derive(Clone)]
 pub struct RhaiTemplateRenderer {
-    expression_engine: Engine,
-    templates: DashMap<String, ComponentReference>,
+    expression_engine: Arc<Engine>,
+    templates: Arc<DashMap<String, ComponentReference>>,
 }
 
 impl RhaiTemplateRenderer {
-    pub fn new(expression_engine: Engine, templates: DashMap<String, ComponentReference>) -> Self {
+    pub fn new(
+        expression_engine: Arc<Engine>,
+        templates: Arc<DashMap<String, ComponentReference>>,
+    ) -> Self {
         Self {
             expression_engine,
             templates,

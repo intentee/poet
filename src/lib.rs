@@ -1,7 +1,9 @@
 mod asset_manager;
 mod asset_path_renderer;
 mod build_project;
+mod build_timer;
 pub mod cmd;
+mod compile_shortcodes;
 mod component_context;
 mod escape_html_attribute;
 mod eval_mdast;
@@ -26,5 +28,6 @@ mod rhai_functions;
 mod rhai_safe_random_affix;
 mod rhai_template_factory;
 mod rhai_template_renderer;
+mod rhai_template_renderer_holder;
 mod string_to_mdast;
 mod table_of_contents;

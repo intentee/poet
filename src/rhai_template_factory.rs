@@ -92,10 +92,6 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
             evaluator_factory.create_component_evaluator(),
         );
 
-        let meta_module = ComponentMetaModule::from(self.component_registry.clone());
-
-        engine.register_global_module(meta_module.into_global_module(&engine)?.into());
-
         let templates: DashMap<String, ComponentReference> = DashMap::new();
 
         for entry in &self.component_registry.components {
@@ -117,6 +113,13 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
             );
         }
 
-        Ok(RhaiTemplateRenderer::new(engine, templates))
+        let meta_module = ComponentMetaModule::from(self.component_registry.clone());
+
+        engine.register_global_module(meta_module.into_global_module(&engine)?.into());
+
+        Ok(RhaiTemplateRenderer::new(
+            Arc::new(engine),
+            Arc::new(templates),
+        ))
     }
 }

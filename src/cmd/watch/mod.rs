@@ -31,11 +31,13 @@ use super::Handler;
 use super::value_parser::validate_is_directory;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
+use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
 use crate::filesystem::storage::Storage;
 use crate::poet_config::PoetConfig;
 use crate::poet_config_holder::PoetConfigHolder;
 use crate::read_poet_config_file::read_poet_config_file;
+use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 #[derive(Parser)]
 pub struct Watch {
@@ -59,16 +61,18 @@ impl Handler for Watch {
             debouncer: _debouncer,
             on_content_file_changed,
             on_poet_config_file_changed,
+            on_shortcode_file_changed,
         } = watch_project_files(poet_config_path.clone(), self.source_directory.clone())?;
 
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
         let poet_config_holder: PoetConfigHolder = Default::default();
+        let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
 
-        let source_filesystem = Storage {
+        let source_filesystem = Arc::new(Storage {
             base_directory: self.source_directory.clone(),
-        };
+        });
 
         let mut task_set = JoinSet::new();
 
@@ -104,11 +108,55 @@ impl Handler for Watch {
             }
         }));
 
+        let ctrlc_notifier_rhai = ctrlc_notifier.clone();
+        let rhai_template_renderer_holder_rhai = rhai_template_renderer_holder.clone();
+        let source_filesystem_rhai = source_filesystem.clone();
+
+        task_set.spawn(rt::spawn(async move {
+            let do_compile_shortcodes = async || {
+                let rhai_template_renderer =
+                    match compile_shortcodes(source_filesystem_rhai.clone()).await {
+                        Ok(rhai_template_renderer) => rhai_template_renderer,
+                        Err(err) => {
+                            error!("Failed to compile shortcodes: {err}");
+
+                            return;
+                        }
+                    };
+
+                rhai_template_renderer_holder_rhai
+                    .set_rhai_template_renderer(Some(rhai_template_renderer))
+                    .await;
+            };
+
+            loop {
+                do_compile_shortcodes().await;
+
+                tokio::select! {
+                    _ = on_shortcode_file_changed.notified() => {},
+                    _ = ctrlc_notifier_rhai.cancelled() => {
+                        break;
+                    },
+                }
+            }
+        }));
+
         let ctrlc_notifier_builder = ctrlc_notifier.clone();
         let poet_config_holder_builder = poet_config_holder.clone();
+        let rhai_template_renderer_holder_builder = rhai_template_renderer_holder.clone();
+        let source_filesystem_builder = source_filesystem.clone();
 
         task_set.spawn(rt::spawn(async move {
             let do_build_project = async || {
+                let rhai_template_renderer = match rhai_template_renderer_holder_builder.get_rhai_template_renderer().await {
+                    Some(rhai_template_renderer) => rhai_template_renderer,
+                    None => {
+                        warn!("Rhai components are not compiled yet. Skipping build");
+
+                        return;
+                    },
+                };
+
                 match poet_config_holder_builder.get_poet_config().await {
                     Some(poet_config) => {
                         let base_path = format!("http://{}/", poet_config.watch_server_addr);
@@ -119,7 +167,8 @@ impl Handler for Watch {
                             },
                             base_path,
                             true,
-                            &source_filesystem,
+                            rhai_template_renderer,
+                            source_filesystem_builder.clone(),
                         ).await {
                             Ok(memory_filesystem) => {
                                 if let Err(err) = output_filesystem_holder_clone
@@ -144,6 +193,7 @@ impl Handler for Watch {
                 tokio::select! {
                     _ = on_content_file_changed.notified() => do_build_project().await,
                     _ = poet_config_holder_builder.update_notifier.notified() => do_build_project().await,
+                    _ = rhai_template_renderer_holder_builder.update_notifier.notified() => do_build_project().await,
                     _ = ctrlc_notifier_builder.cancelled() => {
                         break;
                     },

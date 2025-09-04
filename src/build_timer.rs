@@ -8,8 +8,6 @@ pub struct BuildTimer {
 
 impl BuildTimer {
     pub fn new() -> Self {
-        info!("Building...");
-
         Self {
             started_at: Instant::now(),
         }
@@ -19,7 +17,7 @@ impl BuildTimer {
 impl Drop for BuildTimer {
     fn drop(&mut self) {
         info!(
-            "Build finished in {} milliseconds",
+            "Finished in {} milliseconds",
             self.started_at.elapsed().as_millis()
         )
     }

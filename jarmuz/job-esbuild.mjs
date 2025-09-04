@@ -14,11 +14,10 @@ export function jobEsbuild({ development }) {
     baseDirectory,
     buildId,
     printSubtreeList,
-    resetConsole,
   }) {
-    await resetConsole();
+    let start = performance.now();
 
-    console.log(`Building with ID: ${buildId}`);
+    console.log(`Building assets: ${buildId}`);
 
     const { static_files_directory, static_files_public_path } = load(
       await readFile(`${baseDirectory}/poet.toml`, {
@@ -94,7 +93,7 @@ export function jobEsbuild({ development }) {
     await writeFile(metafileFilename, JSON.stringify(result.metafile));
 
     console.log(`Build metafile written to: ${metafileFilename}`);
-    console.log(`Build finished with ID: ${buildId}`);
+    console.log(`Build finished with ID: ${buildId} in ${Math.round(performance.now() - start)} milliseconds`);
 
     if (result.errors.length > 0 || result.warnings.length > 0) {
       return false;

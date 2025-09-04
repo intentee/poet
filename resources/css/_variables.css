@@ -2,7 +2,7 @@
   --color-body-background: #ffffff;
   --color-body-font: #111;
   --color-border: black;
-  --color-highlight: wheat;
+  --color-highlight: #ffff00;
   --color-note-background: #ffffdd;
   --color-separator: #eee;
   --duration-transition-hover: 100ms;
@@ -18,7 +18,8 @@
   --z-index-text-decoration: 1;
   --z-index-related-pages: 2;
   --z-index-primary-navigation: 3;
-  --z-index-modal: 3;
+  --z-index-primary-navigation-dropdown: 4;
+  --z-index-modal: 5;
 
   @media (max-width: 1650px) {
     --font-size-base: 14px;

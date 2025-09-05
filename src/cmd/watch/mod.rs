@@ -5,6 +5,7 @@ mod resolve_generated_page;
 mod respond_with_generated_page;
 mod watch_project_files;
 
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -28,19 +29,20 @@ use self::output_filesystem_holder::OutputFilesystemHolder;
 use self::watch_project_files::WatchProjectHandle;
 use self::watch_project_files::watch_project_files;
 use super::Handler;
+use super::value_parser::parse_socket_addr;
 use super::value_parser::validate_is_directory;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
 use crate::filesystem::storage::Storage;
-use crate::poet_config::PoetConfig;
-use crate::poet_config_holder::PoetConfigHolder;
-use crate::read_poet_config_file::read_poet_config_file;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 #[derive(Parser)]
 pub struct Watch {
+    #[arg(long, default_value="127.0.0.1:8050", value_parser = parse_socket_addr)]
+    addr: SocketAddr,
+
     #[arg(value_parser = validate_is_directory)]
     source_directory: PathBuf,
 }
@@ -50,24 +52,22 @@ impl Handler for Watch {
     async fn handle(&self) -> Result<()> {
         let ctrlc_notifier = CancellationToken::new();
         let ctrlc_notifier_handler = ctrlc_notifier.clone();
+        let static_files_directory: PathBuf = "assets".into();
+        let static_files_public_path: String = "assets".to_string();
 
         ctrlc::set_handler(move || {
             ctrlc_notifier_handler.cancel();
         })?;
 
-        let poet_config_path = self.source_directory.join("poet.toml").canonicalize()?;
-
         let WatchProjectHandle {
             debouncer: _debouncer,
             on_content_file_changed,
-            on_poet_config_file_changed,
             on_shortcode_file_changed,
-        } = watch_project_files(poet_config_path.clone(), self.source_directory.clone())?;
+        } = watch_project_files(self.source_directory.clone())?;
 
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
-        let poet_config_holder: PoetConfigHolder = Default::default();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
 
         let source_filesystem = Arc::new(Storage {
@@ -75,38 +75,6 @@ impl Handler for Watch {
         });
 
         let mut task_set = JoinSet::new();
-
-        let ctrlc_notifier_poet_config = ctrlc_notifier.clone();
-        let poet_config_holder_processor = poet_config_holder.clone();
-
-        task_set.spawn(rt::spawn(async move {
-            loop {
-                let poet_config = match read_poet_config_file(&poet_config_path).await {
-                    Ok(poet_config) => poet_config,
-                    Err(err) => {
-                        error!(
-                            "Unable to parse config file {}: {err}",
-                            poet_config_path.display()
-                        );
-
-                        on_poet_config_file_changed.notified().await;
-
-                        continue;
-                    }
-                };
-
-                poet_config_holder_processor
-                    .set_poet_config(Some(poet_config))
-                    .await;
-
-                tokio::select! {
-                    _ = on_poet_config_file_changed.notified() => {}
-                    _ = ctrlc_notifier_poet_config.cancelled() => {
-                        break;
-                    }
-                }
-            }
-        }));
 
         let ctrlc_notifier_rhai = ctrlc_notifier.clone();
         let rhai_template_renderer_holder_rhai = rhai_template_renderer_holder.clone();
@@ -141,8 +109,8 @@ impl Handler for Watch {
             }
         }));
 
+        let addr_builder = self.addr;
         let ctrlc_notifier_builder = ctrlc_notifier.clone();
-        let poet_config_holder_builder = poet_config_holder.clone();
         let rhai_template_renderer_holder_builder = rhai_template_renderer_holder.clone();
         let source_filesystem_builder = source_filesystem.clone();
 
@@ -157,43 +125,35 @@ impl Handler for Watch {
                     },
                 };
 
-                match poet_config_holder_builder.get_poet_config().await {
-                    Some(poet_config) => {
-                        let base_path = format!("http://{}/", poet_config.watch_server_addr);
+                let base_path = format!("http://{}/", addr_builder);
 
-                        match build_project(
-                            AssetPathRenderer {
-                                base_path: base_path.clone(),
-                            },
-                            base_path,
-                            true,
-                            rhai_template_renderer,
-                            source_filesystem_builder.clone(),
-                        ).await {
-                            Ok(memory_filesystem) => {
-                                if let Err(err) = output_filesystem_holder_clone
-                                    .set_output_filesystem(Arc::new(memory_filesystem))
-                                    .await
-                                {
-                                    error!("Failed to set output filesystem: {err:#?}");
-                                } else {
-                                    info!("Build successful");
-                                }
-                            }
-                            Err(err) => error!("Failed to build project: {err:#}"),
-                        }
+                match build_project(
+                    AssetPathRenderer {
+                        base_path: base_path.clone(),
                     },
-                    None => {
-                        debug!("Poet config is not ready yet. Skipping build");
+                    base_path,
+                    true,
+                    rhai_template_renderer,
+                    source_filesystem_builder.clone(),
+                ).await {
+                    Ok(memory_filesystem) => {
+                        if let Err(err) = output_filesystem_holder_clone
+                            .set_output_filesystem(Arc::new(memory_filesystem))
+                            .await
+                        {
+                            error!("Failed to set output filesystem: {err:#?}");
+                        } else {
+                            info!("Build successful");
+                        }
                     }
+                    Err(err) => error!("Failed to build project: {err:#}"),
                 }
             };
 
             loop {
                 tokio::select! {
-                    _ = on_content_file_changed.notified() => do_build_project().await,
-                    _ = poet_config_holder_builder.update_notifier.notified() => do_build_project().await,
                     _ = rhai_template_renderer_holder_builder.update_notifier.notified() => do_build_project().await,
+                    _ = on_content_file_changed.notified() => do_build_project().await,
                     _ = ctrlc_notifier_builder.cancelled() => {
                         break;
                     },
@@ -201,6 +161,7 @@ impl Handler for Watch {
             }
         }));
 
+        let addr_server = self.addr;
         let ctrlc_notifier_server = ctrlc_notifier.clone();
 
         task_set.spawn(rt::spawn(async move {
@@ -213,20 +174,6 @@ impl Handler for Watch {
                     break;
                 }
 
-                let PoetConfig {
-                    static_files_directory,
-                    static_files_public_path,
-                    watch_server_addr,
-                } = {
-                    match poet_config_holder.get_poet_config().await {
-                        Some(poet_config) => poet_config.clone(),
-                        None => {
-                            poet_config_holder.update_notifier.notified().await;
-                            continue;
-                        }
-                    }
-                };
-
                 if !static_files_directory.exists()
                     && let Err(err) = create_dir_all(&static_files_directory).await
                 {
@@ -238,7 +185,7 @@ impl Handler for Watch {
 
                 let app_data_clone = app_data.clone();
                 let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
-                let poet_config_holder_clone = poet_config_holder.clone();
+                let static_files_public_path_clone = static_files_public_path.clone();
                 let static_files_directory_clone = static_files_directory.clone();
 
                 if let Err(err) = HttpServer::new(move || {
@@ -246,7 +193,7 @@ impl Handler for Watch {
                         .app_data(app_data_clone.clone())
                         .service(
                             Files::new(
-                                &static_files_public_path,
+                                &static_files_public_path_clone,
                                 static_files_directory_clone.clone(),
                             )
                             .prefer_utf8(true),
@@ -254,12 +201,11 @@ impl Handler for Watch {
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)
                 })
-                .bind(watch_server_addr)
+                .bind(addr_server)
                 .expect("Unable to bind server to address")
                 .shutdown_signal(async move {
                     tokio::select! {
                         _ = ctrlc_notifier_server_clone.cancelled() => {}
-                        _ = poet_config_holder_clone.update_notifier.notified() => {}
                     }
                 })
                 .shutdown_timeout(1)

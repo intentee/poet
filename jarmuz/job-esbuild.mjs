@@ -7,7 +7,8 @@ import path from "path";
 
 import { basic } from "jarmuz/job-types";
 
-const metafileFilename = "esbuild-meta.json";
+const METAFILE_FILENAME = "esbuild-meta.json";
+const PUBLIC_PATH = "/assets/";
 
 export function jobEsbuild({ development }) {
   basic(async function ({ baseDirectory, buildId, printSubtreeList }) {
@@ -15,22 +16,7 @@ export function jobEsbuild({ development }) {
 
     console.log(`Building assets: ${buildId}`);
 
-    const { static_files_directory, static_files_public_path } = load(
-      await readFile(`${baseDirectory}/poet.toml`, {
-        encoding: "utf-8",
-      }),
-    );
-
-    const outdir = path.join(baseDirectory, static_files_directory);
-    const relativePath = path.relative(baseDirectory, static_files_directory);
-
-    if (relativePath.startsWith(".") || path.isAbsolute(relativePath)) {
-      console.error(
-        "Suspicious static files directory path. Not cleaning it up.",
-      );
-
-      return false;
-    }
+    const outdir = path.join(baseDirectory, "assets");
 
     await emptyDir(outdir);
 
@@ -74,10 +60,11 @@ export function jobEsbuild({ development }) {
         ),
         __BUILD_ID: JSON.stringify(buildId),
         __DEV__: JSON.stringify(String(development)),
-        __PUBLIC_PATH: JSON.stringify(static_files_public_path),
+        __PUBLIC_PATH: JSON.stringify(PUBLIC_PATH),
       },
       inject,
       preserveSymlinks: true,
+      publicPath: PUBLIC_PATH,
       treeShaking: true,
       tsconfig: "tsconfig.json",
     };
@@ -86,9 +73,9 @@ export function jobEsbuild({ development }) {
 
     const result = await esbuild.build(settings);
 
-    await writeFile(metafileFilename, JSON.stringify(result.metafile));
+    await writeFile(METAFILE_FILENAME, JSON.stringify(result.metafile));
 
-    console.log(`Build metafile written to: ${metafileFilename}`);
+    console.log(`Build metafile written to: ${METAFILE_FILENAME}`);
     console.log(
       `Build finished with ID: ${buildId} in ${Math.round(performance.now() - start)} milliseconds`,
     );

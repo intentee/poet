@@ -1,3 +1,0 @@
-static_files_directory = "static"
-static_files_public_path = "/static/"
-watch_server_addr = "127.0.0.1:8050"

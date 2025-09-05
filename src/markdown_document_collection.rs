@@ -71,9 +71,10 @@ impl MarkdownDocumentCollection {
         for document in &self.documents {
             if let Some(after) = &document.collection_placement.after {
                 successors_graph.try_add_edge(
-                    *basename_to_node
-                        .get(after)
-                        .ok_or(anyhow!("Unable to find node '{after}' in collection '{}'", self.name))?,
+                    *basename_to_node.get(after).ok_or(anyhow!(
+                        "Unable to find node '{after}' in collection '{}'",
+                        self.name
+                    ))?,
                     *basename_to_node
                         .get(&document.reference.basename())
                         .ok_or(anyhow!(

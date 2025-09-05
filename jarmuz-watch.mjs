@@ -5,7 +5,7 @@ import { jarmuz } from "jarmuz";
 jarmuz({
   once: false,
   pipeline: ["cargo-build", "poet-watch", "tcm", "tsc", "esbuild-development"],
-  watch: ["poet.toml", "resources", "src"],
+  watch: ["resources", "src"],
 }).decide(function ({ matches, schedule }) {
   switch (true) {
     case matches("src/**/*.rs"):
@@ -16,7 +16,6 @@ jarmuz({
       break;
     case matches("resources/ts/**/*.css"):
       schedule("tcm");
-    case matches("poet.toml"):
     case matches("resources/**/*.{avif,css,gif,jpg,jpeg,svg,webp}"):
       schedule("esbuild-development");
       return;

@@ -19,10 +19,13 @@ pub struct WatchProjectHandle {
     pub debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
     pub on_content_file_changed: Arc<Notify>,
     pub on_shortcode_file_changed: Arc<Notify>,
-    pub on_poet_config_file_changed: Arc<Notify>,
 }
 
 fn is_inside_directory(directory: &Path, file_path: &Path) -> bool {
+    if directory == file_path {
+        return true;
+    }
+
     file_path
         .canonicalize()
         .and_then(|file| directory.canonicalize().map(|dir| (file, dir)))
@@ -36,20 +39,15 @@ fn is_temp_file(path: &Path) -> bool {
     path_string.ends_with("~") || path_string.ends_with(".swp") || path_string.ends_with(".tmp")
 }
 
-pub fn watch_project_files(
-    poet_config_path: PathBuf,
-    source_directory: PathBuf,
-) -> Result<WatchProjectHandle> {
+pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHandle> {
     let content_directory = source_directory.join("content");
     let esbuild_metafile_path = source_directory.join("esbuild-meta.json").canonicalize()?;
     let shortcodes_directory = source_directory.join("shortcodes");
 
-    let on_poet_config_file_changed = Arc::new(Notify::new());
     let on_content_file_changed = Arc::new(Notify::new());
     let on_shortcode_file_changed = Arc::new(Notify::new());
 
     let content_directory_clone = content_directory.clone();
-    let on_poet_config_file_changed_clone = on_poet_config_file_changed.clone();
     let on_shortcode_file_changed_clone = on_shortcode_file_changed.clone();
     let on_content_file_changed_clone = on_content_file_changed.clone();
     let shortcodes_directory_clone = shortcodes_directory.clone();
@@ -87,14 +85,6 @@ pub fn watch_project_files(
                                     return;
                                 }
 
-                                if poet_config_path == *path {
-                                    info!("Poet config file changed: {:?}", path.display());
-
-                                    on_poet_config_file_changed_clone.notify_waiters();
-
-                                    return;
-                                }
-
                                 info!("Ignoring file change: {:?}", path.display());
                             }
 
@@ -115,7 +105,6 @@ pub fn watch_project_files(
     Ok(WatchProjectHandle {
         debouncer,
         on_content_file_changed,
-        on_poet_config_file_changed,
         on_shortcode_file_changed,
     })
 }

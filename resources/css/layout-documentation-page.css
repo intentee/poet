@@ -138,7 +138,6 @@
     border: 2px solid transparent;
     padding: var(--spacing-half) var(--spacing-base);
     text-decoration: none;
-    white-space: nowrap;
   }
 
   .documentation-page__menu__link.documentation-page__menu__link--active {

@@ -5,8 +5,8 @@ primary_collection = "static_site_generator"
 title = "Installation"
 
 [[collection]]
-name = "static_site_generator"
 after = "static-site-generator/introduction/what-is-poet"
+name = "static_site_generator"
 parent = "static-site-generator/introduction/index"
 
 [[collection]]

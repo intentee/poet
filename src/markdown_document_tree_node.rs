@@ -10,6 +10,7 @@ use crate::markdown_document_reference::MarkdownDocumentReference;
 #[derive(Clone)]
 pub struct MarkdownDocumentTreeNode {
     pub children: LinkedList<MarkdownDocumentTreeNode>,
+    pub collection_name: String,
     pub reference: MarkdownDocumentReference,
 }
 
@@ -33,6 +34,10 @@ impl MarkdownDocumentTreeNode {
             .collect::<Vec<_>>()
     }
 
+    fn rhai_collection_name(&mut self) -> String {
+        self.collection_name.clone()
+    }
+
     fn rhai_reference(&mut self) -> MarkdownDocumentReference {
         self.reference.clone()
     }
@@ -43,6 +48,7 @@ impl CustomType for MarkdownDocumentTreeNode {
         builder
             .with_name("MarkdownDocumentTreeNode")
             .with_get("children", Self::rhai_children)
+            .with_get("collection_name", Self::rhai_collection_name)
             .with_get("reference", Self::rhai_reference);
     }
 }

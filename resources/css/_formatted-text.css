@@ -34,7 +34,7 @@
     margin-top: 1em;
     position: relative;
     scroll-margin-top: calc(
-      var(--spacing-base) + var(--height-primary-navigation-header)
+      var(--spacing-base) + var(--height-page-navigation)
     );
 
     &:first-child {

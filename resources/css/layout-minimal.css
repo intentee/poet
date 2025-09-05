@@ -3,11 +3,21 @@
 @import url("./_reset.css");
 @import url("./_variables.css");
 
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(page),
+::view-transition-new(page) {
+  animation-duration: 100ms;
+}
+
 .page {
   display: grid;
   grid-template-areas: "navigation" "main" "footer";
   grid-template-rows: auto 1fr auto;
   min-height: 100dvh;
+  view-transition-name: page;
 }
 
 .page-footer {

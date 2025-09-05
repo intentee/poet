@@ -10,6 +10,7 @@ use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
 
 fn find_children(
+    collection_name: String,
     parent: &MarkdownDocumentInCollection,
     sorted_documents: &mut LinkedList<MarkdownDocumentInCollection>,
 ) -> LinkedList<MarkdownDocumentTreeNode> {
@@ -22,7 +23,8 @@ fn find_children(
     children
         .iter()
         .map(|document| MarkdownDocumentTreeNode {
-            children: find_children(document, sorted_documents),
+            children: find_children(collection_name.clone(), document, sorted_documents),
+            collection_name: collection_name.clone(),
             reference: document.reference.clone(),
         })
         .collect::<LinkedList<MarkdownDocumentTreeNode>>()
@@ -45,7 +47,8 @@ impl MarkdownDocumentCollection {
         Ok(roots
             .iter()
             .map(|document| MarkdownDocumentTreeNode {
-                children: find_children(document, &mut sorted_documents),
+                children: find_children(self.name.clone(), document, &mut sorted_documents),
+                collection_name: self.name.clone(),
                 reference: document.reference.clone(),
             })
             .collect::<Vec<_>>())
@@ -70,7 +73,7 @@ impl MarkdownDocumentCollection {
                 successors_graph.try_add_edge(
                     *basename_to_node
                         .get(after)
-                        .ok_or(anyhow!("Unable to find node {}", after))?,
+                        .ok_or(anyhow!("Unable to find node '{after}' in collection '{}'", self.name))?,
                     *basename_to_node
                         .get(&document.reference.basename())
                         .ok_or(anyhow!(

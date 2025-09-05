@@ -84,6 +84,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
         engine.register_fn("clsx", clsx);
         engine.register_fn("error", error);
         engine.register_fn("render_hierarchy", render_hierarchy);
+        engine.set_max_call_levels(128);
 
         engine.register_custom_syntax_without_look_ahead_raw(
             "component",

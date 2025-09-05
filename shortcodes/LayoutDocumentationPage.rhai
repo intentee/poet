@@ -34,10 +34,20 @@ fn template(context, props, content) {
     <LayoutMinimal>
       <div class="documentation-page">
         <div class="documentation-page__menu">
-          {render_hierarchy(
-            menu_hierarchy,
-            render_menu.curry(context)
-          )}
+          <input id="documentation-page-menu-toggle" type="checkbox">
+          <label
+            class="documentation-page__menu__title"
+            for="documentation-page-menu-toggle"
+          >{switch context.primary_collection.name {
+            // _ => error(`Collection not handled: "${context.primary_collection.name}"`),
+            _ => "Menu",
+          }}</label>
+          <div class="documentation-page__menu__content">
+            {render_hierarchy(
+              menu_hierarchy,
+              render_menu.curry(context)
+            )}
+          </div>
         </div>
         <nav class="documentation-page__toc">
           <div class={clsx(#{

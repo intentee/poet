@@ -11,6 +11,7 @@
   --duration-transition-hover: 100ms;
   --font-family-body: "Inter", sans-serif;
   --font-family-monospace: "Noto Sans Mono", monospace;
+  --height-documentation-navigation: 50px;
   --height-page-navigation: 60px;
   --height-page-footer: 80px;
   --height-scrollbar: 8px;

@@ -3,10 +3,16 @@
   flex-direction: column;
   height: 100%;
   justify-content: center;
-  max-width: 800px;
-  padding: var(--spacing-2x) var(--spacing-base);
+  max-width: 900px;
   row-gap: var(--spacing-2x);
   width: 100%;
+
+  @media (max-width: 900px) {
+    padding: var(--spacing-2x) 0;
+  }
+  @media (min-width: 900px) {
+    padding: var(--spacing-2x) var(--spacing-base);
+  }
 }
 
 .homepage__cta {
@@ -14,7 +20,7 @@
   flex-direction: row;
   gap: var(--spacing-base);
 
-  @media (max-width: 800px) {
+  @media (max-width: 900px) {
     padding: 0 var(--spacing-base);
   }
 }
@@ -40,10 +46,10 @@
     10px 0 0 #ff000022,
     15px 0 0 #0000ff22;
 
-  @media (max-width: 800px) {
+  @media (max-width: 900px) {
     font-size: 80px;
   }
-  @media (min-width: 800px) {
+  @media (min-width: 900px) {
     font-size: 130px;
   }
 }

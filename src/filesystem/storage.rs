@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use anyhow::Context as _;
 use anyhow::Result;
 use async_trait::async_trait;
+use log::debug;
 use tokio::fs;
 
 use super::Filesystem;
@@ -39,12 +40,21 @@ impl Filesystem for Storage {
                 } else {
                     let relative_path = path.strip_prefix(&self.base_directory)?.to_path_buf();
 
-                    files.push(FileEntry {
-                        contents: fs::read_to_string(&path)
-                            .await
-                            .context(format!("Failed to read file: {}", path.display()))?,
-                        relative_path,
-                    });
+                    if let Some(extension) = path.extension() {
+                        match extension.to_str() {
+                            Some("md") | Some("rhai") => {
+                                files.push(FileEntry {
+                                    contents: fs::read_to_string(&path).await.context(format!(
+                                        "Failed to read file: {}",
+                                        path.display()
+                                    ))?,
+                                    relative_path,
+                                });
+                            }
+                            Some(_) => debug!("Skipping path: {}", path.display()),
+                            None => {}
+                        }
+                    }
                 }
             }
         }

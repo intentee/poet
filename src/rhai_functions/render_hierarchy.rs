@@ -38,7 +38,7 @@ pub fn render_hierarchy(
     callback: FnPtr,
 ) -> Result<String, Box<EvalAltResult>> {
     let results = hierarchy
-        .hierarchy
+        .roots
         .iter()
         .map(|node| render_node(&context, node, &callback, 0))
         .collect::<Result<Vec<Dynamic>, Box<EvalAltResult>>>()?;

@@ -39,21 +39,33 @@ fn template(context, props, content) {
             render_menu.curry(context)
           )}
         </div>
-        <nav class="documentation-page__toc">{
-          let rendered = [];
+        <nav class="documentation-page__toc">
+          <div class={clsx(#{
+            "documentation-page__toc__content": true,
+            "documentation-page__toc__content--empty": context.table_of_contents.headings.is_empty(),
+          })}>{if !context.table_of_contents.headings.is_empty() {
+            component {
+              <div class="documentation-page__toc__title">
+                On this page
+              </div>
+              <div class="documentation-page__toc__links">{
+                let rendered = [];
 
-          for heading in context.table_of_contents.headings {
-            if heading.depth == 2 {
-              rendered.push(component {
-                <a href={`#${heading.id}`}>
-                  {heading.content}
-                </a>
-              });
+                for heading in context.table_of_contents.headings {
+                  if heading.depth == 2 {
+                    rendered.push(component {
+                      <a href={`#${heading.id}`}>
+                        {heading.content}
+                      </a>
+                    });
+                  }
+                }
+
+                rendered
+              }</div>
             }
-          }
-
-          rendered
-        }</nav>
+          }}</div>
+        </nav>
         <div class="documentation-page__content">
           <div class="formatted-text">
             <h1>

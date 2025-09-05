@@ -8,7 +8,7 @@ use rhai::TypeBuilder;
 
 use crate::asset_manager::AssetManager;
 use crate::front_matter::FrontMatter;
-use crate::markdown_document_collection::MarkdownDocumentCollection;
+use crate::markdown_document_collection_ranked::MarkdownDocumentCollectionRanked;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::table_of_contents::TableOfContents;
 
@@ -20,7 +20,8 @@ pub struct ComponentContext {
     pub is_watching: bool,
     pub markdown_basename_by_id: Arc<HashMap<String, String>>,
     pub markdown_document_by_basename: Arc<HashMap<String, MarkdownDocumentReference>>,
-    pub markdown_document_collections: Arc<HashMap<String, MarkdownDocumentCollection>>,
+    pub markdown_document_collections_ranked:
+        Arc<HashMap<String, MarkdownDocumentCollectionRanked>>,
     pub reference: MarkdownDocumentReference,
     pub table_of_contents: Option<TableOfContents>,
 }
@@ -59,7 +60,7 @@ impl ComponentContext {
             is_watching: self.is_watching,
             markdown_basename_by_id: self.markdown_basename_by_id,
             markdown_document_by_basename: self.markdown_document_by_basename,
-            markdown_document_collections: self.markdown_document_collections,
+            markdown_document_collections_ranked: self.markdown_document_collections_ranked,
             reference: self.reference,
             table_of_contents: Some(table_of_contents),
         }
@@ -99,8 +100,11 @@ impl ComponentContext {
     fn rhai_collection(
         &mut self,
         collection_name: &str,
-    ) -> Result<MarkdownDocumentCollection, Box<EvalAltResult>> {
-        if let Some(collection) = self.markdown_document_collections.get(collection_name) {
+    ) -> Result<MarkdownDocumentCollectionRanked, Box<EvalAltResult>> {
+        if let Some(collection) = self
+            .markdown_document_collections_ranked
+            .get(collection_name)
+        {
             Ok(collection.clone())
         } else {
             Err(format!("Collection is never used in any document: '{collection_name}'").into())
@@ -131,7 +135,7 @@ impl ComponentContext {
 
     fn rhai_primary_collection(
         &mut self,
-    ) -> Result<MarkdownDocumentCollection, Box<EvalAltResult>> {
+    ) -> Result<MarkdownDocumentCollectionRanked, Box<EvalAltResult>> {
         match self.front_matter.collections.placements.len() {
             0 => return Err("Document does not belong to any collection".into()),
             1 => {

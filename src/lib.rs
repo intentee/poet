@@ -15,6 +15,7 @@ mod front_matter;
 mod is_external_link;
 mod markdown_document;
 mod markdown_document_collection;
+mod markdown_document_collection_ranked;
 mod markdown_document_hierarchy;
 mod markdown_document_in_collection;
 mod markdown_document_reference;

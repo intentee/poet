@@ -103,3 +103,20 @@ canvas {
   color: white;
   background-color: black;
 }
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-hover);
+}
+
+::-webkit-scrollbar {
+  height: var(--width-scrollbar);
+  width: var(--width-scrollbar);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

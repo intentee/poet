@@ -1,4 +1,5 @@
 use dashmap::DashMap;
+use itertools::Itertools as _;
 
 use crate::build_project::document_error::DocumentError;
 use crate::markdown_document_reference::MarkdownDocumentReference;
@@ -28,7 +29,11 @@ impl DocumentErrorCollection {
     }
 
     pub fn render(&self) {
-        for errors in self.errors.iter() {
+        for errors in self
+            .errors
+            .iter()
+            .sorted_by(|a, b| Ord::cmp(&a.key().basename(), &b.key().basename()))
+        {
             for error in errors.value() {
                 error.render();
             }

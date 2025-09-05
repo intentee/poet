@@ -16,9 +16,9 @@ use actix_web::web::Data;
 use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
+use log::debug;
 use log::error;
 use log::info;
-use log::warn;
 use tokio::fs::create_dir_all;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -151,7 +151,7 @@ impl Handler for Watch {
                 let rhai_template_renderer = match rhai_template_renderer_holder_builder.get_rhai_template_renderer().await {
                     Some(rhai_template_renderer) => rhai_template_renderer,
                     None => {
-                        warn!("Rhai components are not compiled yet. Skipping build");
+                        debug!("Rhai components are not compiled yet. Skipping build");
 
                         return;
                     },
@@ -184,7 +184,7 @@ impl Handler for Watch {
                         }
                     },
                     None => {
-                        warn!("Poet config is not ready yet. Skipping build");
+                        debug!("Poet config is not ready yet. Skipping build");
                     }
                 }
             };

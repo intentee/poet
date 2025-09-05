@@ -8,23 +8,15 @@ use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
 
 #[derive(Clone)]
 pub struct MarkdownDocumentHierarchy {
-    pub hierarchy: Vec<MarkdownDocumentTreeNode>,
+    pub flat: Vec<MarkdownDocumentReference>,
+    pub roots: Vec<MarkdownDocumentTreeNode>,
 }
 
 impl MarkdownDocumentHierarchy {
-    fn flatten(&self) -> Vec<MarkdownDocumentReference> {
-        let mut flat: Vec<MarkdownDocumentReference> = Vec::new();
-
-        for node in &self.hierarchy {
-            flat.append(&mut node.flatten());
-        }
-
-        flat
-    }
-
     fn rhai_after(&mut self, basename: String) -> Result<Dynamic, Box<EvalAltResult>> {
         let mut flat_peekable = self
-            .flatten()
+            .flat
+            .clone()
             .into_iter()
             .filter(|node| node.front_matter.render)
             .peekable();
@@ -47,7 +39,7 @@ impl MarkdownDocumentHierarchy {
     fn rhai_before(&mut self, basename: String) -> Result<Dynamic, Box<EvalAltResult>> {
         let mut previous: Option<MarkdownDocumentReference> = None;
 
-        for node in self.flatten() {
+        for node in &self.flat {
             if node.front_matter.render {
                 if node.basename() == basename {
                     if let Some(previous) = previous {
@@ -75,7 +67,13 @@ impl CustomType for MarkdownDocumentHierarchy {
 }
 
 impl From<Vec<MarkdownDocumentTreeNode>> for MarkdownDocumentHierarchy {
-    fn from(hierarchy: Vec<MarkdownDocumentTreeNode>) -> Self {
-        Self { hierarchy }
+    fn from(roots: Vec<MarkdownDocumentTreeNode>) -> Self {
+        let mut flat: Vec<MarkdownDocumentReference> = Vec::new();
+
+        for node in &roots {
+            flat.append(&mut node.flatten());
+        }
+
+        Self { flat, roots }
     }
 }

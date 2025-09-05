@@ -33,6 +33,7 @@ use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
 use crate::markdown_document::MarkdownDocument;
 use crate::markdown_document_collection::MarkdownDocumentCollection;
+use crate::markdown_document_collection_ranked::MarkdownDocumentCollectionRanked;
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
@@ -56,7 +57,7 @@ fn render_document<'render>(
                     },
             },
         markdown_document_by_basename,
-        markdown_document_collections,
+        markdown_document_collections_ranked,
         rhai_template_renderer,
         syntax_set,
     }: DocumentRenderingContext<'render>,
@@ -69,7 +70,7 @@ fn render_document<'render>(
         markdown_basename_by_id,
         markdown_document_by_basename,
         reference: reference.clone(),
-        markdown_document_collections,
+        markdown_document_collections_ranked,
         table_of_contents: None,
     };
 
@@ -134,6 +135,10 @@ pub async fn build_project(
         HashMap::new();
     let mut markdown_document_collections: HashMap<String, MarkdownDocumentCollection> =
         HashMap::new();
+    let mut markdown_document_collections_ranked: HashMap<
+        String,
+        MarkdownDocumentCollectionRanked,
+    > = HashMap::new();
     let mut markdown_document_list: Vec<MarkdownDocument> = Vec::new();
 
     for file in &files {
@@ -222,6 +227,16 @@ pub async fn build_project(
         }
     }
 
+    for markdown_document_collection in markdown_document_collections.values() {
+        let markdown_document_collection_ranked: MarkdownDocumentCollectionRanked =
+            markdown_document_collection.clone().try_into()?;
+
+        markdown_document_collections_ranked.insert(
+            markdown_document_collection.name.clone(),
+            markdown_document_collection_ranked,
+        );
+    }
+
     if !error_collection.is_empty() {
         error_collection.render();
 
@@ -236,7 +251,7 @@ pub async fn build_project(
     );
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
-    let markdown_document_collections_arc = Arc::new(markdown_document_collections);
+    let markdown_document_collections_ranked_arc = Arc::new(markdown_document_collections_ranked);
 
     markdown_document_list
         .par_iter()
@@ -258,7 +273,8 @@ pub async fn build_project(
                 markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
                 markdown_document,
                 markdown_document_by_basename: markdown_document_by_basename_arc.clone(),
-                markdown_document_collections: markdown_document_collections_arc.clone(),
+                markdown_document_collections_ranked: markdown_document_collections_ranked_arc
+                    .clone(),
                 rhai_template_renderer: &rhai_template_renderer,
                 syntax_set: &syntax_set,
             }) {

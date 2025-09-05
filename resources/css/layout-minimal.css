@@ -46,7 +46,7 @@
 
 .page-navigation {
   background-color: white;
-  border-bottom: 4px solid wheat;
+  border-bottom: 4px solid transparent;
   display: flex;
   flex-direction: row;
   grid-area: navigation;
@@ -55,17 +55,21 @@
   padding-right: var(--spacing-base);
   position: sticky;
   top: 0;
+  transition: border-bottom-color 100ms ease;
   z-index: var(--z-index-primary-navigation);
+
+  &:has(.page-navigation__dropdown:hover) {
+    border-bottom-color: wheat;
+  }
 }
 
 .page-navigation__dropdowns {
   display: grid;
-  grid-template-columns: repeat(3, 175px);
+  grid-template-columns: repeat(3, 190px);
 }
 
 .page-navigation__dropdown {
   display: flex;
-  justify-content: center;
   position: relative;
 
   &:hover {

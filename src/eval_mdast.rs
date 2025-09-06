@@ -104,7 +104,7 @@ pub fn eval_mdast(
                 }
             ));
             if let Some(lang) = lang {
-                let syntax = syntax_set.find_syntax_by_extension(lang);
+                let syntax = syntax_set.find_syntax_by_token(lang);
 
                 match syntax {
                     Some(syntax) => {

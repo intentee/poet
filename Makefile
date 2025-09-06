@@ -13,6 +13,9 @@ node_modules: package-lock.json
 	npm install --from-lockfile
 	touch node_modules
 
+public: node_modules
+	./jarmuz-generate.mjs
+
 # -----------------------------------------------------------------------------
 # Phony targets
 # -----------------------------------------------------------------------------

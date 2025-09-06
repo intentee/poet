@@ -8,6 +8,7 @@ use tokio::fs;
 
 use super::Handler;
 use super::value_parser::validate_is_directory;
+use super::value_parser::validate_is_directory_or_create;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
 use crate::build_project::build_project_result::BuildProjectResult;
@@ -19,7 +20,7 @@ use crate::filesystem::storage::create_parent_directories::create_parent_directo
 
 #[derive(Parser)]
 pub struct Generate {
-    #[arg(long, value_parser = validate_is_directory)]
+    #[arg(long, value_parser = validate_is_directory_or_create)]
     output_directory: PathBuf,
 
     #[arg(long)]

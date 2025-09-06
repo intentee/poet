@@ -1,3 +1,4 @@
+mod builds_project;
 pub mod generate;
 mod value_parser;
 pub mod watch;

@@ -4,7 +4,6 @@ use std::sync::Arc;
 use esbuild_metafile::EsbuildMetaFile;
 use esbuild_metafile::HttpPreloader;
 use esbuild_metafile::renders_path::RendersPath;
-use log::warn;
 use rhai::CustomType;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
@@ -30,12 +29,6 @@ impl AssetManager {
         }
     }
 
-    pub fn add(&mut self, asset: String) {
-        if self.http_preloader.register_input(&asset).is_none() {
-            warn!("Asset not found: {asset}");
-        }
-    }
-
     pub fn file(&self, asset: &str) -> Result<String, String> {
         if let Some(static_paths) = self.esbuild_metafile.find_static_paths_for_input(asset) {
             if static_paths.len() != 1 {
@@ -48,6 +41,14 @@ impl AssetManager {
         }
 
         Err(format!("Asset not found: '{asset}'"))
+    }
+
+    fn rhai_add(&mut self, asset: String) -> Result<(), Box<EvalAltResult>> {
+        if self.http_preloader.register_input(&asset).is_none() {
+            return Err(format!("Asset not found: {asset}").into());
+        }
+
+        Ok(())
     }
 
     fn rhai_file(&mut self, asset: String) -> Result<String, Box<EvalAltResult>> {
@@ -87,7 +88,7 @@ impl CustomType for AssetManager {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("AssetManager")
-            .with_fn("add", Self::add)
+            .with_fn("add", Self::rhai_add)
             .with_fn("file", Self::rhai_file)
             .with_fn("preload", Self::rhai_preload)
             .with_fn("render", Self::rhai_render);

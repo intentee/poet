@@ -1010,9 +1010,9 @@ dependencies = [
 
 [[package]]
 name = "esbuild-metafile"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31426db9b769d81c739af0220bcd554f1144ad310216f456107e57b067acaccf"
+checksum = "9be197fe992bf8e195de9c0fd9ce02ea91685b2557c9663fb7e0242de0e269ac"
 dependencies = [
  "actix-utils",
  "actix-web",

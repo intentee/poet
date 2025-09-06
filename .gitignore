@@ -1,6 +1,7 @@
 /assets
 /esbuild-meta.json
 /node_modules
+/output
 /static
 /target
 /tsconfig.tsbuildinfo

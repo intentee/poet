@@ -1,3 +1,4 @@
+pub mod build_project_result;
 mod document_error;
 mod document_error_collection;
 mod document_rendering_context;
@@ -20,6 +21,7 @@ use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::document_error_collection::DocumentErrorCollection;
 use crate::build_project::document_rendering_context::DocumentRenderingContext;
 use crate::build_timer::BuildTimer;
@@ -104,7 +106,7 @@ pub async fn build_project(
     is_watching: bool,
     rhai_template_renderer: RhaiTemplateRenderer,
     source_filesystem: Arc<Storage>,
-) -> Result<Memory> {
+) -> Result<BuildProjectResult> {
     info!("Processing content files...");
 
     let _build_timer = BuildTimer::new();
@@ -126,7 +128,7 @@ pub async fn build_project(
         }
     }
     .into();
-    let files = source_filesystem.read_project_files().await?;
+    let files = source_filesystem.read_content_files().await?;
     let memory_filesystem = Memory::default();
     let syntax_set = SyntaxSet::load_defaults_newlines();
 
@@ -303,7 +305,10 @@ pub async fn build_project(
         });
 
     if error_collection.is_empty() {
-        Ok(memory_filesystem)
+        Ok(BuildProjectResult {
+            esbuild_metafile,
+            memory_filesystem,
+        })
     } else {
         error_collection.render();
 

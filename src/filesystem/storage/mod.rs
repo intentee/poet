@@ -1,3 +1,5 @@
+pub mod create_parent_directories;
+
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -10,6 +12,7 @@ use tokio::fs;
 use super::Filesystem;
 use super::file_entry::FileEntry;
 use super::read_file_contents_result::ReadFileContentsResult;
+use crate::filesystem::storage::create_parent_directories::create_parent_directories;
 
 pub struct Storage {
     pub base_directory: PathBuf,
@@ -17,7 +20,7 @@ pub struct Storage {
 
 #[async_trait]
 impl Filesystem for Storage {
-    async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
+    async fn read_content_files(&self) -> Result<Vec<FileEntry>> {
         let mut to_visit: Vec<PathBuf> = vec![
             self.base_directory.join("content"),
             self.base_directory.join("shortcodes"),
@@ -78,16 +81,19 @@ impl Filesystem for Storage {
         Ok(ReadFileContentsResult::Found(contents))
     }
 
-    fn set_file_contents_sync(&self, relative_path: &Path, contents: &str) -> Result<()> {
-        let full_path = self.base_directory.join(relative_path);
+    async fn set_file_contents(&self, path: &Path, contents: &str) -> Result<()> {
+        let full_path = self.base_directory.join(path);
 
-        if let Some(parent) = full_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
+        create_parent_directories(&full_path).await?;
 
-        std::fs::write(&full_path, contents)
+        fs::write(&full_path, contents)
+            .await
             .context(format!("Failed to write file: {}", full_path.display()))?;
 
         Ok(())
+    }
+
+    fn set_file_contents_sync(&self, _: &Path, _: &str) -> Result<()> {
+        unreachable!("This should not be used with storage filesystem")
     }
 }

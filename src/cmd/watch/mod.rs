@@ -33,10 +33,13 @@ use super::value_parser::parse_socket_addr;
 use super::value_parser::validate_is_directory;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
+use crate::build_project::build_project_result::BuildProjectResult;
+use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
-use crate::filesystem::storage::Storage;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
+
+const STATIC_FILES_PUBLIC_PATH: &str = "assets";
 
 #[derive(Parser)]
 pub struct Watch {
@@ -47,13 +50,17 @@ pub struct Watch {
     source_directory: PathBuf,
 }
 
+impl BuildsProject for Watch {
+    fn source_directory(&self) -> PathBuf {
+        self.source_directory.clone()
+    }
+}
+
 #[async_trait]
 impl Handler for Watch {
     async fn handle(&self) -> Result<()> {
         let ctrlc_notifier = CancellationToken::new();
         let ctrlc_notifier_handler = ctrlc_notifier.clone();
-        let static_files_directory: PathBuf = "assets".into();
-        let static_files_public_path: String = "assets".to_string();
 
         ctrlc::set_handler(move || {
             ctrlc_notifier_handler.cancel();
@@ -65,14 +72,12 @@ impl Handler for Watch {
             on_shortcode_file_changed,
         } = watch_project_files(self.source_directory.clone())?;
 
+        let assets_directory = self.assets_directory();
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
-
-        let source_filesystem = Arc::new(Storage {
-            base_directory: self.source_directory.clone(),
-        });
+        let source_filesystem = self.source_filesystem();
 
         let mut task_set = JoinSet::new();
 
@@ -136,7 +141,10 @@ impl Handler for Watch {
                     rhai_template_renderer,
                     source_filesystem_builder.clone(),
                 ).await {
-                    Ok(memory_filesystem) => {
+                    Ok(BuildProjectResult {
+                        esbuild_metafile: _,
+                        memory_filesystem,
+                    }) => {
                         if let Err(err) = output_filesystem_holder_clone
                             .set_output_filesystem(Arc::new(memory_filesystem))
                             .await
@@ -174,29 +182,25 @@ impl Handler for Watch {
                     break;
                 }
 
-                if !static_files_directory.exists()
-                    && let Err(err) = create_dir_all(&static_files_directory).await
+                if !assets_directory.exists()
+                    && let Err(err) = create_dir_all(&assets_directory).await
                 {
                     error!(
                         "Unable to create static files directory '{}': {err}",
-                        static_files_directory.display()
+                        assets_directory.display()
                     );
                 }
 
                 let app_data_clone = app_data.clone();
                 let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
-                let static_files_public_path_clone = static_files_public_path.clone();
-                let static_files_directory_clone = static_files_directory.clone();
+                let assets_directory_clone = assets_directory.clone();
 
                 if let Err(err) = HttpServer::new(move || {
                     App::new()
                         .app_data(app_data_clone.clone())
                         .service(
-                            Files::new(
-                                &static_files_public_path_clone,
-                                static_files_directory_clone.clone(),
-                            )
-                            .prefer_utf8(true),
+                            Files::new(STATIC_FILES_PUBLIC_PATH, assets_directory_clone.clone())
+                                .prefer_utf8(true),
                         )
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)

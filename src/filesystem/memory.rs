@@ -23,7 +23,7 @@ impl Default for Memory {
 
 #[async_trait]
 impl Filesystem for Memory {
-    async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
+    async fn read_content_files(&self) -> Result<Vec<FileEntry>> {
         let file_entries = self
             .files
             .iter()
@@ -46,6 +46,10 @@ impl Filesystem for Memory {
         } else {
             Ok(ReadFileContentsResult::NotFound)
         }
+    }
+
+    async fn set_file_contents(&self, path: &Path, contents: &str) -> Result<()> {
+        self.set_file_contents_sync(path, contents)
     }
 
     fn set_file_contents_sync(&self, path: &Path, contents: &str) -> Result<()> {

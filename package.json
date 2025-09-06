@@ -15,6 +15,7 @@
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "fs-extra": "^11.3.1",
+    "jarmuz-preset-poet": "^0.1.1",
     "node-notifier": "^10.0.1",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.2.0",

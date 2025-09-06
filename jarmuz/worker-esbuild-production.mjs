@@ -1,5 +1,5 @@
-import { jobEsbuild } from "./job-esbuild.mjs";
+import { esbuild } from "jarmuz-preset-poet";
 
-jobEsbuild({
+esbuild({
   development: false,
 });

@@ -11,11 +11,6 @@
   --duration-transition-hover: 100ms;
   --font-family-body: "Inter", sans-serif;
   --font-family-monospace: "Noto Sans Mono", monospace;
-  --font-size-h1: 32px;
-  --font-size-h2: 20px;
-  --font-size-h3: 13px;
-  --font-size-base: 13px;
-  --font-size-small: 11px;
   --height-documentation-navigation: 50px;
   --height-page-navigation: 54px;
   --height-page-footer: 100px;
@@ -33,4 +28,19 @@
   --z-index-primary-navigation: 3;
   --z-index-primary-navigation-dropdown: 4;
   --z-index-modal: 5;
+
+  @media (max-width: 1650px) {
+    --font-size-h1: 32px;
+    --font-size-h2: 20px;
+    --font-size-h3: 13px;
+    --font-size-base: 13px;
+    --font-size-small: 11px;
+  }
+  @media (min-width: 1650px) {
+    --font-size-h1: 38px;
+    --font-size-h2: 24px;
+    --font-size-h3: 15px;
+    --font-size-base: 15px;
+    --font-size-small: 13px;
+  }
 }

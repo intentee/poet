@@ -38,30 +38,23 @@
     );
 
     &:first-child {
-      @media (min-width: 900px) {
-        margin-top: -0.25em;
-      }
+      margin-top: -0.25em;
     }
   }
 
   h1 {
-    font-size: 3em;
-    font-weight: bold;
-
-    @media (max-width: 900px) {
-      line-height: 1.2;
-      margin-bottom: 0.3em;
-    }
+    font-size: var(--font-size-h1);
+    font-weight: 700;
   }
 
   h2 {
-    font-size: 2em;
-    font-weight: bold;
+    font-size: var(--font-size-h2);
+    font-weight: 600;
   }
 
   h3 {
-    font-size: 1.2em;
-    font-weight: bold;
+    font-size: var(--font-size-h3);
+    font-weight: 500;
   }
 
   img {

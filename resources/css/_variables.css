@@ -1,19 +1,24 @@
 :root {
   --color-body-background: #ffffff;
-  --color-body-font: #111;
+  --color-body-font: #222;
   --color-border: black;
   --color-highlight: #ffd79b;
   --color-link-text-decoration: cornflowerblue;
   --color-note-background: #ffffdd;
-  --color-scrollbar: #eee;
+  --color-scrollbar: #e5e3e1;
   --color-scrollbar-hover: var(--color-highlight);
-  --color-separator: #eee;
+  --color-separator: #e5e3e1;
   --duration-transition-hover: 100ms;
   --font-family-body: "Inter", sans-serif;
   --font-family-monospace: "Noto Sans Mono", monospace;
+  --font-size-h1: 32px;
+  --font-size-h2: 20px;
+  --font-size-h3: 13px;
+  --font-size-base: 13px;
+  --font-size-small: 11px;
   --height-documentation-navigation: 50px;
-  --height-page-navigation: 60px;
-  --height-page-footer: 80px;
+  --height-page-navigation: 54px;
+  --height-page-footer: 100px;
   --height-scrollbar: 8px;
   --line-height-base: 1.5;
   --spacing-2x: calc(2 * var(--spacing-base));
@@ -28,13 +33,4 @@
   --z-index-primary-navigation: 3;
   --z-index-primary-navigation-dropdown: 4;
   --z-index-modal: 5;
-
-  @media (max-width: 1650px) {
-    --font-size-base: 14px;
-    --font-size-small: 12px;
-  }
-  @media (min-width: 1650px) {
-    --font-size-base: 16px;
-    --font-size-small: 14px;
-  }
 }

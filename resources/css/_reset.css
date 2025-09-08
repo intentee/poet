@@ -87,7 +87,11 @@ body {
   display: flex;
   flex-direction: column;
   font-family: var(--font-family-body);
+  font-optical-sizing: auto;
   font-size: var(--font-size-base);
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+  font-weight: 400;
   line-height: var(--line-height-base);
   margin: 0;
   overflow-y: scroll;

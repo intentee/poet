@@ -58,13 +58,16 @@ fn template(context, props, content) {
               <div class="documentation-page__toc__title">
                 On this page
               </div>
-              <div class="documentation-page__toc__links">{
+              <div class="documentation-page__toc__link-list">{
                 let rendered = [];
 
                 for heading in context.table_of_contents.headings {
                   if heading.depth == 2 {
                     rendered.push(component {
-                      <a href={`#${heading.id}`}>
+                      <a
+                        class="documentation-page__toc__link-list__link"
+                        href={`#${heading.id}`}
+                      >
                         {heading.content}
                       </a>
                     });

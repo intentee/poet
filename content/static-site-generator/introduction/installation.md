@@ -4,9 +4,6 @@ layout = "LayoutDocumentationPage"
 primary_collection = "static_site_generator"
 title = "Installation"
 
-[props]
-foo = "bar"
-
 [[collection]]
 after = "static-site-generator/introduction/what-is-poet"
 name = "static_site_generator"
@@ -15,8 +12,6 @@ parent = "static-site-generator/introduction/index"
 [[collection]]
 name = "create_content"
 +++
-
-{context.front_matter.props.foo}
 
 ## How to install poet in a single simple step.
 

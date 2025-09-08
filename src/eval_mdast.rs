@@ -96,7 +96,10 @@ pub fn eval_mdast(
             if let Some(lang) = lang {
                 result.push_str(&format!(" language-{lang}\""));
                 result.push_str(&format!(" data-lang=\"{}\"", escape_html_attribute(lang)));
+            } else {
+                result.push('"');
             }
+
             if let Some(meta) = meta {
                 result.push_str(&format!(
                     r#" data-meta-line="{}""#,

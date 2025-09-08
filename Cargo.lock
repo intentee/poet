@@ -1649,7 +1649,8 @@ dependencies = [
 [[package]]
 name = "no-std-compat"
 version = "0.4.1"
-source = "git+https://gitlab.com/jD91mZM2/no-std-compat.git#47a5dfb6b48e8f8bf2fc4f6109c9b75f5c3c0b10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
 dependencies = [
  "spin",
 ]
@@ -1864,8 +1865,8 @@ dependencies = [
  "notify",
  "notify-debouncer-full",
  "petgraph",
+ "poet-rhai",
  "rayon",
- "rhai",
  "serde",
  "slug",
  "syntect",
@@ -1875,6 +1876,37 @@ dependencies = [
  "tokio-util",
  "toml",
  "url",
+]
+
+[[package]]
+name = "poet-rhai"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "728b63ad10dc219cb5c1a3ddca71cfbc920e66d2a7b70691b65d2681877375bb"
+dependencies = [
+ "ahash",
+ "bitflags 2.9.2",
+ "instant",
+ "no-std-compat",
+ "num-traits",
+ "once_cell",
+ "poet_rhai_codegen",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "smartstring",
+ "thin-vec",
+]
+
+[[package]]
+name = "poet_rhai_codegen"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "840e38d6481741e876235abd456b0ea6e4f175424ae90ff24e527c7898b495e0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2071,35 +2103,6 @@ name = "regex-syntax"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
-
-[[package]]
-name = "rhai"
-version = "1.22.2"
-source = "git+https://github.com/rhaiscript/rhai.git?rev=2e0b676f7c99e2ac374572fabe22b932aafbe2ae#2e0b676f7c99e2ac374572fabe22b932aafbe2ae"
-dependencies = [
- "ahash",
- "bitflags 2.9.2",
- "instant",
- "no-std-compat",
- "num-traits",
- "once_cell",
- "rhai_codegen",
- "serde",
- "serde_json",
- "smallvec",
- "smartstring",
- "thin-vec",
-]
-
-[[package]]
-name = "rhai_codegen"
-version = "3.1.0"
-source = "git+https://github.com/rhaiscript/rhai.git?rev=2e0b676f7c99e2ac374572fabe22b932aafbe2ae#2e0b676f7c99e2ac374572fabe22b932aafbe2ae"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "rustc-demangle"
@@ -2329,9 +2332,9 @@ dependencies = [
 
 [[package]]
 name = "spin"
-version = "0.7.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13287b4da9d1207a4f4929ac390916d64eacfe236a487e9a9f5b3be392be5162"
+checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "stable_deref_trait"

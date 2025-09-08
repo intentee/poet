@@ -34,7 +34,7 @@ notify-debouncer-full = "0.6.0"
 petgraph = { version = "0.8.2", features = ["serde", "serde_derive"] }
 rayon = "1.11.0"
 # rhai = { version = "1.22.2", features = ["no_closure", "serde", "serde_json", "sync"] }
-rhai = { git = "https://github.com/rhaiscript/rhai.git", rev = "2e0b676f7c99e2ac374572fabe22b932aafbe2ae", features = ["internals", "metadata", "no_closure", "serde", "serde_json", "sync"] }
+rhai = { package="poet-rhai", version="0.2.0", features = ["internals", "metadata", "no_closure", "serde", "serde_json", "sync"] }
 serde = { version = "1.0.219", features = ["derive"] }
 slug = "0.1.6"
 syntect = "5.2.0"

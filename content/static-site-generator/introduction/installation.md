@@ -4,6 +4,9 @@ layout = "LayoutDocumentationPage"
 primary_collection = "static_site_generator"
 title = "Installation"
 
+[props]
+foo = "bar"
+
 [[collection]]
 after = "static-site-generator/introduction/what-is-poet"
 name = "static_site_generator"
@@ -13,7 +16,15 @@ parent = "static-site-generator/introduction/index"
 name = "create_content"
 +++
 
+{context.front_matter.props.foo}
+
 ## How to install poet in a single simple step.
+
+```jsx label:"foo"
+<Note class="xD">
+    something
+</Note>
+```
 
 1. Install poet.
 
@@ -28,3 +39,4 @@ Donec ac erat lectus. Praesent urna turpis, hendrerit sit amet tellus vitae, pla
 ## Another test header for table of contents
 
 Pellentesque eget dolor massa. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Proin fringilla dapibus arcu, ut iaculis leo rutrum nec. Vestibulum semper nunc vitae blandit pulvinar. Cras id lectus turpis. Nunc vitae pellentesque ante.
+

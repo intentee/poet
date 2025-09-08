@@ -37,9 +37,12 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
 use crate::component_context::ComponentContext;
+use crate::escape_html::escape_html;
 use crate::escape_html_attribute::escape_html_attribute;
 use crate::is_external_link::is_external_link;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
+use crate::parse_markdown_metadata_line::metadata_line_item::MetadataLineItem;
+use crate::parse_markdown_metadata_line::parse_markdown_metadata_line;
 use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
@@ -88,21 +91,36 @@ pub fn eval_mdast(
         Node::Code(Code {
             meta, lang, value, ..
         }) => {
-            result.push_str(&format!(
-                r#"<pre class="code{}"{}{}><code>"#,
-                match lang {
-                    Some(lang) => format!(" language-{}", lang),
-                    None => "".to_string(),
-                },
-                match lang {
-                    Some(lang) => format!(" data-lang=\"{}\"", escape_html_attribute(lang)),
-                    None => "".to_string(),
-                },
-                match meta {
-                    Some(meta) => format!(r#" data-meta="{}""#, escape_html_attribute(meta)),
-                    None => "".to_string(),
+            result.push_str("<pre class=\"code");
+
+            if let Some(lang) = lang {
+                result.push_str(&format!(" language-{lang}\""));
+                result.push_str(&format!(" data-lang=\"{}\"", escape_html_attribute(lang)));
+            }
+            if let Some(meta) = meta {
+                result.push_str(&format!(
+                    r#" data-meta-line="{}""#,
+                    escape_html_attribute(meta)
+                ));
+
+                for item in parse_markdown_metadata_line(meta)? {
+                    match item {
+                        MetadataLineItem::Flag { name } => {
+                            result.push_str(&format!(" {name}"));
+                        }
+                        MetadataLineItem::Pair { name, value } => {
+                            result.push_str(&format!(
+                                " data-meta-{}=\"{}\"",
+                                escape_html(&name),
+                                escape_html_attribute(&value)
+                            ));
+                        }
+                    }
                 }
-            ));
+            }
+
+            result.push_str("><code>");
+
             if let Some(lang) = lang {
                 let syntax = syntax_set.find_syntax_by_token(lang);
 
@@ -123,11 +141,11 @@ pub fn eval_mdast(
                     None => {
                         warn!("No syntax found for language: {}", lang);
 
-                        result.push_str(&escape_html_attribute(value));
+                        result.push_str(&escape_html(value));
                     }
                 }
             } else {
-                result.push_str(&escape_html_attribute(value));
+                result.push_str(&escape_html(value));
             }
 
             result.push_str("</code></pre>");

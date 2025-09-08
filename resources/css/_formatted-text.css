@@ -86,7 +86,7 @@
     &::before {
       background-color: lavender;
       border-bottom: 2px solid var(--color-border);
-      content: attr(data-lang);
+      content: attr(data-meta-label raw-string, attr(data-lang raw-string));
       left: 0;
       right: 0;
       position: sticky;

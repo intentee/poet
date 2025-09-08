@@ -28,6 +28,7 @@ log = "0.4.27"
 markdown = "1.0.0"
 mime_guess = "2.0.5"
 nanoid = "0.4.0"
+nom = "8.0.0"
 notify = "8.2.0"
 notify-debouncer-full = "0.6.0"
 petgraph = { version = "0.8.2", features = ["serde", "serde_derive"] }

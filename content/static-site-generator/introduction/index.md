@@ -4,7 +4,8 @@ render = false
 title = "Introduction"
 
 [[collection]]
-name = "static_site_generator"
+name = "docs"
+parent = "static-site-generator/index"
 
 [[collection]]
 name = "create_content"

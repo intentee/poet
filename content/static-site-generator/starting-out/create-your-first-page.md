@@ -1,10 +1,10 @@
 +++
 layout = "LayoutDocumentationPage"
-primary_collection = "static_site_generator"
+primary_collection = "docs"
 title = "Create your first page"
 
 [[collection]]
-name = "static_site_generator"
+name = "docs"
 parent = "static-site-generator/starting-out/index"
 
 [[collection]]

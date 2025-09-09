@@ -14,6 +14,10 @@ impl DocumentErrorCollection {
         self.errors.is_empty()
     }
 
+    pub fn len(&self) -> usize {
+        self.errors.len()
+    }
+
     pub fn register_error(
         &self,
         err: anyhow::Error,

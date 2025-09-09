@@ -1,12 +1,12 @@
 +++
 id = "llm-seo-initial-page"
 layout = "LayoutDocumentationPage"
-primary_collection = "llm_seo"
-title = "What is LLM SEO?"
+primary_collection = "docs"
+title = "LLM SEO"
 
 [[collection]]
-name = "llm_seo"
-parent = "llm-seo/introduction/index"
+name = "docs"
+after = "retrieval-augmented-generation/index"
 
 [[collection]]
 name = "leverage_content"

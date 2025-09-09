@@ -1,26 +1,42 @@
 fn render_menu(context, node, level, nested) {
-  switch level {
-    0 => component {
-      <div class="documentation-page__menu__section">
-        <div class="documentation-page__menu__section__title">
-          {node.reference.front_matter.title}
-        </div>
-        <div class="documentation-page__menu__section__content">
-          {nested}
-        </div>
-      </div>
-    },
-    _ => component {
-      <a
-        class={clsx(#{
-          "documentation-page__menu__link": true,
-          "documentation-page__menu__link--active": context.is_current_page(node.reference.basename),
-        })}
-        href={context.link_to(node.reference.basename)}
-      >
-        {node.reference.front_matter.title}
-      </a>
-    }
+  component {
+    <div class={`documentation-page__menu__section documentation-page__menu__section--level-${level}`}>
+      {switch level {
+        0 => component {
+          <div class="documentation-page__menu__section__title">
+            {node.reference.front_matter.title}
+          </div>
+          <div class="documentation-page__menu__section__content">
+            {nested}
+          </div>
+        },
+        _ => if node.reference.front_matter.render {
+          component {
+            <a
+              class={clsx(#{
+                "documentation-page__menu__link": true,
+                "documentation-page__menu__link--active": context.is_current_page(node.reference.basename),
+              })}
+              href={context.link_to(node.reference.basename)}
+            >
+              {node.reference.front_matter.title}
+            </a>
+            <div class="documentation-page__menu__section__content">
+              {nested}
+            </div>
+          }
+        } else {
+          component {
+            <div class="documentation-page__menu__section__title">
+              {node.reference.front_matter.title}
+            </div>
+            <div class="documentation-page__menu__section__content">
+              {nested}
+            </div>
+          }
+        }
+      }}
+    </div>
   }
 }
 

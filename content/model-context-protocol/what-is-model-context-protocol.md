@@ -1,12 +1,11 @@
 +++
-id = "mcp-initial-page"
 layout = "LayoutDocumentationPage"
-primary_collection = "mcp"
+primary_collection = "docs"
 title = "What is Model Context Protocol?"
 
 [[collection]]
-name = "mcp"
-parent = "model-context-protocol/introduction/index"
+name = "docs"
+parent = "model-context-protocol/index"
 
 [[collection]]
 name = "leverage_content"

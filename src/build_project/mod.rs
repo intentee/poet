@@ -242,7 +242,7 @@ pub async fn build_project(
     if !error_collection.is_empty() {
         error_collection.render();
 
-        return Err(anyhow!("failed before generating pages"));
+        return Err(anyhow!("{} errors", error_collection.len()));
     }
 
     let available_collections_arc: Arc<HashSet<String>> = Arc::new(
@@ -312,6 +312,6 @@ pub async fn build_project(
     } else {
         error_collection.render();
 
-        Err(anyhow!("failed due to the previous errors"))
+        Err(anyhow!("{} errors", error_collection.len()))
     }
 }

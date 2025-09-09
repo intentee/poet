@@ -1,13 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
 primary_collection = "docs"
-render = false
-title = "Building blocks"
+title = "What are Rhai Components?"
 
 [[collection]]
 name = "docs"
-after = "static-site-generator/starting-out/index"
-parent = "static-site-generator/index"
+parent = "templating-engine/index"
 
 [[collection]]
 name = "create_content"

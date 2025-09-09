@@ -1,13 +1,13 @@
 +++
+id = "nlp-initial-page"
 layout = "LayoutDocumentationPage"
 primary_collection = "docs"
-title = "What is Poet?"
+title = "Natural Language Processing"
 
 [[collection]]
 name = "docs"
-parent = "static-site-generator/introduction/index"
+after = "llm-seo/index"
 
 [[collection]]
-name = "create_content"
+name = "analyze_content"
 +++
-

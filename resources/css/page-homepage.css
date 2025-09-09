@@ -26,7 +26,7 @@
 }
 
 .homepage__cta__button {
-  border-radius: 20px 30% 20px 20px;
+  border-radius: 20px 30%;
   border: 2px solid var(--color-border);
   display: inline-flex;
   padding: var(--spacing-half) var(--spacing-base);

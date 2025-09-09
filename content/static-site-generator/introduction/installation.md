@@ -1,12 +1,12 @@
 +++
 id = "install"
 layout = "LayoutDocumentationPage"
-primary_collection = "static_site_generator"
+primary_collection = "docs"
 title = "Installation"
 
 [[collection]]
+name = "docs"
 after = "static-site-generator/introduction/what-is-poet"
-name = "static_site_generator"
 parent = "static-site-generator/introduction/index"
 
 [[collection]]

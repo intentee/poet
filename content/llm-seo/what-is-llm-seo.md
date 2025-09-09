@@ -1,10 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
-render = false
-title = "Introduction"
+primary_collection = "docs"
+title = "What is LLM SEO?"
 
 [[collection]]
-name = "llm_seo"
+name = "docs"
+parent = "llm-seo/index"
 
 [[collection]]
 name = "leverage_content"

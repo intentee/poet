@@ -1,11 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
-primary_collection = "static_site_generator"
+primary_collection = "docs"
 title = "Page navigation"
 
 [[collection]]
+name = "docs"
 after = "static-site-generator/building-blocks/collections-navigation"
-name = "static_site_generator"
 parent = "static-site-generator/building-blocks/index"
 
 [[collection]]

@@ -66,6 +66,10 @@ impl FrontMatter {
         self.props.clone()
     }
 
+    fn rhai_render(&mut self) -> bool {
+        self.render
+    }
+
     fn rhai_title(&mut self) -> String {
         self.title.clone()
     }
@@ -77,6 +81,7 @@ impl CustomType for FrontMatter {
             .with_name("FrontMatter")
             .with_get("description", Self::rhai_description)
             .with_get("props", Self::rhai_props)
+            .with_get("render", Self::rhai_render)
             .with_get("title", Self::rhai_title);
     }
 }

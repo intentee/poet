@@ -1,13 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
 primary_collection = "docs"
-render = false
-title = "Building blocks"
+title = "What is Consistency Guard?"
 
 [[collection]]
 name = "docs"
-after = "static-site-generator/starting-out/index"
-parent = "static-site-generator/index"
+parent = "consistency-guard/index"
 
 [[collection]]
 name = "create_content"

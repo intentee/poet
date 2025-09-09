@@ -1,12 +1,13 @@
 +++
 layout = "LayoutDocumentationPage"
-primary_collection = "static_site_generator"
+primary_collection = "docs"
 render = false
 title = "Starting out"
 
 [[collection]]
+name = "docs"
 after = "static-site-generator/introduction/index"
-name = "static_site_generator"
+parent = "static-site-generator/index"
 
 [[collection]]
 name = "create_content"

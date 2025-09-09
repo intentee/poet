@@ -1,11 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
-primary_collection = "static_site_generator"
+primary_collection = "docs"
 title = "Style your content"
 
 [[collection]]
+name = "docs"
 after = "static-site-generator/starting-out/create-layouts-for-different-content-types"
-name = "static_site_generator"
 parent = "static-site-generator/starting-out/index"
 
 [[collection]]

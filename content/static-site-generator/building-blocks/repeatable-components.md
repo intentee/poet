@@ -1,11 +1,11 @@
 +++
 layout = "LayoutDocumentationPage"
-primary_collection = "static_site_generator"
+primary_collection = "docs"
 title = "Repeatable components"
 
 [[collection]]
+name = "docs"
 after = "static-site-generator/building-blocks/internal-links"
-name = "static_site_generator"
 parent = "static-site-generator/building-blocks/index"
 
 [[collection]]

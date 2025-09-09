@@ -1,13 +1,11 @@
 +++
+id = "static-site-generator-initial-page"
 layout = "LayoutDocumentationPage"
 primary_collection = "docs"
-render = false
-title = "Building blocks"
+title = "Static site generator"
 
 [[collection]]
 name = "docs"
-after = "static-site-generator/starting-out/index"
-parent = "static-site-generator/index"
 
 [[collection]]
 name = "create_content"

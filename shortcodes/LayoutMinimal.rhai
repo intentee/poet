@@ -52,7 +52,6 @@ fn template(context, props, content) {
                     class={clsx(#{
                       "page-navigation__link": true,
                       "page-navigation__link--dropdown": true,
-                      "active": context.belongs_to("static_site_generator"),
                     })}
                   >
                     Static Site Generator
@@ -62,7 +61,6 @@ fn template(context, props, content) {
                     class={clsx(#{
                       "page-navigation__link": true,
                       "page-navigation__link--dropdown": true,
-                      "active": context.belongs_to("templating_engine"),
                     })}
                   >
                     Templating Engine
@@ -72,7 +70,6 @@ fn template(context, props, content) {
                     class={clsx(#{
                       "page-navigation__link": true,
                       "page-navigation__link--dropdown": true,
-                      "active": context.belongs_to("consistency_guard"),
                       "section-create-content": true,
                     })}
                   >
@@ -89,7 +86,6 @@ fn template(context, props, content) {
                     class={clsx(#{
                       "page-navigation__link": true,
                       "page-navigation__link--dropdown": true,
-                      "active": context.belongs_to("mcp"),
                     })}
                   >
                     Model Context Protocol
@@ -99,7 +95,6 @@ fn template(context, props, content) {
                     class={clsx(#{
                       "page-navigation__link": true,
                       "page-navigation__link--dropdown": true,
-                      "active": context.belongs_to("rag"),
                     })}
                   >
                     RAG
@@ -109,7 +104,6 @@ fn template(context, props, content) {
                     class={clsx(#{
                       "page-navigation__link": true,
                       "page-navigation__link--dropdown": true,
-                      "active": context.belongs_to("llm_seo"),
                     })}
                   >
                     LLM SEO
@@ -125,7 +119,6 @@ fn template(context, props, content) {
                     class={clsx(#{
                       "page-navigation__link": true,
                       "page-navigation__link--dropdown": true,
-                      "active": context.belongs_to("nlp"),
                     })}
                   >
                     Natural Language Processing

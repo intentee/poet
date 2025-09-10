@@ -25,12 +25,13 @@ ul {
   padding: 0;
 }
 
-a {
+a,
+a:hover {
   color: inherit;
   text-decoration-color: var(--color-link-text-decoration);
   text-decoration-line: underline;
   text-decoration-style: solid;
-  text-decoration-thickness: 2px;
+  text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 

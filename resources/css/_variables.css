@@ -2,8 +2,8 @@
   --color-body-background: #ffffff;
   --color-body-font: #222;
   --color-border: black;
-  --color-highlight: #ffd79b;
-  --color-link-text-decoration: cornflowerblue;
+  --color-highlight: cyan;
+  --color-link-text-decoration: inherit;
   --color-note-background: #ffffdd;
   --color-scrollbar: #e5e3e1;
   --color-scrollbar-hover: var(--color-highlight);

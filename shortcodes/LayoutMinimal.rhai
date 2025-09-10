@@ -39,7 +39,7 @@ fn template(context, props, content) {
           <nav class="page-navigation">
             <div class="page-navigation__track">
               <a class="page-navigation__link page-navigation__link--site-name" href={context.link_to("index")}>
-                Poet 🪶
+                Poet
               </a>
               <div class="page-navigation__dropdowns">
                 <LayoutMinimalDropdown

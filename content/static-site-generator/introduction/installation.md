@@ -29,7 +29,15 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut at sem quam. Aliquam
 
 ## Some test header for table of contents
 
+Inline code: `inline`
+
 Donec ac erat lectus. Praesent urna turpis, hendrerit sit amet tellus vitae, placerat commodo ipsum. Suspendisse malesuada et risus sed facilisis. Pellentesque aliquet placerat massa, sit amet sodales metus sodales vitae.
+
+```jsx label:"foo"
+<Note class="xD">
+    something
+</Note>
+```
 
 ## Another test header for table of contents
 

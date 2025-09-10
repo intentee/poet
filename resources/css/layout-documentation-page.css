@@ -193,7 +193,10 @@
   display: grid;
   grid-template-areas: "prev next";
   grid-template-columns: repeat(2, 1fr);
+  margin: 0 calc(-1 * var(--spacing-base));
+  padding: 0 var(--spacing-base);
   position: sticky;
+  z-index: var(--z-index-related-pages);
 }
 
 .documentation-page__related-pages__link {

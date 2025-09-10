@@ -22,6 +22,7 @@ use crate::rhai_components::evaluator_factory::EvaluatorFactory;
 use crate::rhai_components::parse_component::parse_component;
 use crate::rhai_functions::clsx;
 use crate::rhai_functions::error;
+use crate::rhai_functions::has;
 use crate::rhai_functions::render_hierarchy;
 use crate::rhai_safe_random_affix::rhai_safe_random_affix;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
@@ -83,6 +84,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
         engine.build_type::<TableOfContents>();
         engine.register_fn("clsx", clsx);
         engine.register_fn("error", error);
+        engine.register_fn("has", has);
         engine.register_fn("render_hierarchy", render_hierarchy);
         engine.set_max_call_levels(128);
 

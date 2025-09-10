@@ -106,7 +106,7 @@ fn template(context, props, content) {
             {
               let prev = menu_hierarchy.before(context.reference.basename);
 
-              if prev != () {
+              if has(prev) {
                 component {
                   <a
                     class="documentation-page__related-pages__link documentation-page__related-pages__link--prev"
@@ -120,7 +120,7 @@ fn template(context, props, content) {
             {
               let next = menu_hierarchy.after(context.reference.basename);
 
-              if next != () {
+              if has(next) {
                 component {
                   <a
                     class="documentation-page__related-pages__link documentation-page__related-pages__link--next"

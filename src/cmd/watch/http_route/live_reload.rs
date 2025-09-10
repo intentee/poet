@@ -37,6 +37,39 @@ async fn respond(
         let std_path = StdPath::new(&path_string);
 
         loop {
+            match app_data
+                .output_filesystem_holder
+                .get_output_filesystem()
+                .await
+            {
+                Ok(Some(filesystem)) => {
+                    match resolve_generated_page(filesystem, std_path, true).await {
+                        Ok(Some(FileEntry {
+                            contents,
+                            relative_path: _,
+                        })) => {
+                            if let Err(err) = session.text(contents).await {
+                                debug!("Unable to send live reload notification: {err}");
+
+                                return;
+                            }
+                        }
+                        Ok(None) => {
+                            warn!("Unable to get file info for live reload: {path_string}");
+                            return;
+                        }
+                        Err(err) => {
+                            error!("Unable to resolve generated file path: {err}");
+                            return;
+                        }
+                    }
+                }
+                Ok(None) => {
+                    warn!("Server is still starting up, or there are no successful builds yet")
+                }
+                Err(err) => error!("Failed to get output filesystem snapshot: {err}"),
+            }
+
             tokio::select! {
                 msg = stream.next() => {
                     match msg {
@@ -54,40 +87,7 @@ async fn respond(
                         }
                     }
                 },
-                _ = app_data.output_filesystem_holder.update_notifier.notified() => {
-                    match app_data
-                        .output_filesystem_holder
-                        .get_output_filesystem()
-                        .await
-                    {
-                        Ok(Some(filesystem)) => {
-                            match resolve_generated_page(filesystem, std_path, true).await {
-                                Ok(Some(FileEntry {
-                                    contents,
-                                    relative_path: _,
-                                })) => {
-                                    if let Err(err) = session.text(contents).await {
-                                        debug!("Unable to send live reload notification: {err}");
-
-                                        return;
-                                    }
-                                }
-                                Ok(None) => {
-                                    warn!("Unable to get file info for live reload: {path_string}");
-                                    return;
-                                }
-                                Err(err) => {
-                                    error!("Unable to resolve generated file path: {err}");
-                                    return;
-                                }
-                            }
-                        }
-                        Ok(None) => {
-                            warn!("Server is still starting up, or there are no successful builds yet")
-                        }
-                        Err(err) => error!("Failed to get output filesystem snapshot: {err}"),
-                    }
-                }
+                _ = app_data.output_filesystem_holder.update_notifier.notified() => {}
             }
         }
     });

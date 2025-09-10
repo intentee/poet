@@ -1,3 +1,14 @@
+fn render_heading(context, heading) {
+  component {
+    <a
+      class="documentation-page__toc__link-list__link"
+      href={`#${heading.id}`}
+    >
+      {heading.content}
+    </a>
+  }
+}
+
 fn render_menu(context, node, level, nested) {
   component {
     <div class={`documentation-page__menu__section documentation-page__menu__section--level-${level}`}>
@@ -75,22 +86,11 @@ fn template(context, props, content) {
                 On this page
               </div>
               <div class="documentation-page__toc__link-list">{
-                let rendered = [];
-
-                for heading in context.table_of_contents.headings {
-                  if heading.depth == 2 {
-                    rendered.push(component {
-                      <a
-                        class="documentation-page__toc__link-list__link"
-                        href={`#${heading.id}`}
-                      >
-                        {heading.content}
-                      </a>
-                    });
-                  }
-                }
-
-                rendered
+                context
+                  .table_of_contents
+                  .headings
+                  .filter(|heading| heading.depth == 2)
+                  .map(render_heading.curry(context))
               }</div>
             }
           }}</div>

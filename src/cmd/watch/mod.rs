@@ -37,6 +37,7 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
+use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";
@@ -202,6 +203,9 @@ impl Handler for Watch {
                             Files::new(STATIC_FILES_PUBLIC_PATH, assets_directory_clone.clone())
                                 .prefer_utf8(true),
                         )
+                        .service(McpHttpServiceFactory {
+                            mount_path: "/mcp".to_string(),
+                        })
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)
                 })

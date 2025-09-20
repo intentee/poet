@@ -1859,6 +1859,7 @@ dependencies = [
  "itertools",
  "log",
  "markdown",
+ "mime",
  "mime_guess",
  "nanoid",
  "nom",

@@ -3,12 +3,11 @@ use serde::Serialize;
 
 use crate::jsonrpc::notification::Notification;
 use crate::jsonrpc::request::Request;
-use crate::jsonrpc::response::Response;
+use crate::jsonrpc::request::initialize::Initialize;
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum Message {
-    Request(Request),
-    Response(Response),
+#[serde(deny_unknown_fields, untagged)]
+pub enum ClientToServerMessage {
+    Initialize(Request<Initialize>),
     Notification(Notification),
 }

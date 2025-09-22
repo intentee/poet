@@ -1,3 +1,4 @@
+pub mod respond_to_delete;
 pub mod respond_to_get;
 pub mod respond_to_post;
 
@@ -15,6 +16,7 @@ use actix_web::http::header;
 use actix_web::mime;
 use futures_util::future::LocalBoxFuture;
 
+use crate::mcp::mcp_http_service::respond_to_delete::RespondToDelete;
 use crate::mcp::mcp_http_service::respond_to_get::RespondToGet;
 use crate::mcp::mcp_http_service::respond_to_post::RespondToPost;
 use crate::mcp::mcp_responder_handler::McpResponderHandler;
@@ -35,6 +37,7 @@ impl Service<ServiceRequest> for McpHttpService {
             let args = (req.request().clone(), req.take_payload());
 
             let http_response = match req_method {
+                Method::DELETE => McpResponderHandler(RespondToDelete {}).call(args).await?,
                 Method::GET => McpResponderHandler(RespondToGet {}).call(args).await?,
                 Method::POST => McpResponderHandler(RespondToPost {}).call(args).await?,
                 _ => HttpResponse::MethodNotAllowed()

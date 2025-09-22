@@ -14,6 +14,7 @@ pub const ERROR_INVALID_REQUEST: i32 = -32600;
 // pub const ERROR_SERVER_ERROR_RANGE_MAX: i32 = -32000;
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Error {
     pub code: i32,
     pub data: Value,

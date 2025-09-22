@@ -1,7 +1,8 @@
 use actix_web::HttpRequest;
 use actix_web::HttpResponse;
+use actix_web::Result;
 use actix_web::body::BoxBody;
-use anyhow::Result;
+use actix_web::dev::Payload;
 use async_trait::async_trait;
 use mime::Mime;
 
@@ -16,7 +17,11 @@ impl McpResponder for RespondToGet {
         vec![mime::TEXT_EVENT_STREAM]
     }
 
-    async fn respond_to(&self, req: HttpRequest) -> Result<HttpResponse<BoxBody>> {
+    async fn respond_to(
+        &self,
+        req: HttpRequest,
+        payload: Payload,
+    ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok().body("hello, world, get".to_string()))
     }
 }

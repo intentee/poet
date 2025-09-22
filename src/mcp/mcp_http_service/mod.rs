@@ -2,6 +2,7 @@ pub mod respond_to_get;
 pub mod respond_to_post;
 
 use actix_web::Handler as _;
+use actix_web::HttpMessage as _;
 use actix_web::HttpResponse;
 use actix_web::body::BoxBody;
 use actix_web::dev::Service;
@@ -27,15 +28,15 @@ impl Service<ServiceRequest> for McpHttpService {
 
     always_ready!();
 
-    fn call(&self, req: ServiceRequest) -> Self::Future {
+    fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let req_method = req.method().clone();
 
         Box::pin(async move {
-            let args = (req.request().clone(),);
+            let args = (req.request().clone(), req.take_payload());
 
             let http_response = match req_method {
-                Method::GET => McpResponderHandler(RespondToGet {}).call(args).await,
-                Method::POST => McpResponderHandler(RespondToPost {}).call(args).await,
+                Method::GET => McpResponderHandler(RespondToGet {}).call(args).await?,
+                Method::POST => McpResponderHandler(RespondToPost {}).call(args).await?,
                 _ => HttpResponse::MethodNotAllowed()
                     .insert_header(header::ContentType(mime::TEXT_PLAIN_UTF_8))
                     .body("Method not allowed"),

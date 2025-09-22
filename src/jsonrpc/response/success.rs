@@ -2,9 +2,11 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 
-#[derive(Deserialize, Serialize)]
+use crate::jsonrpc::id::Id;
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Success {
-    pub id: String,
+    pub id: Id,
     pub jsonrpc: String,
     pub result: Value,
 }

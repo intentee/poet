@@ -204,7 +204,7 @@ impl Handler for Watch {
                                 .prefer_utf8(true),
                         )
                         .service(McpHttpServiceFactory {
-                            mount_path: "/mcp".to_string(),
+                            mount_path: "/mcp/streamable".to_string(),
                         })
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)

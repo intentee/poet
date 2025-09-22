@@ -1,23 +1,22 @@
 use actix_web::HttpRequest;
 use actix_web::HttpResponse;
-use actix_web::Responder;
 use actix_web::body::BoxBody;
+use anyhow::Result;
+use async_trait::async_trait;
+use mime::Mime;
 
-use crate::mcp::accepts_all::Conclusion;
-use crate::mcp::accepts_all::accepts_all;
+use crate::mcp::mcp_responder::McpResponder;
 
+#[derive(Clone)]
 pub struct RespondToPost {}
 
-impl Responder for RespondToPost {
-    type Body = BoxBody;
+#[async_trait(?Send)]
+impl McpResponder for RespondToPost {
+    fn accepts() -> Vec<Mime> {
+        vec![mime::APPLICATION_JSON, mime::TEXT_EVENT_STREAM]
+    }
 
-    fn respond_to(self, req: &HttpRequest) -> HttpResponse<Self::Body> {
-        match accepts_all(req, vec![mime::APPLICATION_JSON, mime::TEXT_EVENT_STREAM]) {
-            Conclusion::AllAcceptable => HttpResponse::Ok().body("hello, world, get".to_string()),
-            Conclusion::NotAllAcceptable => HttpResponse::NotAcceptable().into(),
-            Conclusion::ErrorParsingHeader(err) => HttpResponse::InternalServerError()
-                .body(format!("{err}"))
-                .into(),
-        }
+    async fn respond_to(&self, req: HttpRequest) -> Result<HttpResponse<BoxBody>> {
+        Ok(HttpResponse::Ok().body("hello, world, post".to_string()))
     }
 }

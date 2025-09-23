@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::jsonrpc::notification::initialized::Initialized;
+use crate::jsonrpc::notification::Notification;
 use crate::jsonrpc::request::Request;
 use crate::jsonrpc::request::initialize::Initialize;
 use crate::jsonrpc::request::ping::Ping;
@@ -9,5 +11,6 @@ use crate::jsonrpc::request::ping::Ping;
 #[serde(deny_unknown_fields, untagged)]
 pub enum ClientToServerMessage {
     Initialize(Request<Initialize>),
+    Initialized(Notification<Initialized>),
     Ping(Request<Ping>),
 }

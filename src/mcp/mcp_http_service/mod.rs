@@ -20,10 +20,13 @@ use crate::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service::respond_to_delete::RespondToDelete;
 use crate::mcp::mcp_http_service::respond_to_get::RespondToGet;
 use crate::mcp::mcp_http_service::respond_to_post::RespondToPost;
+use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::mcp_responder_handler::McpResponderHandler;
+use crate::mcp::session_manager::SessionManager;
 
 pub struct McpHttpService {
     pub server_info: Implementation,
+    pub session_manager: SessionManager,
 }
 
 impl Service<ServiceRequest> for McpHttpService {
@@ -36,17 +39,26 @@ impl Service<ServiceRequest> for McpHttpService {
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let req_method = req.method().clone();
         let server_info = self.server_info.clone();
+        let session_manager = self.session_manager.clone();
 
         Box::pin(async move {
-            let args = (req.request().clone(), req.take_payload());
+            let ctx = McpResponderContext {
+                payload: req.take_payload(),
+                req: req.request().clone(),
+                session: session_manager.restore_session(&req).await?,
+                session_manager: session_manager.clone(),
+            };
 
             let http_response = match req_method {
-                Method::DELETE => McpResponderHandler(RespondToDelete {}).call(args).await?,
-                Method::GET => McpResponderHandler(RespondToGet {}).call(args).await?,
+                Method::DELETE => McpResponderHandler(RespondToDelete {}).call((ctx,)).await?,
+                Method::GET => McpResponderHandler(RespondToGet {}).call((ctx,)).await?,
                 Method::POST => {
-                    McpResponderHandler(RespondToPost { server_info })
-                        .call(args)
-                        .await?
+                    McpResponderHandler(RespondToPost {
+                        server_info,
+                        session_manager,
+                    })
+                    .call((ctx,))
+                    .await?
                 }
                 _ => HttpResponse::MethodNotAllowed()
                     .insert_header(header::ContentType(mime::TEXT_PLAIN_UTF_8))

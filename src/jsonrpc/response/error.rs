@@ -5,7 +5,7 @@ use serde_json::Value;
 use crate::jsonrpc::JSONRPC_VERSION;
 use crate::jsonrpc::id::Id;
 
-// pub const ERROR_PARSE_ERROR: i32 = -32700;
+pub const ERROR_PARSE_ERROR: i32 = -32700;
 pub const ERROR_INVALID_REQUEST: i32 = -32600;
 // pub const ERROR_METHOD_NOT_FOUND: i32 = -32601;
 // pub const ERROR_INVALID_PARAMS: i32 = -32602;
@@ -28,6 +28,15 @@ impl Error {
         Self {
             code: ERROR_INVALID_REQUEST,
             data: format!("Invalid request: {message}").into(),
+            id: None,
+            jsonrpc: JSONRPC_VERSION.to_string(),
+        }
+    }
+
+    pub fn parse(message: String) -> Self {
+        Self {
+            code: ERROR_PARSE_ERROR,
+            data: format!("Parse error: {message}").into(),
             id: None,
             jsonrpc: JSONRPC_VERSION.to_string(),
         }

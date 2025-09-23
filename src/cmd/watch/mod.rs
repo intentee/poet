@@ -39,6 +39,8 @@ use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
 use crate::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
+use crate::mcp::session_manager::SessionManager;
+use crate::mcp::session_storage::memory::Memory as MemorySessionStorage;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";
@@ -201,6 +203,9 @@ impl Handler for Watch {
                     title: Some("Poet".to_string()),
                     version: env!("CARGO_PKG_VERSION").to_string(),
                 };
+                let session_manager = SessionManager {
+                    session_storage: Arc::new(MemorySessionStorage::new()),
+                };
 
                 if let Err(err) = HttpServer::new(move || {
                     App::new()
@@ -212,6 +217,7 @@ impl Handler for Watch {
                         .service(McpHttpServiceFactory {
                             mount_path: "/mcp/streamable".to_string(),
                             server_info: server_info.clone(),
+                            session_manager: session_manager.clone(),
                         })
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)

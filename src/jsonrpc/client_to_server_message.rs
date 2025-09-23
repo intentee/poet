@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::jsonrpc::notification::initialized::Initialized;
 use crate::jsonrpc::notification::Notification;
+use crate::jsonrpc::notification::initialized::Initialized;
 use crate::jsonrpc::request::Request;
 use crate::jsonrpc::request::initialize::Initialize;
 use crate::jsonrpc::request::ping::Ping;

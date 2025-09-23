@@ -45,6 +45,7 @@ tokio-stream = "0.1.17"
 tokio-util = "0.7.16"
 toml = "0.9.5"
 url = "2.5.6"
+uuid = { version = "1.18.1", features = ["rng", "serde", "v4"] }
 
 [dev-dependencies]
 tempfile = "3.21.0"

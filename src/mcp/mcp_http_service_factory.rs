@@ -10,10 +10,12 @@ use futures_util::future::LocalBoxFuture;
 
 use crate::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service::McpHttpService;
+use crate::mcp::session_manager::SessionManager;
 
 pub struct McpHttpServiceFactory {
     pub mount_path: String,
     pub server_info: Implementation,
+    pub session_manager: SessionManager,
 }
 
 impl ServiceFactory<ServiceRequest> for McpHttpServiceFactory {
@@ -26,8 +28,14 @@ impl ServiceFactory<ServiceRequest> for McpHttpServiceFactory {
 
     fn new_service(&self, _: Self::Config) -> Self::Future {
         let server_info = self.server_info.clone();
+        let session_manager = self.session_manager.clone();
 
-        Box::pin(async move { Ok(McpHttpService { server_info }) })
+        Box::pin(async move {
+            Ok(McpHttpService {
+                server_info,
+                session_manager,
+            })
+        })
     }
 }
 

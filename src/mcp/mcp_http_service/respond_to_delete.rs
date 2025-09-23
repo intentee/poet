@@ -1,12 +1,12 @@
-use actix_web::HttpRequest;
 use actix_web::HttpResponse;
 use actix_web::Result;
 use actix_web::body::BoxBody;
-use actix_web::dev::Payload;
 use async_trait::async_trait;
 use mime::Mime;
 
+use crate::mcp::MCP_SESSION_HEADER_NAME;
 use crate::mcp::mcp_responder::McpResponder;
+use crate::mcp::mcp_responder_context::McpResponderContext;
 
 /// This method is only used to terminate the session
 /// https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#session-management
@@ -21,9 +21,21 @@ impl McpResponder for RespondToDelete {
 
     async fn respond_to(
         &self,
-        req: HttpRequest,
-        payload: Payload,
+        McpResponderContext {
+            session,
+            session_manager,
+            ..
+        }: McpResponderContext,
     ) -> Result<HttpResponse<BoxBody>> {
-        Ok(HttpResponse::Ok().body("hello, world, delete".to_string()))
+        match session {
+            Some(session) => {
+                session_manager.terminate_session(session).await?;
+
+                Ok(HttpResponse::Accepted().into())
+            }
+            None => Ok(HttpResponse::BadRequest().body(format!(
+                "You need to specify {MCP_SESSION_HEADER_NAME} header to use this endpoint"
+            ))),
+        }
     }
 }

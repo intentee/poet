@@ -1,14 +1,20 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ParamsMeta {}
+use crate::jsonrpc::id::Id;
 
 #[derive(Debug, Deserialize, Serialize)]
-// #[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields)]
+pub struct ParamsMeta {
+    #[serde(rename = "progressToken", skip_serializing_if = "Option::is_none")]
+    pub progress_token: Option<Id>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ParamsWithMeta<TParams> {
     #[serde(flatten)]
-    params: TParams,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    _meta: Option<ParamsMeta>,
+    pub params: TParams,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub meta: Option<ParamsMeta>,
 }

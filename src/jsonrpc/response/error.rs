@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::jsonrpc::VERSION;
+use crate::jsonrpc::JSONRPC_VERSION;
 use crate::jsonrpc::id::Id;
 
 // pub const ERROR_PARSE_ERROR: i32 = -32700;
@@ -24,12 +24,12 @@ pub struct Error {
 }
 
 impl Error {
-    pub fn invalid_request() -> Self {
+    pub fn invalid_request(message: String) -> Self {
         Self {
             code: ERROR_INVALID_REQUEST,
-            data: "Invalid request".into(),
+            data: format!("Invalid request: {message}").into(),
             id: None,
-            jsonrpc: VERSION.to_string(),
+            jsonrpc: JSONRPC_VERSION.to_string(),
         }
     }
 }

@@ -7,9 +7,8 @@ use actix_web::dev::Payload;
 use actix_web::web::Json;
 use async_trait::async_trait;
 use mime::Mime;
-use serde_json::Value;
 
-use crate::jsonrpc::VERSION;
+use crate::jsonrpc::JSONRPC_VERSION;
 use crate::jsonrpc::client_to_server_message::ClientToServerMessage;
 use crate::jsonrpc::implementation::Implementation;
 use crate::jsonrpc::request::Request;
@@ -20,10 +19,13 @@ use crate::jsonrpc::response::success::initialize_result::InitializeResult;
 use crate::jsonrpc::response::success::initialize_result::ServerCapabilities;
 use crate::jsonrpc::response::success::pong::Pong;
 use crate::jsonrpc::server_to_client_message::ServerToClientMessage;
+use crate::mcp::MCP_PROTOCOL_VERSION;
 use crate::mcp::mcp_responder::McpResponder;
 
 #[derive(Clone)]
-pub struct RespondToPost {}
+pub struct RespondToPost {
+    pub server_info: Implementation,
+}
 
 #[async_trait(?Send)]
 impl McpResponder for RespondToPost {
@@ -39,16 +41,19 @@ impl McpResponder for RespondToPost {
         // let json: Value = Json::<Value>::from_request(&req, &mut payload).await?.into_inner();
         // println!("raw: {json:?}");
 
-        let json: ClientToServerMessage =
-            Json::<ClientToServerMessage>::from_request(&req, &mut payload)
-                .await?
-                .into_inner();
-        println!("{json:?}");
+        let client_to_server_message: ClientToServerMessage =
+            match Json::<ClientToServerMessage>::from_request(&req, &mut payload).await {
+                Ok(client_to_server_message) => client_to_server_message.into_inner(),
+                Err(err) => {
+                    return Ok(
+                        HttpResponse::BadRequest().json(Error::invalid_request(format!("{err:#}")))
+                    );
+                }
+            };
 
-        match json {
-            // ClientToServerMessage::Notification(_) => {
-            //     Ok(HttpResponse::BadRequest().json(Error::invalid_request()))
-            // }
+        println!("{client_to_server_message:?}");
+
+        match client_to_server_message {
             ClientToServerMessage::Initialize(Request {
                 id,
                 jsonrpc,
@@ -56,7 +61,7 @@ impl McpResponder for RespondToPost {
             }) => Ok(
                 HttpResponse::Ok().json(ServerToClientMessage::InitializeResult(Success {
                     id,
-                    jsonrpc: VERSION.to_string(),
+                    jsonrpc: JSONRPC_VERSION.to_string(),
                     result: InitializeResult {
                         capabilities: ServerCapabilities {
                             completions: None,
@@ -67,19 +72,15 @@ impl McpResponder for RespondToPost {
                             tools: None,
                         },
                         instructions: None,
-                        protocol_version: "2025-06-18".to_string(),
-                        server_info: Implementation {
-                            name: "poet".to_string(),
-                            title: Some("Poet".to_string()),
-                            version: env!("CARGO_PKG_VERSION").to_string(),
-                        },
+                        protocol_version: MCP_PROTOCOL_VERSION.to_string(),
+                        server_info: self.server_info.clone(),
                     },
                 })),
             ),
             ClientToServerMessage::Ping(Request { id, .. }) => Ok(HttpResponse::Ok().json(
                 ServerToClientMessage::Pong(Success {
                     id,
-                    jsonrpc: VERSION.to_string(),
+                    jsonrpc: JSONRPC_VERSION.to_string(),
                     result: Pong {},
                 }),
             )),

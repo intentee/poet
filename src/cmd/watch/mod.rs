@@ -37,6 +37,7 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
+use crate::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
@@ -195,6 +196,11 @@ impl Handler for Watch {
                 let app_data_clone = app_data.clone();
                 let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
                 let assets_directory_clone = assets_directory.clone();
+                let server_info = Implementation {
+                    name: "poet".to_string(),
+                    title: Some("Poet".to_string()),
+                    version: env!("CARGO_PKG_VERSION").to_string(),
+                };
 
                 if let Err(err) = HttpServer::new(move || {
                     App::new()
@@ -205,6 +211,7 @@ impl Handler for Watch {
                         )
                         .service(McpHttpServiceFactory {
                             mount_path: "/mcp/streamable".to_string(),
+                            server_info: server_info.clone(),
                         })
                         .configure(http_route::live_reload::register)
                         .configure(http_route::generated_pages::register)

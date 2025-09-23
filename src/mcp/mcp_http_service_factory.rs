@@ -8,10 +8,12 @@ use actix_web::dev::ServiceResponse;
 use actix_web::error::Error;
 use futures_util::future::LocalBoxFuture;
 
+use crate::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service::McpHttpService;
 
 pub struct McpHttpServiceFactory {
     pub mount_path: String,
+    pub server_info: Implementation,
 }
 
 impl ServiceFactory<ServiceRequest> for McpHttpServiceFactory {
@@ -23,7 +25,9 @@ impl ServiceFactory<ServiceRequest> for McpHttpServiceFactory {
     type Service = McpHttpService;
 
     fn new_service(&self, _: Self::Config) -> Self::Future {
-        Box::pin(async { Ok(McpHttpService {}) })
+        let server_info = self.server_info.clone();
+
+        Box::pin(async move { Ok(McpHttpService { server_info }) })
     }
 }
 

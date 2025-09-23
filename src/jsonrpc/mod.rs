@@ -9,4 +9,4 @@ pub mod response;
 pub mod serde_defaults;
 pub mod server_to_client_message;
 
-pub const VERSION: &str = "2.0";
+pub const JSONRPC_VERSION: &str = "2.0";

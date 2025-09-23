@@ -16,12 +16,15 @@ use actix_web::http::header;
 use actix_web::mime;
 use futures_util::future::LocalBoxFuture;
 
+use crate::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service::respond_to_delete::RespondToDelete;
 use crate::mcp::mcp_http_service::respond_to_get::RespondToGet;
 use crate::mcp::mcp_http_service::respond_to_post::RespondToPost;
 use crate::mcp::mcp_responder_handler::McpResponderHandler;
 
-pub struct McpHttpService {}
+pub struct McpHttpService {
+    pub server_info: Implementation,
+}
 
 impl Service<ServiceRequest> for McpHttpService {
     type Error = Error;
@@ -32,6 +35,7 @@ impl Service<ServiceRequest> for McpHttpService {
 
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let req_method = req.method().clone();
+        let server_info = self.server_info.clone();
 
         Box::pin(async move {
             let args = (req.request().clone(), req.take_payload());
@@ -39,7 +43,11 @@ impl Service<ServiceRequest> for McpHttpService {
             let http_response = match req_method {
                 Method::DELETE => McpResponderHandler(RespondToDelete {}).call(args).await?,
                 Method::GET => McpResponderHandler(RespondToGet {}).call(args).await?,
-                Method::POST => McpResponderHandler(RespondToPost {}).call(args).await?,
+                Method::POST => {
+                    McpResponderHandler(RespondToPost { server_info })
+                        .call(args)
+                        .await?
+                }
                 _ => HttpResponse::MethodNotAllowed()
                     .insert_header(header::ContentType(mime::TEXT_PLAIN_UTF_8))
                     .body("Method not allowed"),

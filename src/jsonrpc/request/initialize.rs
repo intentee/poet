@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use crate::jsonrpc::empty_object::EmptyObject;
 use crate::jsonrpc::implementation::Implementation;
+use crate::jsonrpc::params_with_meta::ParamsWithMeta;
 use crate::jsonrpc::serde_defaults::default_false;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -42,5 +43,5 @@ pub struct InitializeParams {
 #[serde(deny_unknown_fields, rename = "initialize", tag = "method")]
 pub struct Initialize {
     pub method: String,
-    pub params: InitializeParams,
+    pub params: ParamsWithMeta<InitializeParams>,
 }

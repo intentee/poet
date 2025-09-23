@@ -7,7 +7,9 @@ use actix_web::dev::Payload;
 use actix_web::web::Json;
 use async_trait::async_trait;
 use mime::Mime;
+use serde_json::Value;
 
+use crate::jsonrpc::VERSION;
 use crate::jsonrpc::client_to_server_message::ClientToServerMessage;
 use crate::jsonrpc::implementation::Implementation;
 use crate::jsonrpc::request::Request;
@@ -16,6 +18,7 @@ use crate::jsonrpc::response::error::Error;
 use crate::jsonrpc::response::success::Success;
 use crate::jsonrpc::response::success::initialize_result::InitializeResult;
 use crate::jsonrpc::response::success::initialize_result::ServerCapabilities;
+use crate::jsonrpc::response::success::pong::Pong;
 use crate::jsonrpc::server_to_client_message::ServerToClientMessage;
 use crate::mcp::mcp_responder::McpResponder;
 
@@ -33,6 +36,9 @@ impl McpResponder for RespondToPost {
         req: HttpRequest,
         mut payload: Payload,
     ) -> Result<HttpResponse<BoxBody>> {
+        // let json: Value = Json::<Value>::from_request(&req, &mut payload).await?.into_inner();
+        // println!("raw: {json:?}");
+
         let json: ClientToServerMessage =
             Json::<ClientToServerMessage>::from_request(&req, &mut payload)
                 .await?
@@ -40,40 +46,43 @@ impl McpResponder for RespondToPost {
         println!("{json:?}");
 
         match json {
-            ClientToServerMessage::Notification(_) => {
-                Ok(HttpResponse::BadRequest().json(Error::invalid_request()))
-            }
+            // ClientToServerMessage::Notification(_) => {
+            //     Ok(HttpResponse::BadRequest().json(Error::invalid_request()))
+            // }
             ClientToServerMessage::Initialize(Request {
                 id,
                 jsonrpc,
                 payload: Initialize { method, params },
-            }) => {
-                println!("INITIALIZE");
-
-                Ok(
-                    HttpResponse::Ok().json(ServerToClientMessage::InitializeResult(Success {
-                        id,
-                        jsonrpc,
-                        result: InitializeResult {
-                            capabilities: ServerCapabilities {
-                                completions: None,
-                                experimental: None,
-                                logging: None,
-                                prompts: None,
-                                resources: None,
-                                tools: None,
-                            },
-                            instructions: None,
-                            protocol_version: "2025-06-18".to_string(),
-                            server_info: Implementation {
-                                name: "poet".to_string(),
-                                title: Some("Poet".to_string()),
-                                version: env!("CARGO_PKG_VERSION").to_string(),
-                            },
+            }) => Ok(
+                HttpResponse::Ok().json(ServerToClientMessage::InitializeResult(Success {
+                    id,
+                    jsonrpc: VERSION.to_string(),
+                    result: InitializeResult {
+                        capabilities: ServerCapabilities {
+                            completions: None,
+                            experimental: None,
+                            logging: None,
+                            prompts: None,
+                            resources: None,
+                            tools: None,
                         },
-                    })),
-                )
-            }
+                        instructions: None,
+                        protocol_version: "2025-06-18".to_string(),
+                        server_info: Implementation {
+                            name: "poet".to_string(),
+                            title: Some("Poet".to_string()),
+                            version: env!("CARGO_PKG_VERSION").to_string(),
+                        },
+                    },
+                })),
+            ),
+            ClientToServerMessage::Ping(Request { id, .. }) => Ok(HttpResponse::Ok().json(
+                ServerToClientMessage::Pong(Success {
+                    id,
+                    jsonrpc: VERSION.to_string(),
+                    result: Pong {},
+                }),
+            )),
         }
     }
 }

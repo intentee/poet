@@ -3,6 +3,7 @@ pub mod empty_object;
 pub mod id;
 pub mod implementation;
 pub mod notification;
+pub mod params_with_meta;
 pub mod request;
 pub mod response;
 pub mod serde_defaults;

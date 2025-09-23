@@ -1,4 +1,5 @@
 pub mod initialize;
+pub mod ping;
 
 use serde::Deserialize;
 use serde::Serialize;

@@ -2,29 +2,27 @@ use actix_web::FromRequest as _;
 use actix_web::HttpResponse;
 use actix_web::Result;
 use actix_web::body::BoxBody;
-use actix_web::error::ErrorBadRequest;
 use async_trait::async_trait;
 use mime::Mime;
 
 use crate::jsonrpc::JSONRPC_VERSION;
 use crate::jsonrpc::client_to_server_message::ClientToServerMessage;
+use crate::jsonrpc::empty_object::EmptyObject;
 use crate::jsonrpc::implementation::Implementation;
 use crate::jsonrpc::params_with_meta::ParamsWithMeta;
 use crate::jsonrpc::request::Request;
 use crate::jsonrpc::request::initialize::Initialize;
 use crate::jsonrpc::request::initialize::InitializeParams;
-use crate::jsonrpc::request::ping::Ping;
 use crate::jsonrpc::response::error::Error;
 use crate::jsonrpc::response::success::Success;
+use crate::jsonrpc::response::success::empty_response::EmptyResponse;
 use crate::jsonrpc::response::success::initialize_result::InitializeResult;
 use crate::jsonrpc::response::success::initialize_result::ServerCapabilities;
-use crate::jsonrpc::response::success::pong::Pong;
 use crate::jsonrpc::server_to_client_message::ServerToClientMessage;
+use crate::mcp::MCP_HEADER_SESSION;
 use crate::mcp::MCP_PROTOCOL_VERSION;
-use crate::mcp::MCP_SESSION_HEADER_NAME;
 use crate::mcp::mcp_responder::McpResponder;
 use crate::mcp::mcp_responder_context::McpResponderContext;
-use crate::mcp::session::Session;
 use crate::mcp::session_manager::SessionManager;
 
 #[derive(Clone)]
@@ -34,14 +32,17 @@ pub struct RespondToPost {
 }
 
 impl RespondToPost {
-    fn assert_no_session(&self, session: &Option<Session>) -> Result<()> {
-        if session.is_some() {
-            Err(ErrorBadRequest(
-                "Unexpected session headers. Do not use session with this JSONRPC method.",
-            ))
-        } else {
-            Ok(())
-        }
+    fn empty_response<TParameters>(
+        &self,
+        Request { id, .. }: Request<TParameters>,
+    ) -> Result<HttpResponse<BoxBody>> {
+        Ok(
+            HttpResponse::Ok().json(ServerToClientMessage::Pong(Success {
+                id,
+                jsonrpc: JSONRPC_VERSION.to_string(),
+                result: EmptyResponse {},
+            })),
+        )
     }
 
     async fn respond_to_initialize(
@@ -60,9 +61,11 @@ impl RespondToPost {
             ..
         }: Request<Initialize>,
     ) -> Result<HttpResponse<BoxBody>> {
+        println!("{capabilities:?}");
+
         Ok(HttpResponse::Ok()
             .insert_header((
-                MCP_SESSION_HEADER_NAME,
+                MCP_HEADER_SESSION,
                 self.session_manager.start_new_session().await?.session_id,
             ))
             .json(ServerToClientMessage::InitializeResult(Success {
@@ -72,7 +75,7 @@ impl RespondToPost {
                     capabilities: ServerCapabilities {
                         completions: None,
                         experimental: None,
-                        logging: None,
+                        logging: Some(EmptyObject {}),
                         prompts: None,
                         resources: None,
                         tools: None,
@@ -82,16 +85,6 @@ impl RespondToPost {
                     server_info: self.server_info.clone(),
                 },
             })))
-    }
-
-    fn respond_to_ping(&self, Request { id, .. }: Request<Ping>) -> Result<HttpResponse<BoxBody>> {
-        Ok(
-            HttpResponse::Ok().json(ServerToClientMessage::Pong(Success {
-                id,
-                jsonrpc: JSONRPC_VERSION.to_string(),
-                result: Pong {},
-            })),
-        )
     }
 }
 
@@ -134,8 +127,21 @@ impl McpResponder for RespondToPost {
                 self.assert_no_session(&session)?;
                 self.respond_to_initialize(request).await
             }
-            ClientToServerMessage::Initialized(_) => Ok(HttpResponse::Accepted().into()),
-            ClientToServerMessage::Ping(request) => self.respond_to_ping(request),
+            ClientToServerMessage::Initialized(_) => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+                self.assert_session(&session)?;
+
+                Ok(HttpResponse::Accepted().into())
+            }
+            ClientToServerMessage::LoggingSetLevel(request) => {
+                self.assert_session(&session)?;
+                self.empty_response(request)
+            }
+            ClientToServerMessage::Ping(request) => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+                self.assert_session(&session)?;
+                self.empty_response(request)
+            }
         }
     }
 }

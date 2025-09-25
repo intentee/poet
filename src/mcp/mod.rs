@@ -8,5 +8,6 @@ pub mod session;
 pub mod session_manager;
 pub mod session_storage;
 
+pub const MCP_HEADER_PROTOCOL_VERSION: &str = "Mcp-Protocol-Version";
+pub const MCP_HEADER_SESSION: &str = "Mcp-Session-Id";
 pub const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
-pub const MCP_SESSION_HEADER_NAME: &str = "Mcp-Session-Id";

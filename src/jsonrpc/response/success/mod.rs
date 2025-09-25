@@ -1,5 +1,5 @@
+pub mod empty_response;
 pub mod initialize_result;
-pub mod pong;
 
 use serde::Deserialize;
 use serde::Serialize;

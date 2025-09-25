@@ -8,11 +8,16 @@ use crate::mcp::jsonrpc::request::ping::Ping;
 use crate::mcp::jsonrpc::request::resources_list::ResourcesList;
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(untagged)]
+#[serde(tag = "method")]
 pub enum ClientToServerMessage {
+    #[serde(rename = "initialize")]
     Initialize(Initialize),
+    #[serde(rename = "notifications/initialized")]
     Initialized(Initialized),
+    #[serde(rename = "logging/setLevel")]
     LoggingSetLevel(LoggingSetLevel),
+    #[serde(rename = "ping")]
     Ping(Ping),
+    #[serde(rename = "resources/list")]
     ResourcesList(ResourcesList),
 }

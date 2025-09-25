@@ -2,12 +2,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(
-    deny_unknown_fields,
-    rename = "notifications/initialized",
-    tag = "method"
-)]
+#[serde(deny_unknown_fields)]
 pub struct Initialized {
     pub jsonrpc: String,
-    pub method: String,
 }

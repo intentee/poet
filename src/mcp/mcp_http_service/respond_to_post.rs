@@ -92,7 +92,7 @@ impl RespondToPost {
         &self,
         LoggingSetLevel {
             id,
-            params: LoggingSetLevelParams { level },
+            params: LoggingSetLevelParams { level, .. },
             ..
         }: LoggingSetLevel,
         session: Session,
@@ -108,7 +108,7 @@ impl RespondToPost {
         &self,
         ResourcesListRequest {
             id,
-            params: ResourcesListParams { cursor },
+            params: ResourcesListParams { cursor, .. },
             ..
         }: ResourcesListRequest,
     ) -> Result<HttpResponse<BoxBody>> {

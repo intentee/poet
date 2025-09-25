@@ -36,17 +36,16 @@ pub struct InitializeParams {
     pub capabilities: ClientCapabilities,
     #[serde(rename = "clientInfo")]
     pub client_info: Implementation,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub meta: Option<Meta>,
     #[serde(rename = "protocolVersion")]
     pub protocol_version: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields, rename = "initialize", tag = "method")]
+#[serde(deny_unknown_fields)]
 pub struct Initialize {
     pub id: Id,
     pub jsonrpc: String,
-    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
-    pub meta: Option<Meta>,
-    pub method: String,
     pub params: InitializeParams,
 }

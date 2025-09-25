@@ -8,5 +8,6 @@ use serde::Serialize;
     tag = "method"
 )]
 pub struct Initialized {
+    pub jsonrpc: String,
     pub method: String,
 }

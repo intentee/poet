@@ -5,6 +5,7 @@ use actix_web::HttpResponse;
 use actix_web::Result;
 use actix_web::body::BoxBody;
 use async_trait::async_trait;
+use log::error;
 use mime::Mime;
 
 use crate::mcp::MCP_HEADER_SESSION;
@@ -14,8 +15,6 @@ use crate::mcp::jsonrpc::client_to_server_message::ClientToServerMessage;
 use crate::mcp::jsonrpc::empty_object::EmptyObject;
 use crate::mcp::jsonrpc::id::Id;
 use crate::mcp::jsonrpc::implementation::Implementation;
-use crate::mcp::jsonrpc::params_with_meta::ParamsWithMeta;
-use crate::mcp::jsonrpc::request::Request;
 use crate::mcp::jsonrpc::request::initialize::Initialize;
 use crate::mcp::jsonrpc::request::initialize::InitializeParams;
 use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevel;
@@ -56,19 +55,11 @@ impl RespondToPost {
 
     async fn respond_to_initialize(
         &self,
-        Request {
+        Initialize {
             id,
-            payload:
-                Initialize {
-                    method: _,
-                    params:
-                        ParamsWithMeta {
-                            params: InitializeParams { .. },
-                            ..
-                        },
-                },
+            params: InitializeParams { .. },
             ..
-        }: Request<Initialize>,
+        }: Initialize,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok()
             .insert_header((
@@ -99,19 +90,11 @@ impl RespondToPost {
 
     async fn respond_to_logging_set_level(
         &self,
-        Request {
+        LoggingSetLevel {
             id,
-            payload:
-                LoggingSetLevel {
-                    method: _,
-                    params:
-                        ParamsWithMeta {
-                            params: LoggingSetLevelParams { level },
-                            ..
-                        },
-                },
+            params: LoggingSetLevelParams { level },
             ..
-        }: Request<LoggingSetLevel>,
+        }: LoggingSetLevel,
         session: Session,
         session_manager: SessionManager,
     ) -> Result<HttpResponse<BoxBody>> {
@@ -123,20 +106,14 @@ impl RespondToPost {
 
     async fn respond_to_resources_list(
         &self,
-        Request {
+        ResourcesListRequest {
             id,
-            payload:
-                ResourcesListRequest {
-                    method: _,
-                    params:
-                        ParamsWithMeta {
-                            params: ResourcesListParams { cursor },
-                            ..
-                        },
-                },
+            params: ResourcesListParams { cursor },
             ..
-        }: Request<ResourcesListRequest>,
+        }: ResourcesListRequest,
     ) -> Result<HttpResponse<BoxBody>> {
+        println!("RESOURCES");
+
         Ok(HttpResponse::Ok()
             .insert_header((
                 MCP_HEADER_SESSION,
@@ -145,7 +122,7 @@ impl RespondToPost {
             .json(ServerToClientMessage::ResourcesList(Success {
                 id,
                 jsonrpc: JSONRPC_VERSION.to_string(),
-                result: ResourcesListResponse {},
+                result: ResourcesListResponse { resources: vec![] },
             })))
     }
 }
@@ -168,14 +145,21 @@ impl McpResponder for RespondToPost {
     ) -> Result<HttpResponse<BoxBody>> {
         let client_to_server_message: ClientToServerMessage =
             match String::from_request(&req, &mut payload).await {
-                Ok(string_payload) => match serde_json::from_str(&string_payload) {
-                    Ok(client_to_server_message) => client_to_server_message,
-                    Err(err) => {
-                        return Ok(HttpResponse::BadRequest().json(Error::parse(format!(
-                            "Parse error: {err:#}\nPayload: {string_payload}"
-                        ))));
+                Ok(string_payload) => {
+                    println!("STRING PAYLOAD: {string_payload}");
+
+                    match serde_json::from_str(&string_payload) {
+                        Ok(client_to_server_message) => client_to_server_message,
+                        Err(err) => {
+                            let message =
+                                format!("Parse error: {err:#}\nPayload: {string_payload}");
+
+                            error!("{message}");
+
+                            return Ok(HttpResponse::BadRequest().json(Error::parse(message)));
+                        }
                     }
-                },
+                }
                 Err(err) => {
                     return Ok(
                         HttpResponse::BadRequest().json(Error::invalid_request(format!(
@@ -184,6 +168,8 @@ impl McpResponder for RespondToPost {
                     );
                 }
             };
+
+        println!("CLIENT TO SERVER MESSAGE: {client_to_server_message:?}");
 
         match client_to_server_message {
             ClientToServerMessage::Initialize(request) => {

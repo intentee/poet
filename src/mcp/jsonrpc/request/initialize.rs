@@ -5,8 +5,9 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::mcp::jsonrpc::empty_object::EmptyObject;
+use crate::mcp::jsonrpc::id::Id;
 use crate::mcp::jsonrpc::implementation::Implementation;
-use crate::mcp::jsonrpc::params_with_meta::ParamsWithMeta;
+use crate::mcp::jsonrpc::meta::Meta;
 use crate::mcp::jsonrpc::serde_defaults::default_false;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -42,6 +43,10 @@ pub struct InitializeParams {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename = "initialize", tag = "method")]
 pub struct Initialize {
+    pub id: Id,
+    pub jsonrpc: String,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub meta: Option<Meta>,
     pub method: String,
-    pub params: ParamsWithMeta<InitializeParams>,
+    pub params: InitializeParams,
 }

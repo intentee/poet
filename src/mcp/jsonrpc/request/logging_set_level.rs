@@ -1,7 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::mcp::jsonrpc::params_with_meta::ParamsWithMeta;
+use crate::mcp::jsonrpc::id::Id;
+use crate::mcp::jsonrpc::meta::Meta;
 use crate::mcp::log_level::LogLevel;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -13,6 +14,10 @@ pub struct LoggingSetLevelParams {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename = "logging/setLevel", tag = "method")]
 pub struct LoggingSetLevel {
+    pub id: Id,
+    pub jsonrpc: String,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub meta: Option<Meta>,
     pub method: String,
-    pub params: ParamsWithMeta<LoggingSetLevelParams>,
+    pub params: LoggingSetLevelParams,
 }

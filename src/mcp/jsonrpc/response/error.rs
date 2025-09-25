@@ -2,8 +2,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::jsonrpc::JSONRPC_VERSION;
-use crate::jsonrpc::id::Id;
+use crate::mcp::jsonrpc::JSONRPC_VERSION;
+use crate::mcp::jsonrpc::id::Id;
 
 pub const ERROR_PARSE_ERROR: i32 = -32700;
 pub const ERROR_INVALID_REQUEST: i32 = -32600;

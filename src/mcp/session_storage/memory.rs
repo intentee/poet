@@ -25,13 +25,17 @@ impl SessionStorage for Memory {
     }
 
     async fn store_new_session(&self, session: Session) -> Result<()> {
-        self.sessions.insert(session.session_id.clone(), session);
+        self.update_session(session).await
+    }
+
+    async fn terminate_session(&self, Session { session_id, .. }: Session) -> Result<()> {
+        self.sessions.remove(&session_id);
 
         Ok(())
     }
 
-    async fn terminate_session(&self, Session { session_id }: Session) -> Result<()> {
-        self.sessions.remove(&session_id);
+    async fn update_session(&self, session: Session) -> Result<()> {
+        self.sessions.insert(session.session_id.clone(), session);
 
         Ok(())
     }

@@ -12,4 +12,6 @@ pub trait SessionStorage: Send + Sync {
     async fn store_new_session(&self, session: Session) -> Result<()>;
 
     async fn terminate_session(&self, session: Session) -> Result<()>;
+
+    async fn update_session(&self, session: Session) -> Result<()>;
 }

@@ -47,11 +47,13 @@ pub trait McpResponder: Clone {
         }
     }
 
-    fn assert_session(&self, session: &Option<Session>) -> Result<()> {
-        if session.is_some() {
-            Ok(())
-        } else {
-            Err(ErrorBadRequest("Expected session headers."))
+    fn assert_session<'session>(
+        &self,
+        session: &'session Option<Session>,
+    ) -> Result<&'session Session> {
+        match session {
+            Some(session) => Ok(session),
+            None => Err(ErrorBadRequest("Expected session headers.")),
         }
     }
 }

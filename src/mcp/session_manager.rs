@@ -6,6 +6,7 @@ use actix_web::error::ErrorInternalServerError;
 use uuid::Uuid;
 
 use crate::mcp::MCP_HEADER_SESSION;
+use crate::mcp::log_level::LogLevel;
 use crate::mcp::session::Session;
 use crate::mcp::session_storage::SessionStorage;
 
@@ -32,6 +33,7 @@ impl SessionManager {
 
     pub async fn start_new_session(&self) -> Result<Session> {
         let session = Session {
+            log_level: LogLevel::Info,
             session_id: generate_session_id(),
         };
 
@@ -40,6 +42,11 @@ impl SessionManager {
             .await?;
 
         Ok(session)
+    }
+
+    #[inline]
+    pub async fn update_session(&self, session: Session) -> Result<()> {
+        self.session_storage.update_session(session).await
     }
 
     #[inline]

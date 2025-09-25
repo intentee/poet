@@ -4,10 +4,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::jsonrpc::empty_object::EmptyObject;
-use crate::jsonrpc::implementation::Implementation;
-use crate::jsonrpc::params_with_meta::ParamsWithMeta;
-use crate::jsonrpc::serde_defaults::default_false;
+use crate::mcp::jsonrpc::empty_object::EmptyObject;
+use crate::mcp::jsonrpc::implementation::Implementation;
+use crate::mcp::jsonrpc::params_with_meta::ParamsWithMeta;
+use crate::mcp::jsonrpc::serde_defaults::default_false;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

@@ -37,8 +37,9 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
-use crate::jsonrpc::implementation::Implementation;
+use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
+use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::session_storage::memory::Memory as MemorySessionStorage;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
@@ -80,6 +81,7 @@ impl Handler for Watch {
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
+        let resource_list_aggregate = Arc::new(ResourceListAggregate {});
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
 
@@ -175,6 +177,7 @@ impl Handler for Watch {
 
         let addr_server = self.addr;
         let ctrlc_notifier_server = ctrlc_notifier.clone();
+        let resource_list_aggregate_server = resource_list_aggregate.clone();
 
         task_set.spawn(rt::spawn(async move {
             let app_data = Data::new(AppData {
@@ -196,8 +199,9 @@ impl Handler for Watch {
                 }
 
                 let app_data_clone = app_data.clone();
-                let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
                 let assets_directory_clone = assets_directory.clone();
+                let ctrlc_notifier_server_clone = ctrlc_notifier_server.clone();
+                let resource_list_aggregate_clone = resource_list_aggregate_server.clone();
                 let server_info = Implementation {
                     name: "poet".to_string(),
                     title: Some("Poet".to_string()),
@@ -216,6 +220,7 @@ impl Handler for Watch {
                         )
                         .service(McpHttpServiceFactory {
                             mount_path: "/mcp/streamable".to_string(),
+                            resource_list_aggregate: resource_list_aggregate_clone.clone(),
                             server_info: server_info.clone(),
                             session_manager: session_manager.clone(),
                         })

@@ -1,9 +1,14 @@
 pub mod accepts_all;
+pub mod jsonrpc;
+pub mod log_level;
 pub mod mcp_http_service;
 pub mod mcp_http_service_factory;
 pub mod mcp_responder;
 pub mod mcp_responder_context;
 pub mod mcp_responder_handler;
+pub mod provides_resources;
+pub mod resource;
+pub mod resource_list_aggregate;
 pub mod session;
 pub mod session_manager;
 pub mod session_storage;

@@ -23,7 +23,6 @@ fn default_render() -> bool {
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FrontMatter {
-    #[serde(default)]
     pub description: String,
     #[serde(default)]
     pub id: Option<String>,

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix_web::FromRequest as _;
 use actix_web::HttpResponse;
 use actix_web::Result;
@@ -5,40 +7,47 @@ use actix_web::body::BoxBody;
 use async_trait::async_trait;
 use mime::Mime;
 
-use crate::jsonrpc::JSONRPC_VERSION;
-use crate::jsonrpc::client_to_server_message::ClientToServerMessage;
-use crate::jsonrpc::empty_object::EmptyObject;
-use crate::jsonrpc::implementation::Implementation;
-use crate::jsonrpc::params_with_meta::ParamsWithMeta;
-use crate::jsonrpc::request::Request;
-use crate::jsonrpc::request::initialize::Initialize;
-use crate::jsonrpc::request::initialize::InitializeParams;
-use crate::jsonrpc::response::error::Error;
-use crate::jsonrpc::response::success::Success;
-use crate::jsonrpc::response::success::empty_response::EmptyResponse;
-use crate::jsonrpc::response::success::initialize_result::InitializeResult;
-use crate::jsonrpc::response::success::initialize_result::ServerCapabilities;
-use crate::jsonrpc::server_to_client_message::ServerToClientMessage;
 use crate::mcp::MCP_HEADER_SESSION;
 use crate::mcp::MCP_PROTOCOL_VERSION;
+use crate::mcp::jsonrpc::JSONRPC_VERSION;
+use crate::mcp::jsonrpc::client_to_server_message::ClientToServerMessage;
+use crate::mcp::jsonrpc::empty_object::EmptyObject;
+use crate::mcp::jsonrpc::id::Id;
+use crate::mcp::jsonrpc::implementation::Implementation;
+use crate::mcp::jsonrpc::params_with_meta::ParamsWithMeta;
+use crate::mcp::jsonrpc::request::Request;
+use crate::mcp::jsonrpc::request::initialize::Initialize;
+use crate::mcp::jsonrpc::request::initialize::InitializeParams;
+use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevel;
+use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevelParams;
+use crate::mcp::jsonrpc::request::resources_list::ResourcesList as ResourcesListRequest;
+use crate::mcp::jsonrpc::request::resources_list::ResourcesListParams;
+use crate::mcp::jsonrpc::response::error::Error;
+use crate::mcp::jsonrpc::response::success::Success;
+use crate::mcp::jsonrpc::response::success::empty_response::EmptyResponse;
+use crate::mcp::jsonrpc::response::success::initialize_result::InitializeResult;
+use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilities;
+use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityResources;
+use crate::mcp::jsonrpc::response::success::resources_list::ResourcesList as ResourcesListResponse;
+use crate::mcp::jsonrpc::server_to_client_message::ServerToClientMessage;
 use crate::mcp::mcp_responder::McpResponder;
 use crate::mcp::mcp_responder_context::McpResponderContext;
+use crate::mcp::resource_list_aggregate::ResourceListAggregate;
+use crate::mcp::session::Session;
 use crate::mcp::session_manager::SessionManager;
 
 #[derive(Clone)]
 pub struct RespondToPost {
+    pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub server_info: Implementation,
     pub session_manager: SessionManager,
 }
 
 impl RespondToPost {
-    fn empty_response<TParameters>(
-        &self,
-        Request { id, .. }: Request<TParameters>,
-    ) -> Result<HttpResponse<BoxBody>> {
+    fn empty_response(&self, request_id: Id) -> Result<HttpResponse<BoxBody>> {
         Ok(
-            HttpResponse::Ok().json(ServerToClientMessage::Pong(Success {
-                id,
+            HttpResponse::Ok().json(ServerToClientMessage::EmptyResponse(Success {
+                id: request_id,
                 jsonrpc: JSONRPC_VERSION.to_string(),
                 result: EmptyResponse {},
             })),
@@ -54,15 +63,13 @@ impl RespondToPost {
                     method: _,
                     params:
                         ParamsWithMeta {
-                            params: InitializeParams { capabilities, .. },
+                            params: InitializeParams { .. },
                             ..
                         },
                 },
             ..
         }: Request<Initialize>,
     ) -> Result<HttpResponse<BoxBody>> {
-        println!("{capabilities:?}");
-
         Ok(HttpResponse::Ok()
             .insert_header((
                 MCP_HEADER_SESSION,
@@ -77,13 +84,68 @@ impl RespondToPost {
                         experimental: None,
                         logging: Some(EmptyObject {}),
                         prompts: None,
-                        resources: None,
+                        resources: Some(ServerCapabilityResources {
+                            list_changed: true,
+                            subscribe: true,
+                        }),
                         tools: None,
                     },
                     instructions: None,
                     protocol_version: MCP_PROTOCOL_VERSION.to_string(),
                     server_info: self.server_info.clone(),
                 },
+            })))
+    }
+
+    async fn respond_to_logging_set_level(
+        &self,
+        Request {
+            id,
+            payload:
+                LoggingSetLevel {
+                    method: _,
+                    params:
+                        ParamsWithMeta {
+                            params: LoggingSetLevelParams { level },
+                            ..
+                        },
+                },
+            ..
+        }: Request<LoggingSetLevel>,
+        session: Session,
+        session_manager: SessionManager,
+    ) -> Result<HttpResponse<BoxBody>> {
+        session_manager
+            .update_session(session.with_log_level(level))
+            .await?;
+        self.empty_response(id)
+    }
+
+    async fn respond_to_resources_list(
+        &self,
+        Request {
+            id,
+            payload:
+                ResourcesListRequest {
+                    method: _,
+                    params:
+                        ParamsWithMeta {
+                            params: ResourcesListParams { cursor },
+                            ..
+                        },
+                },
+            ..
+        }: Request<ResourcesListRequest>,
+    ) -> Result<HttpResponse<BoxBody>> {
+        Ok(HttpResponse::Ok()
+            .insert_header((
+                MCP_HEADER_SESSION,
+                self.session_manager.start_new_session().await?.session_id,
+            ))
+            .json(ServerToClientMessage::ResourcesList(Success {
+                id,
+                jsonrpc: JSONRPC_VERSION.to_string(),
+                result: ResourcesListResponse {},
             })))
     }
 }
@@ -100,6 +162,7 @@ impl McpResponder for RespondToPost {
             req,
             mut payload,
             session,
+            session_manager,
             ..
         }: McpResponderContext,
     ) -> Result<HttpResponse<BoxBody>> {
@@ -134,13 +197,22 @@ impl McpResponder for RespondToPost {
                 Ok(HttpResponse::Accepted().into())
             }
             ClientToServerMessage::LoggingSetLevel(request) => {
-                self.assert_session(&session)?;
-                self.empty_response(request)
+                self.respond_to_logging_set_level(
+                    request,
+                    self.assert_session(&session)?.clone(),
+                    session_manager,
+                )
+                .await
             }
             ClientToServerMessage::Ping(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 self.assert_session(&session)?;
-                self.empty_response(request)
+                self.empty_response(request.id)
+            }
+            ClientToServerMessage::ResourcesList(request) => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+                self.assert_session(&session)?;
+                self.respond_to_resources_list(request).await
             }
         }
     }

@@ -14,7 +14,6 @@ mod find_table_of_contents_in_mdast;
 mod find_text_content_in_mdast;
 mod front_matter;
 mod is_external_link;
-mod jsonrpc;
 mod markdown_document;
 mod markdown_document_collection;
 mod markdown_document_collection_ranked;

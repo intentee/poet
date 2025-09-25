@@ -2,6 +2,8 @@ pub mod respond_to_delete;
 pub mod respond_to_get;
 pub mod respond_to_post;
 
+use std::sync::Arc;
+
 use actix_web::Handler as _;
 use actix_web::HttpMessage as _;
 use actix_web::HttpResponse;
@@ -16,15 +18,17 @@ use actix_web::http::header;
 use actix_web::mime;
 use futures_util::future::LocalBoxFuture;
 
-use crate::jsonrpc::implementation::Implementation;
+use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service::respond_to_delete::RespondToDelete;
 use crate::mcp::mcp_http_service::respond_to_get::RespondToGet;
 use crate::mcp::mcp_http_service::respond_to_post::RespondToPost;
 use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::mcp_responder_handler::McpResponderHandler;
+use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
 
 pub struct McpHttpService {
+    pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub server_info: Implementation,
     pub session_manager: SessionManager,
 }
@@ -38,6 +42,7 @@ impl Service<ServiceRequest> for McpHttpService {
 
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let req_method = req.method().clone();
+        let resource_list_aggregate = self.resource_list_aggregate.clone();
         let server_info = self.server_info.clone();
         let session_manager = self.session_manager.clone();
 
@@ -54,6 +59,7 @@ impl Service<ServiceRequest> for McpHttpService {
                 Method::GET => McpResponderHandler(RespondToGet {}).call((ctx,)).await?,
                 Method::POST => {
                     McpResponderHandler(RespondToPost {
+                        resource_list_aggregate,
                         server_info,
                         session_manager,
                     })

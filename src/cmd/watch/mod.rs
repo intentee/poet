@@ -81,7 +81,7 @@ impl Handler for Watch {
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
-        let resource_list_aggregate = Arc::new(ResourceListAggregate {});
+        let resource_list_aggregate = Arc::new(ResourceListAggregate { providers: vec![] });
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
 

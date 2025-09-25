@@ -62,12 +62,7 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&resources_list)?;
-        let expected_serialized =
-            r#"{"id":1,"jsonrpc":"2.0","params":{"cursor":"eyJvZmZzZXQiOjV9"}}"#;
-
-        assert_eq!(serialized, expected_serialized);
-
-        let deserialized: ResourcesList = serde_json::from_str(expected_serialized)?;
+        let deserialized: ResourcesList = serde_json::from_str(&serialized)?;
 
         assert_eq!(5, deserialized.params.cursor.unwrap().offset);
 

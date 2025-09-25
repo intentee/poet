@@ -1,1 +1,1 @@
-pub trait ProvidesResources {}
+pub trait ProvidesResources: Send + Sync {}

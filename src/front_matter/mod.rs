@@ -1,6 +1,8 @@
 pub mod collection_placement;
 pub mod collection_placement_list;
 
+use chrono::DateTime;
+use chrono::Utc;
 use rhai::CustomType;
 use rhai::Map;
 use rhai::TypeBuilder;
@@ -32,6 +34,8 @@ pub struct FrontMatter {
     #[serde(default, rename = "collection")]
     pub collections: CollectionPlacementList,
     // pub excerpts: Vec<Excerpt>,
+    #[serde(with = "crate::flexible_datetime")]
+    pub last_updated_at: DateTime<Utc>,
     pub primary_collection: Option<String>,
     #[serde(default)]
     pub props: Map,
@@ -46,6 +50,7 @@ impl FrontMatter {
         Self {
             description: "".to_string(),
             id: None,
+            last_updated_at: Utc::now(),
             layout: "SomeLayout".to_string(),
             collections: Default::default(),
             primary_collection: None,

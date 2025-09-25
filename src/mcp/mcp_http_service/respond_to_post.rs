@@ -125,7 +125,9 @@ impl RespondToPost {
                 result: ResourcesListResponse {
                     resources: self
                         .resource_list_aggregate
-                        .list_resources(ListResourcesParams { cursor })
+                        .list_resources(ListResourcesParams {
+                            cursor: cursor.unwrap_or_default(),
+                        })
                         .await
                         .map_err(ErrorInternalServerError)?,
                 },

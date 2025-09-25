@@ -1,5 +1,7 @@
 pub mod accepts_all;
 pub mod jsonrpc;
+pub mod list_resources_cursor;
+pub mod list_resources_params;
 pub mod log_level;
 pub mod mcp_http_service;
 pub mod mcp_http_service_factory;

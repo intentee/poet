@@ -4,6 +4,7 @@ use actix_web::FromRequest as _;
 use actix_web::HttpResponse;
 use actix_web::Result;
 use actix_web::body::BoxBody;
+use actix_web::error::ErrorInternalServerError;
 use async_trait::async_trait;
 use log::error;
 use mime::Mime;
@@ -29,6 +30,7 @@ use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilitie
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityResources;
 use crate::mcp::jsonrpc::response::success::resources_list::ResourcesList as ResourcesListResponse;
 use crate::mcp::jsonrpc::server_to_client_message::ServerToClientMessage;
+use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::mcp_responder::McpResponder;
 use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
@@ -112,8 +114,6 @@ impl RespondToPost {
             ..
         }: ResourcesListRequest,
     ) -> Result<HttpResponse<BoxBody>> {
-        println!("RESOURCES");
-
         Ok(HttpResponse::Ok()
             .insert_header((
                 MCP_HEADER_SESSION,
@@ -122,7 +122,13 @@ impl RespondToPost {
             .json(ServerToClientMessage::ResourcesList(Success {
                 id,
                 jsonrpc: JSONRPC_VERSION.to_string(),
-                result: ResourcesListResponse { resources: vec![] },
+                result: ResourcesListResponse {
+                    resources: self
+                        .resource_list_aggregate
+                        .list_resources(ListResourcesParams { cursor })
+                        .await
+                        .map_err(ErrorInternalServerError)?,
+                },
             })))
     }
 }
@@ -145,21 +151,16 @@ impl McpResponder for RespondToPost {
     ) -> Result<HttpResponse<BoxBody>> {
         let client_to_server_message: ClientToServerMessage =
             match String::from_request(&req, &mut payload).await {
-                Ok(string_payload) => {
-                    println!("STRING PAYLOAD: {string_payload}");
+                Ok(string_payload) => match serde_json::from_str(&string_payload) {
+                    Ok(client_to_server_message) => client_to_server_message,
+                    Err(err) => {
+                        let message = format!("Parse error: {err:#}\nPayload: {string_payload}");
 
-                    match serde_json::from_str(&string_payload) {
-                        Ok(client_to_server_message) => client_to_server_message,
-                        Err(err) => {
-                            let message =
-                                format!("Parse error: {err:#}\nPayload: {string_payload}");
+                        error!("{message}");
 
-                            error!("{message}");
-
-                            return Ok(HttpResponse::BadRequest().json(Error::parse(message)));
-                        }
+                        return Ok(HttpResponse::BadRequest().json(Error::parse(message)));
                     }
-                }
+                },
                 Err(err) => {
                     return Ok(
                         HttpResponse::BadRequest().json(Error::invalid_request(format!(
@@ -168,8 +169,6 @@ impl McpResponder for RespondToPost {
                     );
                 }
             };
-
-        println!("CLIENT TO SERVER MESSAGE: {client_to_server_message:?}");
 
         match client_to_server_message {
             ClientToServerMessage::Initialize(request) => {
@@ -183,6 +182,8 @@ impl McpResponder for RespondToPost {
                 Ok(HttpResponse::Accepted().into())
             }
             ClientToServerMessage::LoggingSetLevel(request) => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+                self.assert_session(&session)?;
                 self.respond_to_logging_set_level(
                     request,
                     self.assert_session(&session)?.clone(),

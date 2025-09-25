@@ -45,7 +45,10 @@ where
         if let Ok(parsed_naive_datetime) =
             NaiveDateTime::parse_from_str(&input_string, datetime_format_pattern)
         {
-            return Ok(DateTime::from_utc(parsed_naive_datetime, Utc));
+            return Ok(DateTime::from_naive_utc_and_offset(
+                parsed_naive_datetime,
+                Utc,
+            ));
         }
 
         if let Ok(parsed_naive_date) =
@@ -54,7 +57,10 @@ where
             let naive_datetime_at_midnight = parsed_naive_date
                 .and_hms_opt(0, 0, 0)
                 .ok_or_else(|| TDeserializer::Error::custom("Invalid time"))?;
-            return Ok(DateTime::from_utc(naive_datetime_at_midnight, Utc));
+            return Ok(DateTime::from_naive_utc_and_offset(
+                naive_datetime_at_midnight,
+                Utc,
+            ));
         }
     }
 
@@ -74,7 +80,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
+    use serde::Serialize;
 
     use super::*;
 

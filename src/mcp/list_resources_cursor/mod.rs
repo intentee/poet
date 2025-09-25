@@ -9,5 +9,5 @@ pub use self::serialize::serialize;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ListResourcesCursor {
-    pub offset: i32,
+    pub offset: usize,
 }

@@ -34,8 +34,8 @@ pub struct FrontMatter {
     #[serde(default, rename = "collection")]
     pub collections: CollectionPlacementList,
     // pub excerpts: Vec<Excerpt>,
-    #[serde(with = "crate::flexible_datetime")]
-    pub last_updated_at: DateTime<Utc>,
+    #[serde(default, with = "crate::flexible_datetime")]
+    pub last_updated_at: Option<DateTime<Utc>>,
     pub primary_collection: Option<String>,
     #[serde(default)]
     pub props: Map,
@@ -50,7 +50,7 @@ impl FrontMatter {
         Self {
             description: "".to_string(),
             id: None,
-            last_updated_at: Utc::now(),
+            last_updated_at: None,
             layout: "SomeLayout".to_string(),
             collections: Default::default(),
             primary_collection: None,

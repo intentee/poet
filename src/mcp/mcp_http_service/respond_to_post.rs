@@ -37,6 +37,8 @@ use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session::Session;
 use crate::mcp::session_manager::SessionManager;
 
+const PER_PAGE: usize = 100;
+
 #[derive(Clone)]
 pub struct RespondToPost {
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
@@ -127,6 +129,7 @@ impl RespondToPost {
                         .resource_list_aggregate
                         .list_resources(ListResourcesParams {
                             cursor: cursor.unwrap_or_default(),
+                            per_page: PER_PAGE,
                         })
                         .await
                         .map_err(ErrorInternalServerError)?,

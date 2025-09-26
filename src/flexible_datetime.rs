@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use chrono::DateTime;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
@@ -24,23 +25,19 @@ const DATETIME_FORMAT_PATTERNS: &[&str] = &[
 ];
 
 pub fn serialize<TSerializer>(
-    datetime_value: &DateTime<Utc>,
+    datetime_value: &Option<DateTime<Utc>>,
     serializer: TSerializer,
 ) -> Result<TSerializer::Ok, TSerializer::Error>
 where
     TSerializer: Serializer,
 {
-    serializer.serialize_str(&datetime_value.to_rfc3339())
+    match datetime_value {
+        Some(datetime_value) => serializer.serialize_str(&datetime_value.to_rfc3339()),
+        None => serializer.serialize_none(),
+    }
 }
 
-pub fn deserialize<'deserialization_lifetime, TDeserializer>(
-    deserializer: TDeserializer,
-) -> Result<DateTime<Utc>, TDeserializer::Error>
-where
-    TDeserializer: Deserializer<'deserialization_lifetime>,
-{
-    let input_string = String::deserialize(deserializer)?;
-
+pub fn deserialize_string(input_string: String) -> anyhow::Result<DateTime<Utc>> {
     for datetime_format_pattern in DATETIME_FORMAT_PATTERNS {
         if let Ok(parsed_naive_datetime) =
             NaiveDateTime::parse_from_str(&input_string, datetime_format_pattern)
@@ -56,7 +53,8 @@ where
         {
             let naive_datetime_at_midnight = parsed_naive_date
                 .and_hms_opt(0, 0, 0)
-                .ok_or_else(|| TDeserializer::Error::custom("Invalid time"))?;
+                .ok_or_else(|| anyhow!("Invalid date"))?;
+
             return Ok(DateTime::from_naive_utc_and_offset(
                 naive_datetime_at_midnight,
                 Utc,
@@ -72,10 +70,27 @@ where
         return Ok(rfc2822_parsed_datetime.with_timezone(&Utc));
     }
 
-    Err(TDeserializer::Error::custom(format!(
-        "Unable to parse '{}' as datetime with any known format",
-        input_string
-    )))
+    Err(anyhow!(
+        "Unable to parse '{input_string}' as datetime with any known format"
+    ))
+}
+
+pub fn deserialize<'deserialization_lifetime, TDeserializer>(
+    deserializer: TDeserializer,
+) -> Result<Option<DateTime<Utc>>, TDeserializer::Error>
+where
+    TDeserializer: Deserializer<'deserialization_lifetime>,
+{
+    let input_option = Option::deserialize(deserializer)?;
+
+    match input_option {
+        None => Ok(None),
+        Some(input_string) => {
+            Ok(Some(deserialize_string(input_string).map_err(|err| {
+                TDeserializer::Error::custom(format!("{err:#?}"))
+            })?))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -86,8 +101,16 @@ mod tests {
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     struct TestStruct {
-        #[serde(with = "crate::flexible_datetime")]
-        timestamp: DateTime<Utc>,
+        #[serde(default, with = "crate::flexible_datetime")]
+        timestamp: Option<DateTime<Utc>>,
+    }
+
+    #[test]
+    fn test_none() {
+        let input_json = r#"{}"#;
+        let deserialized: TestStruct = serde_json::from_str(input_json).unwrap();
+
+        assert_eq!(deserialized.timestamp, None);
     }
 
     #[test]
@@ -97,15 +120,17 @@ mod tests {
         let expected_datetime = DateTime::parse_from_rfc3339("2025-09-25T00:00:00+00:00")
             .unwrap()
             .with_timezone(&Utc);
-        assert_eq!(deserialized.timestamp, expected_datetime);
+        assert_eq!(deserialized.timestamp, Some(expected_datetime));
     }
 
     #[test]
     fn test_serialize_always_outputs_rfc3339() {
         let test_struct = TestStruct {
-            timestamp: DateTime::parse_from_rfc3339("2025-09-25T14:30:45+00:00")
-                .unwrap()
-                .with_timezone(&Utc),
+            timestamp: Some(
+                DateTime::parse_from_rfc3339("2025-09-25T14:30:45+00:00")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            ),
         };
         let serialized = serde_json::to_string(&test_struct).unwrap();
         assert_eq!(serialized, r#"{"timestamp":"2025-09-25T14:30:45+00:00"}"#);

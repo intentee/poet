@@ -4,6 +4,7 @@ pub mod read_file_contents_result;
 pub mod storage;
 
 use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -21,7 +22,7 @@ pub trait Filesystem: Send + Sync {
 
     fn set_file_contents_sync(&self, path: &Path, contents: &str) -> Result<()>;
 
-    async fn copy_from<TFilesystem: Filesystem>(&self, other: &TFilesystem) -> Result<()> {
+    async fn copy_from<TFilesystem: Filesystem>(&self, other: Arc<TFilesystem>) -> Result<()> {
         for FileEntry {
             contents,
             relative_path,

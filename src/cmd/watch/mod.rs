@@ -33,10 +33,10 @@ use super::value_parser::parse_socket_addr;
 use super::value_parser::validate_is_directory;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
-use crate::build_project::build_project_result::BuildProjectResult;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::memory::Memory;
+use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
@@ -81,9 +81,10 @@ impl Handler for Watch {
         let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
             Arc::new(OutputFilesystemHolder::default());
         let output_filesystem_holder_clone = output_filesystem_holder.clone();
-        let resource_list_aggregate = Arc::new(ResourceListAggregate::default());
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
+
+        let resource_list_aggregate: Arc<ResourceListAggregate> = Arc::new(vec![].into());
 
         let mut task_set = JoinSet::new();
 
@@ -104,7 +105,7 @@ impl Handler for Watch {
                     };
 
                 rhai_template_renderer_holder_rhai
-                    .set_rhai_template_renderer(Some(rhai_template_renderer))
+                    .set(Some(rhai_template_renderer))
                     .await;
             };
 
@@ -127,7 +128,7 @@ impl Handler for Watch {
 
         task_set.spawn(rt::spawn(async move {
             let do_build_project = async || {
-                let rhai_template_renderer = match rhai_template_renderer_holder_builder.get_rhai_template_renderer().await {
+                let rhai_template_renderer = match rhai_template_renderer_holder_builder.get().await {
                     Some(rhai_template_renderer) => rhai_template_renderer,
                     None => {
                         debug!("Rhai components are not compiled yet. Skipping build");
@@ -147,18 +148,12 @@ impl Handler for Watch {
                     rhai_template_renderer,
                     source_filesystem_builder.clone(),
                 ).await {
-                    Ok(BuildProjectResult {
-                        esbuild_metafile: _,
-                        memory_filesystem,
-                    }) => {
-                        if let Err(err) = output_filesystem_holder_clone
-                            .set_output_filesystem(Arc::new(memory_filesystem))
-                            .await
-                        {
-                            error!("Failed to set output filesystem: {err:#?}");
-                        } else {
-                            info!("Build successful");
-                        }
+                    Ok(build_project_result) => {
+                        output_filesystem_holder_clone
+                            .set(Some(build_project_result.memory_filesystem.clone()))
+                            .await;
+
+                        info!("Build successful");
                     }
                     Err(err) => error!("Failed to build project: {err:#}"),
                 }

@@ -1,14 +1,15 @@
 use std::cmp;
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use anyhow::Result;
 
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::resource::Resource;
+use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_handler::ResourceProviderHandler;
 
-#[derive(Default)]
 pub struct ResourceListAggregate {
     /// Providers need to be sorted for the offset to work
     pub providers: BTreeSet<ResourceProviderHandler>,
@@ -56,6 +57,14 @@ impl ResourceListAggregate {
     }
 }
 
+impl From<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
+    fn from(providers: Vec<Arc<dyn ResourceProvider>>) -> Self {
+        Self {
+            providers: providers.into_iter().map(ResourceProviderHandler).collect(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use async_trait::async_trait;
@@ -96,19 +105,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_resources() -> Result<()> {
-        let providers: BTreeSet<ResourceProviderHandler> = [
-            ResourceProviderHandler(Box::new(TestResourceProvider {
+        let resource_list_aggregate: ResourceListAggregate = vec![
+            Arc::new(TestResourceProvider {
                 id: "1".to_string(),
                 total: 3,
-            })),
-            ResourceProviderHandler(Box::new(TestResourceProvider {
+            }) as Arc<dyn ResourceProvider>,
+            Arc::new(TestResourceProvider {
                 id: "2".to_string(),
                 total: 2,
-            })),
+            }) as Arc<dyn ResourceProvider>,
         ]
         .into();
-
-        let resource_list_aggregate = ResourceListAggregate { providers };
 
         let resources_batch_1 = resource_list_aggregate
             .list_resources(ListResourcesParams {
@@ -119,7 +126,7 @@ mod tests {
 
         assert_eq!(resources_batch_1.len(), 2);
         assert_eq!(
-            resources_batch_1.get(0).unwrap().name,
+            resources_batch_1.first().unwrap().name,
             "name_p1_r0".to_string()
         );
         assert_eq!(
@@ -136,7 +143,7 @@ mod tests {
 
         assert_eq!(resources_batch_2.len(), 3);
         assert_eq!(
-            resources_batch_2.get(0).unwrap().name,
+            resources_batch_2.first().unwrap().name,
             "name_p1_r2".to_string()
         );
         assert_eq!(

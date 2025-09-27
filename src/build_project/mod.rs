@@ -1,4 +1,5 @@
 pub mod build_project_result;
+pub mod build_project_result_holder;
 mod document_error;
 mod document_error_collection;
 mod document_rendering_context;
@@ -11,6 +12,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use anyhow::anyhow;
+use dashmap::DashMap;
 use esbuild_metafile::EsbuildMetaFile;
 use log::debug;
 use log::info;
@@ -129,7 +131,7 @@ pub async fn build_project(
     }
     .into();
     let files = source_filesystem.read_content_files().await?;
-    let memory_filesystem = Memory::default();
+    let memory_filesystem = Arc::new(Memory::default());
     let syntax_set = SyntaxSet::load_defaults_newlines();
 
     let mut markdown_basename_by_id: HashMap<String, String> = HashMap::new();
@@ -251,6 +253,8 @@ pub async fn build_project(
             .map(|key| key.to_string())
             .collect::<HashSet<String>>(),
     );
+    let markdown_document_reference_collection: DashMap<String, MarkdownDocumentReference> =
+        Default::default();
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
     let markdown_document_collections_ranked_arc = Arc::new(markdown_document_collections_ranked);
@@ -296,6 +300,11 @@ pub async fn build_project(
                         &processed_file,
                     ) {
                         error_collection.register_error(err, markdown_document.reference.clone());
+                    } else {
+                        markdown_document_reference_collection.insert(
+                            markdown_document.reference.basename(),
+                            markdown_document.reference.clone(),
+                        );
                     }
                 }
                 Err(err) => {
@@ -307,6 +316,7 @@ pub async fn build_project(
     if error_collection.is_empty() {
         Ok(BuildProjectResult {
             esbuild_metafile,
+            markdown_document_reference_collection,
             memory_filesystem,
         })
     } else {

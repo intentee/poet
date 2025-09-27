@@ -1,8 +1,9 @@
 use std::cmp::Ordering;
+use std::sync::Arc;
 
 use crate::mcp::resource_provider::ResourceProvider;
 
-pub struct ResourceProviderHandler(pub Box<dyn ResourceProvider>);
+pub struct ResourceProviderHandler(pub Arc<dyn ResourceProvider>);
 
 impl PartialEq for ResourceProviderHandler {
     fn eq(&self, other: &Self) -> bool {

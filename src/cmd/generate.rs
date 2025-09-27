@@ -44,6 +44,7 @@ impl Handler for Generate {
 
         let BuildProjectResult {
             esbuild_metafile,
+            markdown_document_reference_collection: _,
             memory_filesystem,
         } = build_project(
             AssetPathRenderer {
@@ -62,7 +63,7 @@ impl Handler for Generate {
 
         info!("Saving generated files in output directory...");
 
-        storage.copy_from(&memory_filesystem).await?;
+        storage.copy_from(memory_filesystem).await?;
 
         info!("Copying assets into output directory...");
 

@@ -18,6 +18,7 @@ use log::warn;
 use crate::cmd::watch::app_data::AppData;
 use crate::cmd::watch::resolve_generated_page::resolve_generated_page;
 use crate::filesystem::file_entry::FileEntry;
+use crate::holder::Holder as _;
 
 pub fn register(cfg: &mut web::ServiceConfig) {
     cfg.service(respond);
@@ -37,12 +38,8 @@ async fn respond(
         let std_path = StdPath::new(&path_string);
 
         loop {
-            match app_data
-                .output_filesystem_holder
-                .get_output_filesystem()
-                .await
-            {
-                Ok(Some(filesystem)) => {
+            match app_data.output_filesystem_holder.get().await {
+                Some(filesystem) => {
                     match resolve_generated_page(filesystem, std_path, true).await {
                         Ok(Some(FileEntry {
                             contents,
@@ -64,10 +61,9 @@ async fn respond(
                         }
                     }
                 }
-                Ok(None) => {
+                None => {
                     warn!("Server is still starting up, or there are no successful builds yet")
                 }
-                Err(err) => error!("Failed to get output filesystem snapshot: {err}"),
             }
 
             tokio::select! {

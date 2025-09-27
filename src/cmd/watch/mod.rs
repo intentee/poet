@@ -1,6 +1,5 @@
 mod app_data;
 mod http_route;
-mod output_filesystem_holder;
 mod resolve_generated_page;
 mod respond_with_generated_page;
 mod watch_project_files;
@@ -25,7 +24,6 @@ use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
 use self::app_data::AppData;
-use self::output_filesystem_holder::OutputFilesystemHolder;
 use self::watch_project_files::WatchProjectHandle;
 use self::watch_project_files::watch_project_files;
 use super::Handler;
@@ -33,9 +31,9 @@ use super::value_parser::parse_socket_addr;
 use super::value_parser::validate_is_directory;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
+use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
-use crate::filesystem::memory::Memory;
 use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
@@ -78,9 +76,7 @@ impl Handler for Watch {
         } = watch_project_files(self.source_directory.clone())?;
 
         let assets_directory = self.assets_directory();
-        let output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>> =
-            Arc::new(OutputFilesystemHolder::default());
-        let output_filesystem_holder_clone = output_filesystem_holder.clone();
+        let build_project_result_holder: BuildProjectResultHolder = Default::default();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
 
@@ -122,6 +118,7 @@ impl Handler for Watch {
         }));
 
         let addr_builder = self.addr;
+        let build_project_result_holder_builder = build_project_result_holder.clone();
         let ctrlc_notifier_builder = ctrlc_notifier.clone();
         let rhai_template_renderer_holder_builder = rhai_template_renderer_holder.clone();
         let source_filesystem_builder = source_filesystem.clone();
@@ -149,9 +146,7 @@ impl Handler for Watch {
                     source_filesystem_builder.clone(),
                 ).await {
                     Ok(build_project_result) => {
-                        output_filesystem_holder_clone
-                            .set(Some(build_project_result.memory_filesystem.clone()))
-                            .await;
+                        build_project_result_holder_builder.set(Some(build_project_result)).await;
 
                         info!("Build successful");
                     }
@@ -176,7 +171,7 @@ impl Handler for Watch {
 
         task_set.spawn(rt::spawn(async move {
             let app_data = Data::new(AppData {
-                output_filesystem_holder,
+                build_project_result_holder,
             });
 
             loop {

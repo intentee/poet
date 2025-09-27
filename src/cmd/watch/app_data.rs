@@ -1,8 +1,5 @@
-use std::sync::Arc;
-
-use super::output_filesystem_holder::OutputFilesystemHolder;
-use crate::filesystem::memory::Memory;
+use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 
 pub struct AppData {
-    pub output_filesystem_holder: Arc<OutputFilesystemHolder<Memory>>,
+    pub build_project_result_holder: BuildProjectResultHolder,
 }

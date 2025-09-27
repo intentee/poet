@@ -9,6 +9,7 @@ use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::resource::Resource;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_handler::ResourceProviderHandler;
+use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 
 pub struct ResourceListAggregate {
     /// Providers need to be sorted for the offset to work
@@ -43,7 +44,10 @@ impl ResourceListAggregate {
 
                 let mut taken_resources = provider
                     .0
-                    .list_resources(provider_offset, provider_to_take)
+                    .list_resources(ResourceProviderListParams {
+                        limit: provider_to_take,
+                        offset: provider_offset,
+                    })
                     .await?;
 
                 to_skip = 0;
@@ -83,15 +87,19 @@ mod tests {
             self.id.clone()
         }
 
-        async fn list_resources(&self, offset: usize, limit: usize) -> Result<Vec<Resource>> {
+        async fn list_resources(
+            &self,
+            params: ResourceProviderListParams,
+        ) -> Result<Vec<Resource>> {
             let id = self.id();
             let mut resources: Vec<Resource> = Vec::new();
 
-            for i in offset..(offset + limit) {
+            for i in params.range() {
                 resources.push(Resource {
                     description: format!("description_p{id}_r{i}"),
                     name: format!("name_p{id}_r{i}"),
                     title: format!("title_p{id}_r{i}"),
+                    uri: format!("uri_p{id}_r{i}"),
                 });
             }
 

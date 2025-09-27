@@ -4,6 +4,7 @@ mod document_error;
 mod document_error_collection;
 mod document_rendering_context;
 
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -253,7 +254,7 @@ pub async fn build_project(
             .map(|key| key.to_string())
             .collect::<HashSet<String>>(),
     );
-    let markdown_document_reference_collection: DashMap<String, MarkdownDocumentReference> =
+    let markdown_document_reference_collection_dashmap: DashMap<String, MarkdownDocumentReference> =
         Default::default();
     let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
     let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
@@ -301,7 +302,7 @@ pub async fn build_project(
                     ) {
                         error_collection.register_error(err, markdown_document.reference.clone());
                     } else {
-                        markdown_document_reference_collection.insert(
+                        markdown_document_reference_collection_dashmap.insert(
                             markdown_document.reference.basename(),
                             markdown_document.reference.clone(),
                         );
@@ -314,9 +315,20 @@ pub async fn build_project(
         });
 
     if error_collection.is_empty() {
+        let mut markdown_document_reference_collection: BTreeMap<
+            String,
+            MarkdownDocumentReference,
+        > = Default::default();
+
+        for (key, value) in markdown_document_reference_collection_dashmap.into_iter() {
+            markdown_document_reference_collection.insert(key, value);
+        }
+
         Ok(BuildProjectResult {
             esbuild_metafile,
-            markdown_document_reference_collection,
+            markdown_document_reference_collection: Arc::new(
+                markdown_document_reference_collection,
+            ),
             memory_filesystem,
         })
     } else {

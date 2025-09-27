@@ -6,4 +6,5 @@ pub struct Resource {
     pub description: String,
     pub name: String,
     pub title: String,
+    pub uri: String,
 }

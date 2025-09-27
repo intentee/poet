@@ -12,6 +12,7 @@ pub mod resource;
 pub mod resource_list_aggregate;
 pub mod resource_provider;
 pub mod resource_provider_handler;
+pub mod resource_provider_list_params;
 pub mod session;
 pub mod session_manager;
 pub mod session_storage;

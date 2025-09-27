@@ -38,6 +38,7 @@ use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
+use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::session_storage::memory::Memory as MemorySessionStorage;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
@@ -80,7 +81,9 @@ impl Handler for Watch {
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
 
-        let resource_list_aggregate: Arc<ResourceListAggregate> = Arc::new(vec![].into());
+        let resource_list_aggregate: Arc<ResourceListAggregate> = Arc::new(
+            vec![Arc::new(build_project_result_holder.clone()) as Arc<dyn ResourceProvider>].into(),
+        );
 
         let mut task_set = JoinSet::new();
 

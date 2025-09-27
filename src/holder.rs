@@ -19,10 +19,14 @@ pub trait Holder {
         item_opt.clone()
     }
 
+    fn on_update(&self, _item: &Option<Self::Item>) {}
+
     async fn set(&self, item: Option<Self::Item>) {
         {
             let rw_lock = self.rw_lock();
             let mut item_shared_writer = rw_lock.write().await;
+
+            self.on_update(&item);
 
             *item_shared_writer = item;
         }

@@ -5,7 +5,7 @@ use std::sync::atomic::AtomicUsize;
 use anyhow::Result;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use http::Uri;
+use mime::TEXT_HTML_UTF_8;
 use tokio::sync::Notify;
 use tokio::sync::RwLock;
 
@@ -84,22 +84,14 @@ impl ResourceProvider for BuildProjectResultHolder {
 
     async fn read_resource_contents(
         &self,
-        resource_uri: Uri,
+        resource_uri: String,
+        resource_path: String,
     ) -> Result<Option<Vec<ResourceContent>>> {
-        let resource_path = resource_uri.path();
-        let basename = if resource_path.starts_with("/") {
-            resource_path
-                .strip_prefix("/")
-                .ok_or_else(|| anyhow!("Unable to strip resource path prefix"))?
-        } else {
-            resource_path
-        };
-
         let build_project_result = self.must_get_build_project_result().await?;
 
         match build_project_result
             .markdown_document_reference_collection
-            .get(basename)
+            .get(&resource_path)
         {
             Some(reference) => match build_project_result
                 .memory_filesystem
@@ -113,9 +105,9 @@ impl ResourceProvider for BuildProjectResultHolder {
                 ReadFileContentsResult::Found { contents } => {
                     Ok(Some(vec![ResourceContent::Text(TextResourceContent {
                         meta: None,
-                        mime_type: mime::TEXT_HTML_UTF_8.to_string(),
+                        mime_type: TEXT_HTML_UTF_8.to_string(),
                         text: contents,
-                        uri: resource_uri.to_string(),
+                        uri: resource_uri,
                     })]))
                 }
                 ReadFileContentsResult::Directory | ReadFileContentsResult::NotFound => Ok(None),
@@ -125,7 +117,7 @@ impl ResourceProvider for BuildProjectResultHolder {
     }
 
     fn resource_class(&self) -> String {
-        "content".to_string()
+        "generated".to_string()
     }
 
     fn total(&self) -> usize {

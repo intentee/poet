@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use http::Uri;
 
 use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::resource::Resource;
@@ -12,7 +11,8 @@ pub trait ResourceProvider: Send + Sync {
 
     async fn read_resource_contents(
         &self,
-        resource_uri: Uri,
+        resource_uri: String,
+        resource_path: String,
     ) -> Result<Option<Vec<ResourceContent>>>;
 
     fn resource_class(&self) -> String;

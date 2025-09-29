@@ -69,11 +69,16 @@ impl ResourceListAggregate {
             .scheme_str()
             .ok_or_else(|| anyhow!("Resource URI has no scheme"))?;
 
+        let resource_path: String = uri
+            .strip_prefix(&format!("{resource_class}://"))
+            .ok_or_else(|| anyhow!("Unable to strip resource prefix"))?
+            .to_string();
+
         self.providers
             .get(resource_class)
             .ok_or_else(|| anyhow!("No provider found for resource class: {resource_class}"))?
             .0
-            .read_resource_contents(parsed_uri)
+            .read_resource_contents(uri.to_string(), resource_path)
             .await
     }
 }
@@ -122,7 +127,11 @@ mod tests {
             Ok(resources)
         }
 
-        async fn read_resource_contents(&self, _: Uri) -> Result<Option<Vec<ResourceContent>>> {
+        async fn read_resource_contents(
+            &self,
+            _: String,
+            _: String,
+        ) -> Result<Option<Vec<ResourceContent>>> {
             unimplemented!()
         }
 

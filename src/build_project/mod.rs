@@ -286,26 +286,26 @@ pub async fn build_project(
                 syntax_set: &syntax_set,
             }) {
                 Ok(processed_file) => {
-                    if let Err(err) = memory_filesystem.set_file_contents_sync(
-                        &match markdown_document.reference.target_file_relative_path() {
-                            Ok(relative_path) => relative_path,
-                            Err(err) => {
-                                error_collection.register_error(
-                                    anyhow!(err),
+                    match markdown_document.reference.target_file_relative_path() {
+                        Ok(relative_path) => {
+                            if let Err(err) = memory_filesystem
+                                .set_file_contents_sync(&relative_path, &processed_file)
+                            {
+                                error_collection
+                                    .register_error(err, markdown_document.reference.clone());
+                            } else {
+                                markdown_document_reference_collection_dashmap.insert(
+                                    relative_path.display().to_string(),
                                     markdown_document.reference.clone(),
                                 );
-
-                                return;
                             }
-                        },
-                        &processed_file,
-                    ) {
-                        error_collection.register_error(err, markdown_document.reference.clone());
-                    } else {
-                        markdown_document_reference_collection_dashmap.insert(
-                            markdown_document.reference.basename(),
-                            markdown_document.reference.clone(),
-                        );
+                        }
+                        Err(err) => {
+                            error_collection
+                                .register_error(anyhow!(err), markdown_document.reference.clone());
+
+                            return;
+                        }
                     }
                 }
                 Err(err) => {

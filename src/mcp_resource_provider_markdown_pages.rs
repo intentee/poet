@@ -28,7 +28,7 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
             .skip(offset)
             .take(limit)
             .map(|markdown_document_source| {
-                let relative_path = markdown_document_source.relative_path();
+                let relative_path = &markdown_document_source.relative_path;
 
                 Resource {
                     description: markdown_document_source
@@ -41,8 +41,8 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
                         .front_matter
                         .title
                         .to_owned(),
-                    uri: self.resource_uri(&relative_path),
-                    name: relative_path,
+                    uri: self.resource_uri(relative_path),
+                    name: relative_path.to_string(),
                 }
             })
             .collect())

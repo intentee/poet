@@ -175,18 +175,22 @@ pub async fn build_project(
                 markdown_basename_by_id.insert(id.clone(), basename.clone());
             }
 
-            markdown_document_by_basename.insert(basename, markdown_document_reference.clone());
+            markdown_document_by_basename
+                .insert(basename.clone(), markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {
                 mdast,
                 reference: markdown_document_reference.clone(),
             });
 
             if markdown_document_reference.front_matter.render {
+                let relative_path = format!("{basename}.md");
+
                 markdown_document_sources.insert(
-                    file.relative_path.display().to_string(),
+                    relative_path.clone(),
                     MarkdownDocumentSource {
                         file_entry: file,
                         reference: markdown_document_reference,
+                        relative_path,
                     },
                 );
             }

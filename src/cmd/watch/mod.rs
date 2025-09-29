@@ -34,7 +34,6 @@ use crate::build_project::build_project;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
-use crate::generated_pages_resource_provider::GeneratedPagesResourceProvider;
 use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
@@ -42,6 +41,8 @@ use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::session_storage::memory::Memory as MemorySessionStorage;
+use crate::mcp_resource_provider_generated_pages::McpResourceProviderGeneratedPages;
+use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";
@@ -83,10 +84,15 @@ impl Handler for Watch {
         let source_filesystem = self.source_filesystem();
 
         let resource_list_aggregate: Arc<ResourceListAggregate> = Arc::new(
-            vec![Arc::new(GeneratedPagesResourceProvider(
-                build_project_result_holder.clone(),
-            )) as Arc<dyn ResourceProvider>]
-            .into(),
+            vec![
+                Arc::new(McpResourceProviderGeneratedPages(
+                    build_project_result_holder.clone(),
+                )) as Arc<dyn ResourceProvider>,
+                Arc::new(McpResourceProviderMarkdownPages(
+                    build_project_result_holder.clone(),
+                )) as Arc<dyn ResourceProvider>,
+            ]
+            .try_into()?,
         );
 
         let mut task_set = JoinSet::new();

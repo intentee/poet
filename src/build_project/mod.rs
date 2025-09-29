@@ -41,6 +41,7 @@ use crate::markdown_document_collection::MarkdownDocumentCollection;
 use crate::markdown_document_collection_ranked::MarkdownDocumentCollectionRanked;
 use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
 use crate::markdown_document_reference::MarkdownDocumentReference;
+use crate::markdown_document_source::MarkdownDocumentSource;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
 
@@ -145,8 +146,10 @@ pub async fn build_project(
         MarkdownDocumentCollectionRanked,
     > = HashMap::new();
     let mut markdown_document_list: Vec<MarkdownDocument> = Vec::new();
+    let mut markdown_document_sources: BTreeMap<String, MarkdownDocumentSource> =
+        Default::default();
 
-    for file in &files {
+    for file in files {
         if file.is_markdown() {
             let mdast = string_to_mdast(&file.contents)?;
             let front_matter = find_front_matter_in_mdast(&mdast)?.ok_or_else(|| {
@@ -175,8 +178,18 @@ pub async fn build_project(
             markdown_document_by_basename.insert(basename, markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {
                 mdast,
-                reference: markdown_document_reference,
+                reference: markdown_document_reference.clone(),
             });
+
+            if markdown_document_reference.front_matter.render {
+                markdown_document_sources.insert(
+                    file.relative_path.display().to_string(),
+                    MarkdownDocumentSource {
+                        file_entry: file,
+                        reference: markdown_document_reference,
+                    },
+                );
+            }
         }
     }
 
@@ -262,16 +275,19 @@ pub async fn build_project(
 
     markdown_document_list
         .par_iter()
-        .for_each(|markdown_document| {
+        .filter(|markdown_document| {
             if !markdown_document.reference.front_matter.render {
                 debug!(
                     "Document will not be rendered: {}",
                     markdown_document.reference.basename()
                 );
 
-                return;
+                false
+            } else {
+                true
             }
-
+        })
+        .for_each(|markdown_document| {
             match render_document(DocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
                 available_collections: available_collections_arc.clone(),
@@ -303,8 +319,6 @@ pub async fn build_project(
                         Err(err) => {
                             error_collection
                                 .register_error(anyhow!(err), markdown_document.reference.clone());
-
-                            return;
                         }
                     }
                 }
@@ -329,6 +343,7 @@ pub async fn build_project(
             markdown_document_reference_collection: Arc::new(
                 markdown_document_reference_collection,
             ),
+            markdown_document_sources: Arc::new(markdown_document_sources),
             memory_filesystem,
         })
     } else {

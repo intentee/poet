@@ -10,7 +10,6 @@ use tokio::sync::RwLock;
 
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::holder::Holder;
-use crate::mcp::resource_provider::ResourceProvider;
 
 #[derive(Clone, Default)]
 pub struct BuildProjectResultHolder {

@@ -83,14 +83,27 @@ impl ResourceListAggregate {
     }
 }
 
-impl From<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
-    fn from(providers: Vec<Arc<dyn ResourceProvider>>) -> Self {
-        Self {
-            providers: providers
-                .into_iter()
-                .map(|provider| (provider.resource_class(), ResourceProviderHandler(provider)))
-                .collect(),
+impl TryFrom<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
+    type Error = anyhow::Error;
+
+    fn try_from(providers: Vec<Arc<dyn ResourceProvider>>) -> Result<Self> {
+        let mut providers_map = BTreeMap::new();
+
+        for provider in providers {
+            let resource_class = provider.resource_class();
+
+            if providers_map.contains_key(&resource_class) {
+                return Err(anyhow!(
+                    "Duplicate resource class provider: {resource_class}"
+                ));
+            }
+
+            providers_map.insert(resource_class, ResourceProviderHandler(provider));
         }
+
+        Ok(Self {
+            providers: providers_map,
+        })
     }
 }
 
@@ -156,7 +169,7 @@ mod tests {
                 total: 2,
             }) as Arc<dyn ResourceProvider>,
         ]
-        .into();
+        .try_into()?;
 
         let resources_batch_1 = resource_list_aggregate
             .list_resources(ListResourcesParams {

@@ -8,7 +8,6 @@ use mime::TEXT_HTML_UTF_8;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::filesystem::Filesystem;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
-use crate::holder::Holder;
 use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
@@ -16,10 +15,10 @@ use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 
 #[derive(Clone)]
-pub struct GeneratedPagesResourceProvider(pub BuildProjectResultHolder);
+pub struct McpResourceProviderGeneratedPages(pub BuildProjectResultHolder);
 
 #[async_trait]
-impl ResourceProvider for GeneratedPagesResourceProvider {
+impl ResourceProvider for McpResourceProviderGeneratedPages {
     async fn list_resources(
         &self,
         ResourceProviderListParams { limit, offset }: ResourceProviderListParams,

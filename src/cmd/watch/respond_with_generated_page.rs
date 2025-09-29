@@ -19,6 +19,7 @@ pub async fn respond_with_generated_page(
         Some(BuildProjectResult {
             esbuild_metafile: _,
             markdown_document_reference_collection: _,
+            markdown_document_sources: _,
             memory_filesystem,
         }) => match resolve_generated_page(memory_filesystem, std_path, check_for_index).await? {
             Some(FileEntry {

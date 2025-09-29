@@ -7,7 +7,7 @@ pub struct ResourceProviderHandler(pub Arc<dyn ResourceProvider>);
 
 impl PartialEq for ResourceProviderHandler {
     fn eq(&self, other: &Self) -> bool {
-        self.0.id() == other.0.id()
+        self.0.resource_class() == other.0.resource_class()
     }
 }
 
@@ -21,6 +21,6 @@ impl PartialOrd for ResourceProviderHandler {
 
 impl Ord for ResourceProviderHandler {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.id().cmp(&other.0.id())
+        self.0.resource_class().cmp(&other.0.resource_class())
     }
 }

@@ -78,7 +78,7 @@ impl Filesystem for Storage {
 
         let contents = fs::read_to_string(&full_path).await?;
 
-        Ok(ReadFileContentsResult::Found(contents))
+        Ok(ReadFileContentsResult::Found { contents })
     }
 
     async fn set_file_contents(&self, path: &Path, contents: &str) -> Result<()> {

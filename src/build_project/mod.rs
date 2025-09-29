@@ -123,7 +123,7 @@ pub async fn build_project(
                 "esbuild metafile should be a file, not a directory"
             ));
         }
-        ReadFileContentsResult::Found(contents) => EsbuildMetaFile::from_str(&contents)?,
+        ReadFileContentsResult::Found { contents } => EsbuildMetaFile::from_str(&contents)?,
         ReadFileContentsResult::NotFound => {
             warn!("esbuild metafile not found, proceeding without it");
 

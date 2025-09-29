@@ -22,6 +22,8 @@ use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevel;
 use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevelParams;
 use crate::mcp::jsonrpc::request::resources_list::ResourcesList as ResourcesListRequest;
 use crate::mcp::jsonrpc::request::resources_list::ResourcesListParams;
+use crate::mcp::jsonrpc::request::resources_read::ResourcesRead as ResourcesReadRequest;
+use crate::mcp::jsonrpc::request::resources_read::ResourcesReadParams;
 use crate::mcp::jsonrpc::response::error::Error;
 use crate::mcp::jsonrpc::response::success::Success;
 use crate::mcp::jsonrpc::response::success::empty_response::EmptyResponse;
@@ -29,6 +31,7 @@ use crate::mcp::jsonrpc::response::success::initialize_result::InitializeResult;
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilities;
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityResources;
 use crate::mcp::jsonrpc::response::success::resources_list::ResourcesList as ResourcesListResponse;
+use crate::mcp::jsonrpc::response::success::resources_read::ResourcesRead as ResourcesReadResponse;
 use crate::mcp::jsonrpc::server_to_client_message::ServerToClientMessage;
 use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::mcp_responder::McpResponder;
@@ -136,6 +139,36 @@ impl RespondToPost {
                 },
             })))
     }
+
+    async fn respond_to_resources_read(
+        &self,
+        ResourcesReadRequest {
+            id,
+            params: ResourcesReadParams { uri, .. },
+            ..
+        }: ResourcesReadRequest,
+    ) -> Result<HttpResponse<BoxBody>> {
+        Ok(HttpResponse::Ok()
+            .insert_header((
+                MCP_HEADER_SESSION,
+                self.session_manager.start_new_session().await?.session_id,
+            ))
+            .json(
+                match self
+                    .resource_list_aggregate
+                    .read_resource_contents(&uri)
+                    .await
+                    .map_err(ErrorInternalServerError)?
+                {
+                    Some(contents) => ServerToClientMessage::ResourcesRead(Success {
+                        id,
+                        jsonrpc: JSONRPC_VERSION.to_string(),
+                        result: ResourcesReadResponse { contents },
+                    }),
+                    None => ServerToClientMessage::Error(Error::resource_not_found(id, uri)),
+                },
+            ))
+    }
 }
 
 #[async_trait(?Send)]
@@ -205,6 +238,11 @@ impl McpResponder for RespondToPost {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 self.assert_session(&session)?;
                 self.respond_to_resources_list(request).await
+            }
+            ClientToServerMessage::ResourcesRead(request) => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+                self.assert_session(&session)?;
+                self.respond_to_resources_read(request).await
             }
         }
     }

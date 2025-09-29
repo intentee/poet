@@ -1,5 +1,5 @@
 pub enum ReadFileContentsResult {
     Directory,
-    Found(String),
+    Found { contents: String },
     NotFound,
 }

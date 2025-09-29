@@ -86,7 +86,7 @@ mod tests {
             ReadFileContentsResult::Directory => {
                 return Err(anyhow!("Expected file, got directory"));
             }
-            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 3"),
+            ReadFileContentsResult::Found { contents } => assert_eq!(contents, "Hello, World! 3"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
 
@@ -102,7 +102,7 @@ mod tests {
             ReadFileContentsResult::Directory => {
                 return Err(anyhow!("Expected file, got directory"));
             }
-            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 456"),
+            ReadFileContentsResult::Found { contents } => assert_eq!(contents, "Hello, World! 456"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
 
@@ -118,7 +118,7 @@ mod tests {
             ReadFileContentsResult::Directory => {
                 return Err(anyhow!("Expected file, got directory"));
             }
-            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 1"),
+            ReadFileContentsResult::Found { contents } => assert_eq!(contents, "Hello, World! 1"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
 
@@ -134,7 +134,7 @@ mod tests {
             ReadFileContentsResult::Directory => {
                 return Err(anyhow!("Expected file, got directory"));
             }
-            ReadFileContentsResult::Found(contents) => assert_eq!(contents, "Hello, World! 2"),
+            ReadFileContentsResult::Found { contents } => assert_eq!(contents, "Hello, World! 2"),
             ReadFileContentsResult::NotFound => return Err(anyhow!("File not found")),
         }
 
@@ -145,7 +145,7 @@ mod tests {
             ReadFileContentsResult::Directory => {
                 return Err(anyhow!("Expected file, got directory"));
             }
-            ReadFileContentsResult::Found(contents) => {
+            ReadFileContentsResult::Found { contents } => {
                 return Err(anyhow!("File should not be found: {contents}"));
             }
             ReadFileContentsResult::NotFound => {}

@@ -1,9 +1,12 @@
 use std::cmp;
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use anyhow::Result;
+use anyhow::anyhow;
+use http::Uri;
 
+use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::resource::Resource;
@@ -13,7 +16,7 @@ use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 
 pub struct ResourceListAggregate {
     /// Providers need to be sorted for the offset to work
-    pub providers: BTreeSet<ResourceProviderHandler>,
+    pub providers: BTreeMap<String, ResourceProviderHandler>,
 }
 
 impl ResourceListAggregate {
@@ -28,7 +31,7 @@ impl ResourceListAggregate {
         let mut to_skip = offset;
         let mut to_take = per_page;
 
-        for provider in &self.providers {
+        for provider in self.providers.values() {
             if to_take < 1 {
                 break;
             }
@@ -59,12 +62,29 @@ impl ResourceListAggregate {
 
         Ok(resources)
     }
+
+    pub async fn read_resource_contents(&self, uri: &str) -> Result<Option<Vec<ResourceContent>>> {
+        let parsed_uri: Uri = uri.try_into()?;
+        let resource_class: &str = parsed_uri
+            .scheme_str()
+            .ok_or_else(|| anyhow!("Resource URI has no scheme"))?;
+
+        self.providers
+            .get(resource_class)
+            .ok_or_else(|| anyhow!("No provider found for resource class: {resource_class}"))?
+            .0
+            .read_resource_contents(parsed_uri)
+            .await
+    }
 }
 
 impl From<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
     fn from(providers: Vec<Arc<dyn ResourceProvider>>) -> Self {
         Self {
-            providers: providers.into_iter().map(ResourceProviderHandler).collect(),
+            providers: providers
+                .into_iter()
+                .map(|provider| (provider.resource_class(), ResourceProviderHandler(provider)))
+                .collect(),
         }
     }
 }
@@ -77,33 +97,37 @@ mod tests {
     use crate::mcp::resource_provider::ResourceProvider;
 
     struct TestResourceProvider {
-        pub id: String,
+        pub class: String,
         pub total: usize,
     }
 
     #[async_trait]
     impl ResourceProvider for TestResourceProvider {
-        fn id(&self) -> String {
-            self.id.clone()
-        }
-
         async fn list_resources(
             &self,
             params: ResourceProviderListParams,
         ) -> Result<Vec<Resource>> {
-            let id = self.id();
+            let resource_class = self.resource_class();
             let mut resources: Vec<Resource> = Vec::new();
 
             for i in params.range() {
                 resources.push(Resource {
-                    description: format!("description_p{id}_r{i}"),
-                    name: format!("name_p{id}_r{i}"),
-                    title: format!("title_p{id}_r{i}"),
-                    uri: format!("uri_p{id}_r{i}"),
+                    description: format!("description_p{resource_class}_r{i}"),
+                    name: format!("name_p{resource_class}_r{i}"),
+                    title: format!("title_p{resource_class}_r{i}"),
+                    uri: format!("uri_p{resource_class}_r{i}"),
                 });
             }
 
             Ok(resources)
+        }
+
+        async fn read_resource_contents(&self, _: Uri) -> Result<Option<Vec<ResourceContent>>> {
+            unimplemented!()
+        }
+
+        fn resource_class(&self) -> String {
+            self.class.clone()
         }
 
         fn total(&self) -> usize {
@@ -115,11 +139,11 @@ mod tests {
     async fn test_list_resources() -> Result<()> {
         let resource_list_aggregate: ResourceListAggregate = vec![
             Arc::new(TestResourceProvider {
-                id: "1".to_string(),
+                class: "1".to_string(),
                 total: 3,
             }) as Arc<dyn ResourceProvider>,
             Arc::new(TestResourceProvider {
-                id: "2".to_string(),
+                class: "2".to_string(),
                 total: 2,
             }) as Arc<dyn ResourceProvider>,
         ]

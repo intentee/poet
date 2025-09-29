@@ -6,6 +6,7 @@ use crate::mcp::jsonrpc::request::initialize::Initialize;
 use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevel;
 use crate::mcp::jsonrpc::request::ping::Ping;
 use crate::mcp::jsonrpc::request::resources_list::ResourcesList;
+use crate::mcp::jsonrpc::request::resources_read::ResourcesRead;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "method")]
@@ -20,4 +21,6 @@ pub enum ClientToServerMessage {
     Ping(Ping),
     #[serde(rename = "resources/list")]
     ResourcesList(ResourcesList),
+    #[serde(rename = "resources/read")]
+    ResourcesRead(ResourcesRead),
 }

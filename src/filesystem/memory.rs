@@ -42,7 +42,9 @@ impl Filesystem for Memory {
             .ok_or_else(|| anyhow!("Unable to stringify path"))?;
 
         if let Some(contents) = self.files.get(path_str) {
-            Ok(ReadFileContentsResult::Found(contents.value().to_owned()))
+            Ok(ReadFileContentsResult::Found {
+                contents: contents.value().to_owned(),
+            })
         } else {
             Ok(ReadFileContentsResult::NotFound)
         }

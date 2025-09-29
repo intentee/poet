@@ -1,6 +1,7 @@
 pub mod empty_response;
 pub mod initialize_result;
 pub mod resources_list;
+pub mod resources_read;
 
 use serde::Deserialize;
 use serde::Serialize;

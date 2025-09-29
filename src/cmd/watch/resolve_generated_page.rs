@@ -30,7 +30,7 @@ where
                 Ok(None)
             }
         }
-        Ok(ReadFileContentsResult::Found(contents)) => Ok(Some(FileEntry {
+        Ok(ReadFileContentsResult::Found { contents }) => Ok(Some(FileEntry {
             contents,
             relative_path: std_path.to_path_buf(),
         })),

@@ -5,29 +5,22 @@ use std::sync::atomic::AtomicUsize;
 use anyhow::Result;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use mime::TEXT_HTML_UTF_8;
 use tokio::sync::Notify;
 use tokio::sync::RwLock;
 
 use crate::build_project::build_project_result::BuildProjectResult;
-use crate::filesystem::Filesystem;
-use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::holder::Holder;
-use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
-use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
-use crate::mcp::resource::Resource;
 use crate::mcp::resource_provider::ResourceProvider;
-use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 
 #[derive(Clone, Default)]
 pub struct BuildProjectResultHolder {
     build_project_result_lock: Arc<RwLock<Option<BuildProjectResult>>>,
-    total: Arc<AtomicUsize>,
+    pub total: Arc<AtomicUsize>,
     pub update_notifier: Arc<Notify>,
 }
 
 impl BuildProjectResultHolder {
-    async fn must_get_build_project_result(&self) -> Result<BuildProjectResult> {
+    pub async fn must_get_build_project_result(&self) -> Result<BuildProjectResult> {
         self.get().await.ok_or_else(|| {
             anyhow!("Server is still starting up, or there are no successful builds yet")
         })
@@ -57,70 +50,5 @@ impl Holder for BuildProjectResultHolder {
 
     fn update_notifier(&self) -> Arc<Notify> {
         self.update_notifier.clone()
-    }
-}
-
-#[async_trait]
-impl ResourceProvider for BuildProjectResultHolder {
-    async fn list_resources(
-        &self,
-        ResourceProviderListParams { limit, offset }: ResourceProviderListParams,
-    ) -> Result<Vec<Resource>> {
-        Ok(self
-            .must_get_build_project_result()
-            .await?
-            .markdown_document_reference_collection
-            .iter()
-            .skip(offset)
-            .take(limit)
-            .map(|(basename, reference)| Resource {
-                description: reference.front_matter.description.to_owned(),
-                name: basename.to_string(),
-                title: reference.front_matter.title.to_owned(),
-                uri: self.resource_uri(basename),
-            })
-            .collect())
-    }
-
-    async fn read_resource_contents(
-        &self,
-        resource_uri: String,
-        resource_path: String,
-    ) -> Result<Option<Vec<ResourceContent>>> {
-        let build_project_result = self.must_get_build_project_result().await?;
-
-        match build_project_result
-            .markdown_document_reference_collection
-            .get(&resource_path)
-        {
-            Some(reference) => match build_project_result
-                .memory_filesystem
-                .read_file_contents(
-                    &reference
-                        .target_file_relative_path()
-                        .map_err(|message| anyhow!("{message}"))?,
-                )
-                .await?
-            {
-                ReadFileContentsResult::Found { contents } => {
-                    Ok(Some(vec![ResourceContent::Text(TextResourceContent {
-                        meta: None,
-                        mime_type: TEXT_HTML_UTF_8.to_string(),
-                        text: contents,
-                        uri: resource_uri,
-                    })]))
-                }
-                ReadFileContentsResult::Directory | ReadFileContentsResult::NotFound => Ok(None),
-            },
-            None => Ok(None),
-        }
-    }
-
-    fn resource_class(&self) -> String {
-        "generated".to_string()
-    }
-
-    fn total(&self) -> usize {
-        self.total.load(atomic::Ordering::Relaxed)
     }
 }

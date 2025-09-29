@@ -14,6 +14,7 @@ mod find_table_of_contents_in_mdast;
 mod find_text_content_in_mdast;
 mod flexible_datetime;
 mod front_matter;
+mod generated_pages_resource_provider;
 mod holder;
 mod is_external_link;
 mod markdown_document;

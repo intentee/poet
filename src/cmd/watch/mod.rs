@@ -34,6 +34,7 @@ use crate::build_project::build_project;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
+use crate::generated_pages_resource_provider::GeneratedPagesResourceProvider;
 use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
@@ -82,7 +83,10 @@ impl Handler for Watch {
         let source_filesystem = self.source_filesystem();
 
         let resource_list_aggregate: Arc<ResourceListAggregate> = Arc::new(
-            vec![Arc::new(build_project_result_holder.clone()) as Arc<dyn ResourceProvider>].into(),
+            vec![Arc::new(GeneratedPagesResourceProvider(
+                build_project_result_holder.clone(),
+            )) as Arc<dyn ResourceProvider>]
+            .into(),
         );
 
         let mut task_set = JoinSet::new();

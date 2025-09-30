@@ -1,10 +1,12 @@
 use std::cmp;
-use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use anyhow::Context as _;
 use anyhow::Result;
 use anyhow::anyhow;
 use http::Uri;
+use log::warn;
 
 use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
@@ -13,10 +15,12 @@ use crate::mcp::resource::Resource;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_handler::ResourceProviderHandler;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
+use crate::mcp::resource_reference::ResourceReference;
+use crate::mcp::resource_template::ResourceTemplate;
 
 pub struct ResourceListAggregate {
     /// Providers need to be sorted for the offset to work
-    pub providers: BTreeMap<String, ResourceProviderHandler>,
+    pub providers: BTreeSet<ResourceProviderHandler>,
 }
 
 impl ResourceListAggregate {
@@ -31,7 +35,7 @@ impl ResourceListAggregate {
         let mut to_skip = offset;
         let mut to_take = per_page;
 
-        for provider in self.providers.values() {
+        for provider in &self.providers {
             if to_take < 1 {
                 break;
             }
@@ -64,22 +68,32 @@ impl ResourceListAggregate {
     }
 
     pub async fn read_resource_contents(&self, uri: &str) -> Result<Option<Vec<ResourceContent>>> {
-        let parsed_uri: Uri = uri.try_into()?;
-        let resource_class: &str = parsed_uri
-            .scheme_str()
-            .ok_or_else(|| anyhow!("Resource URI has no scheme"))?;
+        let parsed_uri: Uri = uri
+            .try_into()
+            .map_err(|err| anyhow!("{err:#?}"))
+            .context(format!("Unable to parse resource URI string: {uri}"))?;
 
-        let resource_path: String = uri
-            .strip_prefix(&format!("{resource_class}://"))
-            .ok_or_else(|| anyhow!("Unable to strip resource prefix"))?
-            .to_string();
+        let resource_reference: ResourceReference = parsed_uri.try_into()?;
 
-        self.providers
-            .get(resource_class)
-            .ok_or_else(|| anyhow!("No provider found for resource class: {resource_class}"))?
-            .0
-            .read_resource_contents(uri.to_string(), resource_path)
-            .await
+        for provider in &self.providers {
+            if provider.0.can_handle(&resource_reference) {
+                return provider.0.read_resource_contents(resource_reference).await;
+            }
+        }
+
+        let message = anyhow!("There is no provider that can handle resource: {uri}");
+
+        warn!("{message}");
+
+        Err(message)
+    }
+
+    pub async fn read_resources_templates_list(&self) -> Result<Vec<ResourceTemplate>> {
+        Ok(self
+            .providers
+            .iter()
+            .map(|provider| provider.0.resource_template())
+            .collect())
     }
 }
 
@@ -87,22 +101,8 @@ impl TryFrom<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
     type Error = anyhow::Error;
 
     fn try_from(providers: Vec<Arc<dyn ResourceProvider>>) -> Result<Self> {
-        let mut providers_map = BTreeMap::new();
-
-        for provider in providers {
-            let resource_class = provider.resource_class();
-
-            if providers_map.contains_key(&resource_class) {
-                return Err(anyhow!(
-                    "Duplicate resource class provider: {resource_class}"
-                ));
-            }
-
-            providers_map.insert(resource_class, ResourceProviderHandler(provider));
-        }
-
         Ok(Self {
-            providers: providers_map,
+            providers: providers.into_iter().map(ResourceProviderHandler).collect(),
         })
     }
 }
@@ -113,10 +113,25 @@ mod tests {
 
     use super::*;
     use crate::mcp::resource_provider::ResourceProvider;
+    use crate::mcp::resource_template_provider::ResourceTemplateProvider;
 
     struct TestResourceProvider {
         pub class: String,
         pub total: usize,
+    }
+
+    impl ResourceTemplateProvider for TestResourceProvider {
+        fn mime_type(&self) -> String {
+            "x+foo/bar".to_string()
+        }
+
+        fn resource_class(&self) -> String {
+            self.class.clone()
+        }
+
+        fn resource_scheme(&self) -> String {
+            "foo".to_string()
+        }
     }
 
     #[async_trait]
@@ -142,14 +157,9 @@ mod tests {
 
         async fn read_resource_contents(
             &self,
-            _: String,
-            _: String,
+            _: ResourceReference,
         ) -> Result<Option<Vec<ResourceContent>>> {
             unimplemented!()
-        }
-
-        fn resource_class(&self) -> String {
-            self.class.clone()
         }
 
         fn total(&self) -> usize {

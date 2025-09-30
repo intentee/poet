@@ -1,5 +1,6 @@
 pub mod empty_response;
 pub mod initialize_result;
+pub mod resource_templates_list;
 pub mod resources_list;
 pub mod resources_read;
 

@@ -9,9 +9,25 @@ use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
+use crate::mcp::resource_reference::ResourceReference;
+use crate::mcp::resource_template_provider::ResourceTemplateProvider;
 
 #[derive(Clone)]
 pub struct McpResourceProviderMarkdownPages(pub BuildProjectResultHolder);
+
+impl ResourceTemplateProvider for McpResourceProviderMarkdownPages {
+    fn mime_type(&self) -> String {
+        "text/markdown".to_string()
+    }
+
+    fn resource_class(&self) -> String {
+        "content".to_string()
+    }
+
+    fn resource_scheme(&self) -> String {
+        "poet".to_string()
+    }
+}
 
 #[async_trait]
 impl ResourceProvider for McpResourceProviderMarkdownPages {
@@ -50,29 +66,26 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
 
     async fn read_resource_contents(
         &self,
-        resource_uri: String,
-        resource_path: String,
+        ResourceReference {
+            class: _,
+            path,
+            scheme: _,
+            uri,
+        }: ResourceReference,
     ) -> Result<Option<Vec<ResourceContent>>> {
         let build_project_result = self.0.must_get_build_project_result().await?;
 
-        match build_project_result
-            .markdown_document_sources
-            .get(&resource_path)
-        {
+        match build_project_result.markdown_document_sources.get(&path) {
             Some(markdown_document_source) => {
                 Ok(Some(vec![ResourceContent::Text(TextResourceContent {
                     meta: None,
-                    mime_type: "text/markdown".to_string(),
+                    mime_type: self.mime_type(),
                     text: markdown_document_source.file_entry.contents.clone(),
-                    uri: resource_uri,
+                    uri: uri.to_string(),
                 })]))
             }
             None => Ok(None),
         }
-    }
-
-    fn resource_class(&self) -> String {
-        "content".to_string()
     }
 
     fn total(&self) -> usize {

@@ -3,7 +3,6 @@ use std::sync::atomic;
 use anyhow::Result;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use mime::TEXT_HTML_UTF_8;
 
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::filesystem::Filesystem;
@@ -13,9 +12,25 @@ use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
+use crate::mcp::resource_reference::ResourceReference;
+use crate::mcp::resource_template_provider::ResourceTemplateProvider;
 
 #[derive(Clone)]
 pub struct McpResourceProviderGeneratedPages(pub BuildProjectResultHolder);
+
+impl ResourceTemplateProvider for McpResourceProviderGeneratedPages {
+    fn mime_type(&self) -> String {
+        mime::TEXT_HTML_UTF_8.to_string()
+    }
+
+    fn resource_class(&self) -> String {
+        "generated".to_string()
+    }
+
+    fn resource_scheme(&self) -> String {
+        "poet".to_string()
+    }
+}
 
 #[async_trait]
 impl ResourceProvider for McpResourceProviderGeneratedPages {
@@ -42,14 +57,18 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
 
     async fn read_resource_contents(
         &self,
-        resource_uri: String,
-        resource_path: String,
+        ResourceReference {
+            class: _,
+            path,
+            scheme: _,
+            uri,
+        }: ResourceReference,
     ) -> Result<Option<Vec<ResourceContent>>> {
         let build_project_result = self.0.must_get_build_project_result().await?;
 
         match build_project_result
             .markdown_document_reference_collection
-            .get(&resource_path)
+            .get(&path)
         {
             Some(reference) => match build_project_result
                 .memory_filesystem
@@ -63,19 +82,15 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
                 ReadFileContentsResult::Found { contents } => {
                     Ok(Some(vec![ResourceContent::Text(TextResourceContent {
                         meta: None,
-                        mime_type: TEXT_HTML_UTF_8.to_string(),
+                        mime_type: self.mime_type(),
                         text: contents,
-                        uri: resource_uri,
+                        uri: uri.to_string(),
                     })]))
                 }
                 ReadFileContentsResult::Directory | ReadFileContentsResult::NotFound => Ok(None),
             },
             None => Ok(None),
         }
-    }
-
-    fn resource_class(&self) -> String {
-        "generated".to_string()
     }
 
     fn total(&self) -> usize {

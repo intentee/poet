@@ -7,6 +7,7 @@ use actix_web::body::BoxBody;
 use actix_web::error::ErrorInternalServerError;
 use async_trait::async_trait;
 use log::error;
+use log::warn;
 use mime::Mime;
 
 use crate::mcp::MCP_HEADER_SESSION;
@@ -24,12 +25,14 @@ use crate::mcp::jsonrpc::request::resources_list::ResourcesList as ResourcesList
 use crate::mcp::jsonrpc::request::resources_list::ResourcesListParams;
 use crate::mcp::jsonrpc::request::resources_read::ResourcesRead as ResourcesReadRequest;
 use crate::mcp::jsonrpc::request::resources_read::ResourcesReadParams;
+use crate::mcp::jsonrpc::request::resources_templates_list::ResourcesTemplatesList as ResourcesTemplatesListRequest;
 use crate::mcp::jsonrpc::response::error::Error;
 use crate::mcp::jsonrpc::response::success::Success;
 use crate::mcp::jsonrpc::response::success::empty_response::EmptyResponse;
 use crate::mcp::jsonrpc::response::success::initialize_result::InitializeResult;
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilities;
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityResources;
+use crate::mcp::jsonrpc::response::success::resource_templates_list::ResourcesTemplatesList as ResourcesTemplatesListResponse;
 use crate::mcp::jsonrpc::response::success::resources_list::ResourcesList as ResourcesListResponse;
 use crate::mcp::jsonrpc::response::success::resources_read::ResourcesRead as ResourcesReadResponse;
 use crate::mcp::jsonrpc::server_to_client_message::ServerToClientMessage;
@@ -165,9 +168,35 @@ impl RespondToPost {
                         jsonrpc: JSONRPC_VERSION.to_string(),
                         result: ResourcesReadResponse { contents },
                     }),
-                    None => ServerToClientMessage::Error(Error::resource_not_found(id, uri)),
+                    None => {
+                        warn!("Resource not found: '{uri}'");
+
+                        ServerToClientMessage::Error(Error::resource_not_found(id, uri))
+                    }
                 },
             ))
+    }
+
+    async fn respond_to_resources_templates_list(
+        &self,
+        ResourcesTemplatesListRequest { id, .. }: ResourcesTemplatesListRequest,
+    ) -> Result<HttpResponse<BoxBody>> {
+        Ok(HttpResponse::Ok()
+            .insert_header((
+                MCP_HEADER_SESSION,
+                self.session_manager.start_new_session().await?.session_id,
+            ))
+            .json(ServerToClientMessage::ResourcesTemplatesList(Success {
+                id,
+                jsonrpc: JSONRPC_VERSION.to_string(),
+                result: ResourcesTemplatesListResponse {
+                    resource_templates: self
+                        .resource_list_aggregate
+                        .read_resources_templates_list()
+                        .await
+                        .map_err(ErrorInternalServerError)?,
+                },
+            })))
     }
 }
 
@@ -243,6 +272,11 @@ impl McpResponder for RespondToPost {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 self.assert_session(&session)?;
                 self.respond_to_resources_read(request).await
+            }
+            ClientToServerMessage::ResourcesTemplatesList(request) => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+                self.assert_session(&session)?;
+                self.respond_to_resources_templates_list(request).await
             }
         }
     }

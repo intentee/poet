@@ -14,7 +14,7 @@ use crate::mcp::session::Session;
 pub trait McpResponder: Clone {
     fn accepts() -> Vec<Mime>;
 
-    async fn respond_to(&self, context: McpResponderContext) -> Result<HttpResponse<BoxBody>>;
+    async fn respond_to(self, context: McpResponderContext) -> Result<HttpResponse<BoxBody>>;
 
     fn assert_protocol_version_header(
         &self,
@@ -47,12 +47,9 @@ pub trait McpResponder: Clone {
         }
     }
 
-    fn assert_session<'session>(
-        &self,
-        session: &'session Option<Session>,
-    ) -> Result<&'session Session> {
+    fn assert_session(&self, session: &Option<Session>) -> Result<Session> {
         match session {
-            Some(session) => Ok(session),
+            Some(session) => Ok(session.clone()),
             None => Err(ErrorBadRequest("Expected session headers.")),
         }
     }

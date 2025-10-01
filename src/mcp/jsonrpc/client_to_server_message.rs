@@ -7,6 +7,7 @@ use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevel;
 use crate::mcp::jsonrpc::request::ping::Ping;
 use crate::mcp::jsonrpc::request::resources_list::ResourcesList;
 use crate::mcp::jsonrpc::request::resources_read::ResourcesRead;
+use crate::mcp::jsonrpc::request::resources_subscribe::ResourcesSubscribe;
 use crate::mcp::jsonrpc::request::resources_templates_list::ResourcesTemplatesList;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -24,6 +25,8 @@ pub enum ClientToServerMessage {
     ResourcesList(ResourcesList),
     #[serde(rename = "resources/read")]
     ResourcesRead(ResourcesRead),
+    #[serde(rename = "resources/subscribe")]
+    ResourcesSubscribe(ResourcesSubscribe),
     #[serde(rename = "resources/templates/list")]
     ResourcesTemplatesList(ResourcesTemplatesList),
 }

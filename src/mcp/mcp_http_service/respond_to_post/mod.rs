@@ -1,3 +1,5 @@
+pub mod resources_subscribe_handler;
+
 use std::sync::Arc;
 
 use actix_web::FromRequest as _;
@@ -37,8 +39,10 @@ use crate::mcp::jsonrpc::response::success::resources_list::ResourcesList as Res
 use crate::mcp::jsonrpc::response::success::resources_read::ResourcesRead as ResourcesReadResponse;
 use crate::mcp::jsonrpc::server_to_client_message::ServerToClientMessage;
 use crate::mcp::list_resources_params::ListResourcesParams;
+use crate::mcp::mcp_http_service::respond_to_post::resources_subscribe_handler::ResourcesSubscribeHandler;
 use crate::mcp::mcp_responder::McpResponder;
 use crate::mcp::mcp_responder_context::McpResponderContext;
+use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session::Session;
 use crate::mcp::session_manager::SessionManager;
@@ -53,7 +57,7 @@ pub struct RespondToPost {
 }
 
 impl RespondToPost {
-    fn empty_response(&self, request_id: Id) -> Result<HttpResponse<BoxBody>> {
+    fn empty_response(self, request_id: Id) -> Result<HttpResponse<BoxBody>> {
         Ok(
             HttpResponse::Ok().json(ServerToClientMessage::EmptyResponse(Success {
                 id: request_id,
@@ -64,7 +68,7 @@ impl RespondToPost {
     }
 
     async fn respond_to_initialize(
-        &self,
+        self,
         Initialize {
             id,
             params: InitializeParams { .. },
@@ -93,13 +97,13 @@ impl RespondToPost {
                     },
                     instructions: None,
                     protocol_version: MCP_PROTOCOL_VERSION.to_string(),
-                    server_info: self.server_info.clone(),
+                    server_info: self.server_info,
                 },
             })))
     }
 
     async fn respond_to_logging_set_level(
-        &self,
+        self,
         LoggingSetLevel {
             id,
             params: LoggingSetLevelParams { level, .. },
@@ -115,18 +119,16 @@ impl RespondToPost {
     }
 
     async fn respond_to_resources_list(
-        &self,
+        self,
         ResourcesListRequest {
             id,
             params: ResourcesListParams { cursor, .. },
             ..
         }: ResourcesListRequest,
+        session: Session,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok()
-            .insert_header((
-                MCP_HEADER_SESSION,
-                self.session_manager.start_new_session().await?.session_id,
-            ))
+            .insert_header((MCP_HEADER_SESSION, session.session_id))
             .json(ServerToClientMessage::ResourcesList(Success {
                 id,
                 jsonrpc: JSONRPC_VERSION.to_string(),
@@ -144,18 +146,16 @@ impl RespondToPost {
     }
 
     async fn respond_to_resources_read(
-        &self,
+        self,
         ResourcesReadRequest {
             id,
             params: ResourcesReadParams { uri, .. },
             ..
         }: ResourcesReadRequest,
+        session: Session,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok()
-            .insert_header((
-                MCP_HEADER_SESSION,
-                self.session_manager.start_new_session().await?.session_id,
-            ))
+            .insert_header((MCP_HEADER_SESSION, session.session_id))
             .json(
                 match self
                     .resource_list_aggregate
@@ -163,11 +163,13 @@ impl RespondToPost {
                     .await
                     .map_err(ErrorInternalServerError)?
                 {
-                    Some(contents) => ServerToClientMessage::ResourcesRead(Success {
-                        id,
-                        jsonrpc: JSONRPC_VERSION.to_string(),
-                        result: ResourcesReadResponse { contents },
-                    }),
+                    Some(ResourceContentParts { parts: contents }) => {
+                        ServerToClientMessage::ResourcesRead(Success {
+                            id,
+                            jsonrpc: JSONRPC_VERSION.to_string(),
+                            result: ResourcesReadResponse { contents },
+                        })
+                    }
                     None => {
                         warn!("Resource not found: '{uri}'");
 
@@ -178,14 +180,12 @@ impl RespondToPost {
     }
 
     async fn respond_to_resources_templates_list(
-        &self,
+        self,
         ResourcesTemplatesListRequest { id, .. }: ResourcesTemplatesListRequest,
+        session: Session,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok()
-            .insert_header((
-                MCP_HEADER_SESSION,
-                self.session_manager.start_new_session().await?.session_id,
-            ))
+            .insert_header((MCP_HEADER_SESSION, session.session_id))
             .json(ServerToClientMessage::ResourcesTemplatesList(Success {
                 id,
                 jsonrpc: JSONRPC_VERSION.to_string(),
@@ -207,7 +207,7 @@ impl McpResponder for RespondToPost {
     }
 
     async fn respond_to(
-        &self,
+        self,
         McpResponderContext {
             req,
             mut payload,
@@ -250,13 +250,10 @@ impl McpResponder for RespondToPost {
             }
             ClientToServerMessage::LoggingSetLevel(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
-                self.assert_session(&session)?;
-                self.respond_to_logging_set_level(
-                    request,
-                    self.assert_session(&session)?.clone(),
-                    session_manager,
-                )
-                .await
+                let session = self.assert_session(&session)?;
+
+                self.respond_to_logging_set_level(request, session, session_manager)
+                    .await
             }
             ClientToServerMessage::Ping(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
@@ -265,18 +262,32 @@ impl McpResponder for RespondToPost {
             }
             ClientToServerMessage::ResourcesList(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
-                self.assert_session(&session)?;
-                self.respond_to_resources_list(request).await
+                let session = self.assert_session(&session)?;
+
+                self.respond_to_resources_list(request, session).await
             }
             ClientToServerMessage::ResourcesRead(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
-                self.assert_session(&session)?;
-                self.respond_to_resources_read(request).await
+                let session = self.assert_session(&session)?;
+
+                self.respond_to_resources_read(request, session).await
+            }
+            ClientToServerMessage::ResourcesSubscribe(request) => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+                let session = self.assert_session(&session)?;
+
+                ResourcesSubscribeHandler {
+                    resource_list_aggregate: self.resource_list_aggregate,
+                }
+                .handle(request, session)
+                .await
             }
             ClientToServerMessage::ResourcesTemplatesList(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
-                self.assert_session(&session)?;
-                self.respond_to_resources_templates_list(request).await
+                let session = self.assert_session(&session)?;
+
+                self.respond_to_resources_templates_list(request, session)
+                    .await
             }
         }
     }

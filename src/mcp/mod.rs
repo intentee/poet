@@ -9,6 +9,7 @@ pub mod mcp_responder;
 pub mod mcp_responder_context;
 pub mod mcp_responder_handler;
 pub mod resource;
+pub mod resource_content_parts;
 pub mod resource_list_aggregate;
 pub mod resource_provider;
 pub mod resource_provider_handler;

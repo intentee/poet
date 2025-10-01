@@ -1,8 +1,9 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use tokio::sync::mpsc::Receiver;
 
-use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::resource::Resource;
+use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 use crate::mcp::resource_reference::ResourceReference;
 use crate::mcp::resource_template_provider::ResourceTemplateProvider;
@@ -14,7 +15,12 @@ pub trait ResourceProvider: ResourceTemplateProvider + Send + Sync {
     async fn read_resource_contents(
         &self,
         resource_reference: ResourceReference,
-    ) -> Result<Option<Vec<ResourceContent>>>;
+    ) -> Result<Option<ResourceContentParts>>;
+
+    async fn subscribe(
+        &self,
+        resource_reference: ResourceReference,
+    ) -> Result<Option<Receiver<ResourceContentParts>>>;
 
     fn total(&self) -> usize;
 

@@ -2,11 +2,14 @@ use std::sync::atomic;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::Receiver;
 
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
+use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 use crate::mcp::resource_reference::ResourceReference;
@@ -72,20 +75,30 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
             scheme: _,
             uri,
         }: ResourceReference,
-    ) -> Result<Option<Vec<ResourceContent>>> {
+    ) -> Result<Option<ResourceContentParts>> {
         let build_project_result = self.0.must_get_build_project_result().await?;
 
         match build_project_result.markdown_document_sources.get(&path) {
-            Some(markdown_document_source) => {
-                Ok(Some(vec![ResourceContent::Text(TextResourceContent {
+            Some(markdown_document_source) => Ok(Some(
+                ResourceContent::Text(TextResourceContent {
                     meta: None,
                     mime_type: self.mime_type(),
                     text: markdown_document_source.file_entry.contents.clone(),
                     uri: uri.to_string(),
-                })]))
-            }
+                })
+                .into(),
+            )),
             None => Ok(None),
         }
+    }
+
+    async fn subscribe(
+        &self,
+        resource_reference: ResourceReference,
+    ) -> Result<Option<Receiver<ResourceContentParts>>> {
+        let (resource_content_parts_tx, resource_content_parts_rx) = mpsc::channel(3);
+
+        Ok(Some(resource_content_parts_rx))
     }
 
     fn total(&self) -> usize {

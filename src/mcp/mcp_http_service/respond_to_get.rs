@@ -18,7 +18,7 @@ impl McpResponder for RespondToGet {
     }
 
     async fn respond_to(
-        &self,
+        self,
         McpResponderContext { req, .. }: McpResponderContext,
     ) -> Result<HttpResponse<BoxBody>> {
         self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;

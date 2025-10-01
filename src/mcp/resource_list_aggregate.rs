@@ -7,16 +7,22 @@ use anyhow::Result;
 use anyhow::anyhow;
 use http::Uri;
 use log::warn;
+use tokio::sync::mpsc::Receiver;
 
-use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::resource::Resource;
+use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_handler::ResourceProviderHandler;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 use crate::mcp::resource_reference::ResourceReference;
 use crate::mcp::resource_template::ResourceTemplate;
+
+struct FoundProvider<'provider> {
+    pub provider: &'provider ResourceProviderHandler,
+    pub resource_reference: ResourceReference,
+}
 
 pub struct ResourceListAggregate {
     /// Providers need to be sorted for the offset to work
@@ -67,7 +73,36 @@ impl ResourceListAggregate {
         Ok(resources)
     }
 
-    pub async fn read_resource_contents(&self, uri: &str) -> Result<Option<Vec<ResourceContent>>> {
+    pub async fn read_resource_contents(&self, uri: &str) -> Result<Option<ResourceContentParts>> {
+        let FoundProvider {
+            provider,
+            resource_reference,
+        } = self.must_get_provider_for_uri(uri)?;
+
+        provider.0.read_resource_contents(resource_reference).await
+    }
+
+    pub async fn read_resources_templates_list(&self) -> Result<Vec<ResourceTemplate>> {
+        Ok(self
+            .providers
+            .iter()
+            .map(|provider| provider.0.resource_template())
+            .collect())
+    }
+
+    pub async fn subscribe(&self, uri: &str) -> Result<Option<Receiver<ResourceContentParts>>> {
+        let FoundProvider {
+            provider,
+            resource_reference,
+        } = self.must_get_provider_for_uri(uri)?;
+
+        Ok(None)
+    }
+
+    fn must_get_provider_for_uri<'provider>(
+        &'provider self,
+        uri: &str,
+    ) -> Result<FoundProvider<'provider>> {
         let parsed_uri: Uri = uri
             .try_into()
             .map_err(|err| anyhow!("{err:#?}"))
@@ -77,7 +112,10 @@ impl ResourceListAggregate {
 
         for provider in &self.providers {
             if provider.0.can_handle(&resource_reference) {
-                return provider.0.read_resource_contents(resource_reference).await;
+                return Ok(FoundProvider {
+                    provider: &provider,
+                    resource_reference,
+                });
             }
         }
 
@@ -86,14 +124,6 @@ impl ResourceListAggregate {
         warn!("{message}");
 
         Err(message)
-    }
-
-    pub async fn read_resources_templates_list(&self) -> Result<Vec<ResourceTemplate>> {
-        Ok(self
-            .providers
-            .iter()
-            .map(|provider| provider.0.resource_template())
-            .collect())
     }
 }
 
@@ -110,6 +140,7 @@ impl TryFrom<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
 #[cfg(test)]
 mod tests {
     use async_trait::async_trait;
+    use tokio::sync::mpsc::Receiver;
 
     use super::*;
     use crate::mcp::resource_provider::ResourceProvider;
@@ -158,7 +189,14 @@ mod tests {
         async fn read_resource_contents(
             &self,
             _: ResourceReference,
-        ) -> Result<Option<Vec<ResourceContent>>> {
+        ) -> Result<Option<ResourceContentParts>> {
+            unimplemented!()
+        }
+
+        async fn subscribe(
+            &self,
+            _: ResourceReference,
+        ) -> Result<Option<Receiver<ResourceContentParts>>> {
             unimplemented!()
         }
 

@@ -21,7 +21,7 @@ impl McpResponder for RespondToDelete {
     }
 
     async fn respond_to(
-        &self,
+        self,
         McpResponderContext {
             req,
             session,

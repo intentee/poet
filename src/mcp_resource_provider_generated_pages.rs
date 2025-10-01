@@ -3,6 +3,8 @@ use std::sync::atomic;
 use anyhow::Result;
 use anyhow::anyhow;
 use async_trait::async_trait;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::Receiver;
 
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::filesystem::Filesystem;
@@ -10,6 +12,7 @@ use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
+use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 use crate::mcp::resource_reference::ResourceReference;
@@ -63,7 +66,7 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
             scheme: _,
             uri,
         }: ResourceReference,
-    ) -> Result<Option<Vec<ResourceContent>>> {
+    ) -> Result<Option<ResourceContentParts>> {
         let build_project_result = self.0.must_get_build_project_result().await?;
 
         match build_project_result
@@ -79,18 +82,28 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
                 )
                 .await?
             {
-                ReadFileContentsResult::Found { contents } => {
-                    Ok(Some(vec![ResourceContent::Text(TextResourceContent {
+                ReadFileContentsResult::Found { contents } => Ok(Some(
+                    ResourceContent::Text(TextResourceContent {
                         meta: None,
                         mime_type: self.mime_type(),
                         text: contents,
                         uri: uri.to_string(),
-                    })]))
-                }
+                    })
+                    .into(),
+                )),
                 ReadFileContentsResult::Directory | ReadFileContentsResult::NotFound => Ok(None),
             },
             None => Ok(None),
         }
+    }
+
+    async fn subscribe(
+        &self,
+        resource_reference: ResourceReference,
+    ) -> Result<Option<Receiver<ResourceContentParts>>> {
+        let (resource_content_parts_tx, resource_content_parts_rx) = mpsc::channel(3);
+
+        Ok(Some(resource_content_parts_rx))
     }
 
     fn total(&self) -> usize {

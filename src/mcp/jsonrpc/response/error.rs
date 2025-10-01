@@ -4,6 +4,10 @@ use serde::Serialize;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
 use crate::mcp::jsonrpc::id::Id;
 
+const ERROR_INVALID_REQUEST: i32 = -32600;
+const ERROR_PARSE_ERROR: i32 = -32700;
+const ERROR_RESOURCE_NOT_FOUND: i32 = -32002;
+
 // pub const ERROR_METHOD_NOT_FOUND: i32 = -32601;
 // pub const ERROR_INVALID_PARAMS: i32 = -32602;
 // pub const ERROR_INTERNAL_ERROR: i32 = -32603;
@@ -17,22 +21,15 @@ pub struct ResourceNotFound {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum ErrorCode {
-    InvalidRequest = -32600,
-    ParseError = -32700,
-    ResourceNotFound = -32002,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, untagged)]
 pub enum Error {
     GenericMessage {
-        code: ErrorCode,
+        code: i32,
         jsonrpc: String,
         message: String,
     },
     ResourceNotFound {
-        code: ErrorCode,
+        code: i32,
         data: ResourceNotFound,
         id: Id,
         jsonrpc: String,
@@ -43,7 +40,7 @@ pub enum Error {
 impl Error {
     pub fn invalid_request(message: String) -> Self {
         Self::GenericMessage {
-            code: ErrorCode::InvalidRequest,
+            code: ERROR_INVALID_REQUEST,
             message,
             jsonrpc: JSONRPC_VERSION.to_string(),
         }
@@ -51,7 +48,7 @@ impl Error {
 
     pub fn parse(message: String) -> Self {
         Self::GenericMessage {
-            code: ErrorCode::ParseError,
+            code: ERROR_PARSE_ERROR,
             message,
             jsonrpc: JSONRPC_VERSION.to_string(),
         }
@@ -59,7 +56,7 @@ impl Error {
 
     pub fn resource_not_found(id: Id, uri: String) -> Self {
         Self::ResourceNotFound {
-            code: ErrorCode::ResourceNotFound,
+            code: ERROR_RESOURCE_NOT_FOUND,
             data: ResourceNotFound { uri },
             id,
             jsonrpc: JSONRPC_VERSION.to_string(),

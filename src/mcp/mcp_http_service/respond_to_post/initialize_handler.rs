@@ -72,7 +72,7 @@ impl InitializeHandler {
                 }
             }
 
-            let mut ticker = interval(Duration::from_secs(3));
+            let mut ticker = interval(Duration::from_secs(1));
 
             loop {
                 tokio::select! {

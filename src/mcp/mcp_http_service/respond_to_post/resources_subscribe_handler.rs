@@ -68,7 +68,7 @@ impl ResourcesSubscribeHandler {
                 });
 
                 Ok(HttpResponse::Ok()
-                    .content_type(mime::TEXT_EVENT_STREAM)
+                    .insert_header((MCP_HEADER_SESSION, session.session_id))
                     .json(ServerToClientResponse::EmptyResponse(Success {
                         id,
                         jsonrpc: JSONRPC_VERSION.to_string(),

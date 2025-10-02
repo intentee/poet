@@ -96,7 +96,7 @@ impl ResourceListAggregate {
             resource_reference,
         } = self.must_get_provider_for_uri(uri)?;
 
-        Ok(None)
+        provider.0.subscribe(resource_reference).await
     }
 
     fn must_get_provider_for_uri<'provider>(
@@ -113,7 +113,7 @@ impl ResourceListAggregate {
         for provider in &self.providers {
             if provider.0.can_handle(&resource_reference) {
                 return Ok(FoundProvider {
-                    provider: &provider,
+                    provider,
                     resource_reference,
                 });
             }

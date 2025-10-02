@@ -3,12 +3,14 @@ use std::sync::Arc;
 use actix_web::Result;
 use actix_web::dev::ServiceRequest;
 use actix_web::error::ErrorInternalServerError;
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::mcp::MCP_HEADER_SESSION;
 use crate::mcp::log_level::LogLevel;
 use crate::mcp::session::Session;
 use crate::mcp::session_storage::SessionStorage;
+use crate::mcp::session_with_notifications_receiver::SessionWithNotificationsReceiver;
 
 fn generate_session_id() -> String {
     format!("poet-{}", Uuid::new_v4())
@@ -16,7 +18,7 @@ fn generate_session_id() -> String {
 
 #[derive(Clone)]
 pub struct SessionManager {
-    pub session_storage: Arc<dyn SessionStorage>,
+    pub session_storage: Arc<SessionStorage>,
 }
 
 impl SessionManager {
@@ -31,9 +33,11 @@ impl SessionManager {
         }
     }
 
-    pub async fn start_new_session(&self) -> Result<Session> {
+    pub async fn start_new_session(&self) -> Result<SessionWithNotificationsReceiver> {
+        let (notification_tx, notification_rx) = mpsc::channel(30);
         let session = Session {
             log_level: LogLevel::Info,
+            notification_tx,
             session_id: generate_session_id(),
         };
 
@@ -41,7 +45,10 @@ impl SessionManager {
             .store_new_session(session.clone())
             .await?;
 
-        Ok(session)
+        Ok(SessionWithNotificationsReceiver {
+            notification_rx,
+            session,
+        })
     }
 
     #[inline]

@@ -82,15 +82,16 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
                 )
                 .await?
             {
-                ReadFileContentsResult::Found { contents } => Ok(Some(
-                    ResourceContent::Text(TextResourceContent {
+                ReadFileContentsResult::Found { contents } => Ok(Some(ResourceContentParts {
+                    parts: vec![ResourceContent::Text(TextResourceContent {
                         meta: None,
                         mime_type: self.mime_type(),
                         text: contents,
                         uri: uri.to_string(),
-                    })
-                    .into(),
-                )),
+                    })],
+                    title: reference.front_matter.title.clone(),
+                    uri: uri.to_string(),
+                })),
                 ReadFileContentsResult::Directory | ReadFileContentsResult::NotFound => Ok(None),
             },
             None => Ok(None),

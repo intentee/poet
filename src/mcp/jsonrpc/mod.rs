@@ -7,6 +7,7 @@ pub mod notification;
 pub mod request;
 pub mod response;
 pub mod serde_defaults;
-pub mod server_to_client_message;
+pub mod server_to_client_notification;
+pub mod server_to_client_response;
 
 pub const JSONRPC_VERSION: &str = "2.0";

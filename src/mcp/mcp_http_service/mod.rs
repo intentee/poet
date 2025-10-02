@@ -22,7 +22,6 @@ use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service::respond_to_delete::RespondToDelete;
 use crate::mcp::mcp_http_service::respond_to_get::RespondToGet;
 use crate::mcp::mcp_http_service::respond_to_post::RespondToPost;
-use crate::mcp::mcp_http_service::respond_to_post::resources_subscribe_handler::ResourcesSubscribeHandler;
 use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::mcp_responder_handler::McpResponderHandler;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
@@ -44,9 +43,6 @@ impl Service<ServiceRequest> for McpHttpService {
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let req_method = req.method().clone();
         let resource_list_aggregate = self.resource_list_aggregate.clone();
-        let resources_subscribe_handler = ResourcesSubscribeHandler {
-            resource_list_aggregate: self.resource_list_aggregate.clone(),
-        };
         let server_info = self.server_info.clone();
         let session_manager = self.session_manager.clone();
 

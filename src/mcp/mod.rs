@@ -20,6 +20,7 @@ pub mod resource_template_provider;
 pub mod session;
 pub mod session_manager;
 pub mod session_storage;
+pub mod session_with_notifications_receiver;
 
 pub const MCP_HEADER_PROTOCOL_VERSION: &str = "Mcp-Protocol-Version";
 pub const MCP_HEADER_SESSION: &str = "Mcp-Session-Id";

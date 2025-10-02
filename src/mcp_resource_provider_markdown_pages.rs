@@ -79,15 +79,20 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
         let build_project_result = self.0.must_get_build_project_result().await?;
 
         match build_project_result.markdown_document_sources.get(&path) {
-            Some(markdown_document_source) => Ok(Some(
-                ResourceContent::Text(TextResourceContent {
+            Some(markdown_document_source) => Ok(Some(ResourceContentParts {
+                parts: vec![ResourceContent::Text(TextResourceContent {
                     meta: None,
                     mime_type: self.mime_type(),
                     text: markdown_document_source.file_entry.contents.clone(),
                     uri: uri.to_string(),
-                })
-                .into(),
-            )),
+                })],
+                title: markdown_document_source
+                    .reference
+                    .front_matter
+                    .title
+                    .clone(),
+                uri: uri.to_string(),
+            })),
             None => Ok(None),
         }
     }

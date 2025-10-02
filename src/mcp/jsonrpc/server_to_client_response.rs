@@ -11,7 +11,7 @@ use crate::mcp::jsonrpc::response::success::resources_read::ResourcesRead;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, untagged)]
-pub enum ServerToClientMessage {
+pub enum ServerToClientResponse {
     EmptyResponse(Success<EmptyResponse>),
     Error(Error),
     InitializeResult(Success<InitializeResult>),

@@ -40,7 +40,6 @@ use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
-use crate::mcp::session_storage::memory::Memory as MemorySessionStorage;
 use crate::mcp_resource_provider_generated_pages::McpResourceProviderGeneratedPages;
 use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
@@ -211,7 +210,7 @@ impl Handler for Watch {
                     version: env!("CARGO_PKG_VERSION").to_string(),
                 };
                 let session_manager = SessionManager {
-                    session_storage: Arc::new(MemorySessionStorage::new()),
+                    session_storage: Arc::new(Default::default()),
                 };
 
                 if let Err(err) = HttpServer::new(move || {

@@ -4,6 +4,7 @@ use actix_web::HttpResponse;
 use actix_web::Result;
 use actix_web::body::BoxBody;
 use actix_web::web::Bytes;
+use async_trait::async_trait;
 use futures_core::stream::Stream;
 use log::error;
 use tokio::sync::mpsc::Receiver;
@@ -22,6 +23,7 @@ use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilitie
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityResources;
 use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
 use crate::mcp::jsonrpc::server_to_client_response::ServerToClientResponse;
+use crate::mcp::mcp_http_service::respond_to_post::handler::Handler;
 use crate::mcp::session::Session;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::session_with_notifications_receiver::SessionWithNotificationsReceiver;
@@ -106,8 +108,16 @@ impl InitializeHandler {
     }
 }
 
-impl InitializeHandler {
-    pub async fn handle(self, Initialize { id, .. }: Initialize) -> Result<HttpResponse<BoxBody>> {
+#[async_trait]
+impl Handler for InitializeHandler {
+    type Request = Initialize;
+    type Session = ();
+
+    async fn handle(
+        self,
+        Initialize { id, .. }: Initialize,
+        _: Self::Session,
+    ) -> Result<HttpResponse<BoxBody>> {
         let SessionWithNotificationsReceiver {
             notification_rx,
             session,

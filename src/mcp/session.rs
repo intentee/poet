@@ -61,6 +61,13 @@ impl Session {
         Ok(cancellation_token)
     }
 
+    pub fn subscribe_token(&self, uri: &str) -> Result<Option<CancellationToken>> {
+        Ok(self
+            .subscriptions
+            .get(uri)
+            .map(|dashmap_ref| dashmap_ref.value().clone()))
+    }
+
     pub async fn terminate(self) {
         for ref_multi in self.subscriptions.iter() {
             ref_multi.value().cancel();

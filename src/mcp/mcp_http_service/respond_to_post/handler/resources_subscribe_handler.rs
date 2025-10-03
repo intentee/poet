@@ -5,6 +5,7 @@ use actix_web::Result;
 use actix_web::body::BoxBody;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::rt;
+use async_trait::async_trait;
 use log::error;
 
 use crate::mcp::MCP_HEADER_SESSION;
@@ -14,10 +15,9 @@ use crate::mcp::jsonrpc::notification::resources_updated::ResourcesUpdatedParams
 use crate::mcp::jsonrpc::request::resources_subscribe::ResourcesSubscribe;
 use crate::mcp::jsonrpc::request::resources_subscribe::ResourcesSubscribeParams;
 use crate::mcp::jsonrpc::response::error::Error;
-use crate::mcp::jsonrpc::response::success::Success;
-use crate::mcp::jsonrpc::response::success::empty_response::EmptyResponse;
 use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
 use crate::mcp::jsonrpc::server_to_client_response::ServerToClientResponse;
+use crate::mcp::mcp_http_service::respond_to_post::handler::Handler;
 use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session::Session;
@@ -27,21 +27,24 @@ pub struct ResourcesSubscribeHandler {
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
 }
 
-impl ResourcesSubscribeHandler {
-    pub async fn handle(
+#[async_trait]
+impl Handler for ResourcesSubscribeHandler {
+    type Request = ResourcesSubscribe;
+    type Session = Session;
+
+    async fn handle(
         self,
         ResourcesSubscribe {
             id,
             params: ResourcesSubscribeParams { uri, .. },
             ..
         }: ResourcesSubscribe,
-        session: Session,
+        session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         let cancellation_token = session
             .subscribe_to(&uri)
             .map_err(ErrorInternalServerError)?;
         let cancellation_token_clone = cancellation_token.clone();
-        let session_id = session.id();
 
         match self
             .resource_list_aggregate
@@ -50,6 +53,8 @@ impl ResourcesSubscribeHandler {
             .map_err(ErrorInternalServerError)?
         {
             Some(mut resource_content_parts_rx) => {
+                let session_clone = session.clone();
+
                 rt::spawn(async move {
                     loop {
                         tokio::select! {
@@ -62,7 +67,7 @@ impl ResourcesSubscribeHandler {
                                     title,
                                     uri,
                                 }) = resource_content_parts {
-                                    if let Err(err) = session
+                                    if let Err(err) = session_clone
                                         .notify(ServerToClientNotification::ResourcesUpdated(
                                             ResourcesUpdated {
                                                 jsonrpc: JSONRPC_VERSION.to_string(),
@@ -86,13 +91,7 @@ impl ResourcesSubscribeHandler {
                     resource_content_parts_rx.close();
                 });
 
-                Ok(HttpResponse::Ok()
-                    .insert_header((MCP_HEADER_SESSION, session_id))
-                    .json(ServerToClientResponse::EmptyResponse(Success {
-                        id,
-                        jsonrpc: JSONRPC_VERSION.to_string(),
-                        result: EmptyResponse {},
-                    })))
+                self.empty_response(id, session)
             }
             None => Ok(HttpResponse::NotFound()
                 .insert_header((MCP_HEADER_SESSION, session.id()))

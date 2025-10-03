@@ -1,11 +1,10 @@
+use std::sync::Arc;
 use std::sync::atomic;
 
 use anyhow::Result;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::Receiver;
-use tokio_util::sync::CancellationToken;
+use tokio::sync::Notify;
 
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::filesystem::Filesystem;
@@ -99,14 +98,8 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
         }
     }
 
-    async fn subscribe(
-        &self,
-        cancellation_token: CancellationToken,
-        resource_reference: ResourceReference,
-    ) -> Result<Option<Receiver<ResourceContentParts>>> {
-        let (resource_content_parts_tx, resource_content_parts_rx) = mpsc::channel(3);
-
-        Ok(Some(resource_content_parts_rx))
+    async fn resource_update_notifier(&self, _: ResourceReference) -> Result<Option<Arc<Notify>>> {
+        Ok(Some(self.0.update_notifier.clone()))
     }
 
     fn total(&self) -> usize {

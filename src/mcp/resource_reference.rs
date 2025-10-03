@@ -2,7 +2,7 @@ use anyhow::Result;
 use anyhow::anyhow;
 use http::Uri;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ResourceReference {
     pub class: String,
     pub path: String,

@@ -103,6 +103,7 @@ impl ResourceListAggregate {
 
         provider
             .0
+            .clone()
             .subscribe(cancellation_token, resource_reference)
             .await
     }
@@ -148,7 +149,7 @@ impl TryFrom<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
 #[cfg(test)]
 mod tests {
     use async_trait::async_trait;
-    use tokio::sync::mpsc::Receiver;
+    use tokio::sync::Notify;
 
     use super::*;
     use crate::mcp::resource_provider::ResourceProvider;
@@ -201,12 +202,11 @@ mod tests {
             unimplemented!()
         }
 
-        async fn subscribe(
+        async fn resource_update_notifier(
             &self,
-            _: CancellationToken,
             _: ResourceReference,
-        ) -> Result<Option<Receiver<ResourceContentParts>>> {
-            unimplemented!()
+        ) -> Result<Option<Arc<Notify>>> {
+            unimplemented!();
         }
 
         fn total(&self) -> usize {

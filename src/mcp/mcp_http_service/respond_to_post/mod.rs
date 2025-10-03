@@ -16,6 +16,7 @@ use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::jsonrpc::response::error::Error;
 use crate::mcp::mcp_http_service::respond_to_post::handler::Handler as _;
 use crate::mcp::mcp_http_service::respond_to_post::handler::initialize_handler::InitializeHandler;
+use crate::mcp::mcp_http_service::respond_to_post::handler::initialized_handler::InitializedHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::logging_set_level_handler::LoggingSetLevelHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::ping_handler::PingHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_list_handler::ResourcesListHandler;
@@ -53,21 +54,16 @@ impl McpResponder for RespondToPost {
     ) -> Result<HttpResponse<BoxBody>> {
         let client_to_server_message: ClientToServerMessage =
             match String::from_request(&req, &mut payload).await {
-                Ok(string_payload) => {
-                    println!("string payload: {string_payload}");
+                Ok(string_payload) => match serde_json::from_str(&string_payload) {
+                    Ok(client_to_server_message) => client_to_server_message,
+                    Err(err) => {
+                        let message = format!("Parse error: {err:#}\nPayload: {string_payload}");
 
-                    match serde_json::from_str(&string_payload) {
-                        Ok(client_to_server_message) => client_to_server_message,
-                        Err(err) => {
-                            let message =
-                                format!("Parse error: {err:#}\nPayload: {string_payload}");
+                        error!("{message}");
 
-                            error!("{message}");
-
-                            return Ok(HttpResponse::BadRequest().json(Error::parse(message)));
-                        }
+                        return Ok(HttpResponse::BadRequest().json(Error::parse(message)));
                     }
-                }
+                },
                 Err(err) => {
                     return Ok(
                         HttpResponse::BadRequest().json(Error::invalid_request(format!(
@@ -88,11 +84,11 @@ impl McpResponder for RespondToPost {
                 .handle(request, ())
                 .await
             }
-            ClientToServerMessage::Initialized(_) => {
+            ClientToServerMessage::Initialized(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
-                self.assert_session(&session)?;
+                let session = self.assert_session(&session)?;
 
-                Ok(HttpResponse::Accepted().into())
+                InitializedHandler {}.handle(request, session).await
             }
             ClientToServerMessage::LoggingSetLevel(request) => {
                 self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;

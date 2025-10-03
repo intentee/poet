@@ -43,6 +43,7 @@ impl Handler for ResourcesSubscribeHandler {
     ) -> Result<HttpResponse<BoxBody>> {
         let cancellation_token = session
             .subscribe_to(&uri)
+            .await
             .map_err(ErrorInternalServerError)?;
         let cancellation_token_clone = cancellation_token.clone();
 

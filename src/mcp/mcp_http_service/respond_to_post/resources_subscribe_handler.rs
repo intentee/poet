@@ -6,7 +6,6 @@ use actix_web::body::BoxBody;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::rt;
 use log::error;
-use tokio_util::sync::CancellationToken;
 
 use crate::mcp::MCP_HEADER_SESSION;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
@@ -50,14 +49,14 @@ impl ResourcesSubscribeHandler {
             .await
             .map_err(ErrorInternalServerError)?
         {
-            Some(mut subscriber) => {
+            Some(mut resource_content_parts_rx) => {
                 rt::spawn(async move {
                     loop {
                         tokio::select! {
                             _ = cancellation_token_clone.cancelled() => {
                                 break;
                             }
-                            resource_content_parts = subscriber.recv() => {
+                            resource_content_parts = resource_content_parts_rx.recv() => {
                                 if let Some(ResourceContentParts {
                                     parts: _,
                                     title,
@@ -83,6 +82,8 @@ impl ResourcesSubscribeHandler {
                             }
                         }
                     }
+
+                    resource_content_parts_rx.close();
                 });
 
                 Ok(HttpResponse::Ok()

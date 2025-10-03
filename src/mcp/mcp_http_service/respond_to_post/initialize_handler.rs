@@ -97,6 +97,8 @@ impl InitializeHandler {
                 }
             }
 
+            notification_rx.close();
+
             if let Err(err) = self.session_manager.terminate_session(session).await {
                 error!("Unable to terminate session: {err:#?}");
             }

@@ -129,30 +129,35 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
 
         rt::spawn(async move {
             loop {
-                build_project_result_holder.update_notifier.notified().await;
-
-                match build_project_result_holder.get().await {
-                    Some(build_project_result) => {
-                        if let Err(err) = resource_content_parts_tx.send(match read_resource_contents(
-                            build_project_result,
-                            mime_type.clone(),
-                            path.clone(),
-                            uri.clone(),
-                        ) {
-                            Ok(Some(resource_content_parts)) => resource_content_parts,
-                            Ok(None) => {
-                                warn!("Resource has been removed while being subscribed to: '{path}'");
-                                break;
-                            }
-                            Err(err) => {
-                                error!("Unable to get resource content parts for '{path}': {err:#?}");
-                                break;
-                            }
-                        }).await {
-                            error!("Unable to forward resource update: {err:#?}");
+                tokio::select! {
+                    _ = cancellation_token.cancelled() => {
+                        break;
+                    }
+                    _ = build_project_result_holder.update_notifier.notified() => {
+                        match build_project_result_holder.get().await {
+                            Some(build_project_result) => {
+                                if let Err(err) = resource_content_parts_tx.send(match read_resource_contents(
+                                    build_project_result,
+                                    mime_type.clone(),
+                                    path.clone(),
+                                    uri.clone(),
+                                ) {
+                                    Ok(Some(resource_content_parts)) => resource_content_parts,
+                                    Ok(None) => {
+                                        warn!("Resource has been removed while being subscribed to: '{path}'");
+                                        break;
+                                    }
+                                    Err(err) => {
+                                        error!("Unable to get resource content parts for '{path}': {err:#?}");
+                                        break;
+                                    }
+                                }).await {
+                                    error!("Unable to forward resource update: {err:#?}");
+                                }
+                            },
+                            None => break,
                         }
-                    },
-                    None => break,
+                    }
                 }
             }
         });

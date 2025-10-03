@@ -75,10 +75,13 @@ pub trait ResourceProvider: ResourceTemplateProvider + Send + Sync + 'static {
 
                         if let Err(err) = resource_content_parts_tx.send(notification).await {
                             error!("Unable to forward resource update: {err:#?}");
+                            break;
                         }
                     }
                 }
             }
+
+            cancellation_token.cancel();
         });
 
         Ok(Some(resource_content_parts_rx))

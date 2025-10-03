@@ -18,13 +18,14 @@ impl SessionStorage {
     }
 
     pub async fn terminate_session(&self, session: Session) -> Result<()> {
-        self.sessions.remove(&session.session_id);
+        self.sessions.remove(&session.id());
+        session.terminate().await;
 
         Ok(())
     }
 
     pub async fn update_session(&self, session: Session) -> Result<()> {
-        self.sessions.insert(session.session_id.clone(), session);
+        self.sessions.insert(session.id(), session);
 
         Ok(())
     }

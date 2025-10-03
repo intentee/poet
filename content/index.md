@@ -1,5 +1,5 @@
 +++
 description = "Homepage"
 layout = "LayoutMinimal"
-title = "Poet"
+title = "Poet xD"
 +++

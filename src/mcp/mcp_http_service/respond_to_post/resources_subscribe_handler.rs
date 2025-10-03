@@ -6,6 +6,7 @@ use actix_web::body::BoxBody;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::rt;
 use log::error;
+use tokio_util::sync::CancellationToken;
 
 use crate::mcp::MCP_HEADER_SESSION;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
@@ -37,38 +38,55 @@ impl ResourcesSubscribeHandler {
         }: ResourcesSubscribe,
         session: Session,
     ) -> Result<HttpResponse<BoxBody>> {
+        let cancellation_token = session
+            .subscribe_to(&uri)
+            .map_err(ErrorInternalServerError)?;
+        let cancellation_token_clone = cancellation_token.clone();
+        let session_id = session.id();
+
         match self
             .resource_list_aggregate
-            .subscribe(&uri)
+            .subscribe(cancellation_token, &uri)
             .await
             .map_err(ErrorInternalServerError)?
         {
             Some(mut subscriber) => {
                 rt::spawn(async move {
-                    while let Some(ResourceContentParts {
-                        parts: _,
-                        title,
-                        uri,
-                    }) = subscriber.recv().await
-                    {
-                        if let Err(err) = session
-                            .notification_tx
-                            .send(ServerToClientNotification::ResourcesUpdated(
-                                ResourcesUpdated {
-                                    jsonrpc: JSONRPC_VERSION.to_string(),
-                                    params: ResourcesUpdatedParams { title, uri },
-                                },
-                            ))
-                            .await
-                        {
-                            error!("Unable to send session notification: {err:#?}");
-                            break;
+                    loop {
+                        tokio::select! {
+                            _ = cancellation_token_clone.cancelled() => {
+                                break;
+                            }
+                            resource_content_parts = subscriber.recv() => {
+                                if let Some(ResourceContentParts {
+                                    parts: _,
+                                    title,
+                                    uri,
+                                }) = resource_content_parts {
+                                    if let Err(err) = session
+                                        .notify(ServerToClientNotification::ResourcesUpdated(
+                                            ResourcesUpdated {
+                                                jsonrpc: JSONRPC_VERSION.to_string(),
+                                                params: ResourcesUpdatedParams { title, uri },
+                                            },
+                                        ))
+                                        .await
+                                    {
+                                        error!("Unable to send session notification: {err:#?}");
+                                        cancellation_token_clone.cancel();
+                                        break;
+                                    }
+                                } else {
+                                    cancellation_token_clone.cancel();
+                                    break;
+                                }
+                            }
                         }
                     }
                 });
 
                 Ok(HttpResponse::Ok()
-                    .insert_header((MCP_HEADER_SESSION, session.session_id))
+                    .insert_header((MCP_HEADER_SESSION, session_id))
                     .json(ServerToClientResponse::EmptyResponse(Success {
                         id,
                         jsonrpc: JSONRPC_VERSION.to_string(),
@@ -76,7 +94,7 @@ impl ResourcesSubscribeHandler {
                     })))
             }
             None => Ok(HttpResponse::NotFound()
-                .insert_header((MCP_HEADER_SESSION, session.session_id))
+                .insert_header((MCP_HEADER_SESSION, session.id()))
                 .json(ServerToClientResponse::Error(Error::resource_not_found(
                     id, uri,
                 )))),

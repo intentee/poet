@@ -8,6 +8,7 @@ use log::error;
 use log::warn;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
+use tokio_util::sync::CancellationToken;
 
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
@@ -114,6 +115,7 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
 
     async fn subscribe(
         &self,
+        cancellation_token: CancellationToken,
         ResourceReference {
             class: _,
             path,

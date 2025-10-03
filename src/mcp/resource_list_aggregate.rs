@@ -8,6 +8,7 @@ use anyhow::anyhow;
 use http::Uri;
 use log::warn;
 use tokio::sync::mpsc::Receiver;
+use tokio_util::sync::CancellationToken;
 
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::mcp::list_resources_params::ListResourcesParams;
@@ -90,13 +91,20 @@ impl ResourceListAggregate {
             .collect())
     }
 
-    pub async fn subscribe(&self, uri: &str) -> Result<Option<Receiver<ResourceContentParts>>> {
+    pub async fn subscribe(
+        &self,
+        cancellation_token: CancellationToken,
+        uri: &str,
+    ) -> Result<Option<Receiver<ResourceContentParts>>> {
         let FoundProvider {
             provider,
             resource_reference,
         } = self.must_get_provider_for_uri(uri)?;
 
-        provider.0.subscribe(resource_reference).await
+        provider
+            .0
+            .subscribe(cancellation_token, resource_reference)
+            .await
     }
 
     fn must_get_provider_for_uri<'provider>(
@@ -195,6 +203,7 @@ mod tests {
 
         async fn subscribe(
             &self,
+            _: CancellationToken,
             _: ResourceReference,
         ) -> Result<Option<Receiver<ResourceContentParts>>> {
             unimplemented!()

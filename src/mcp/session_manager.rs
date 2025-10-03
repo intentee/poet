@@ -7,7 +7,6 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::mcp::MCP_HEADER_SESSION;
-use crate::mcp::log_level::LogLevel;
 use crate::mcp::session::Session;
 use crate::mcp::session_storage::SessionStorage;
 use crate::mcp::session_with_notifications_receiver::SessionWithNotificationsReceiver;
@@ -35,11 +34,7 @@ impl SessionManager {
 
     pub async fn start_new_session(&self) -> Result<SessionWithNotificationsReceiver> {
         let (notification_tx, notification_rx) = mpsc::channel(30);
-        let session = Session {
-            log_level: LogLevel::Info,
-            notification_tx,
-            session_id: generate_session_id(),
-        };
+        let session = Session::new(notification_tx, generate_session_id());
 
         self.session_storage
             .store_new_session(session.clone())

@@ -99,7 +99,7 @@ impl RespondToPost {
         session: Session,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok()
-            .insert_header((MCP_HEADER_SESSION, session.session_id))
+            .insert_header((MCP_HEADER_SESSION, session.id()))
             .json(ServerToClientResponse::ResourcesList(Success {
                 id,
                 jsonrpc: JSONRPC_VERSION.to_string(),
@@ -126,7 +126,7 @@ impl RespondToPost {
         session: Session,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok()
-            .insert_header((MCP_HEADER_SESSION, session.session_id))
+            .insert_header((MCP_HEADER_SESSION, session.id()))
             .json(
                 match self
                     .resource_list_aggregate
@@ -156,7 +156,7 @@ impl RespondToPost {
         session: Session,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(HttpResponse::Ok()
-            .insert_header((MCP_HEADER_SESSION, session.session_id))
+            .insert_header((MCP_HEADER_SESSION, session.id()))
             .json(ServerToClientResponse::ResourcesTemplatesList(Success {
                 id,
                 jsonrpc: JSONRPC_VERSION.to_string(),

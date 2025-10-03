@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Receiver;
+use tokio_util::sync::CancellationToken;
 
 use crate::mcp::resource::Resource;
 use crate::mcp::resource_content_parts::ResourceContentParts;
@@ -19,6 +20,7 @@ pub trait ResourceProvider: ResourceTemplateProvider + Send + Sync {
 
     async fn subscribe(
         &self,
+        cancellation_token: CancellationToken,
         resource_reference: ResourceReference,
     ) -> Result<Option<Receiver<ResourceContentParts>>>;
 

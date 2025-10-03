@@ -113,7 +113,7 @@ impl InitializeHandler {
 
         Ok(HttpResponse::Ok()
             .content_type(mime::TEXT_EVENT_STREAM)
-            .insert_header((MCP_HEADER_SESSION, session.session_id.clone()))
+            .insert_header((MCP_HEADER_SESSION, session.id()))
             .streaming(self.notifications_stream(id, notification_rx, session)))
     }
 }

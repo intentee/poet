@@ -1,6 +1,10 @@
 pub mod initialize_handler;
+pub mod logging_set_level_handler;
+pub mod ping_handler;
+pub mod resources_list_handler;
 pub mod resources_read_handler;
 pub mod resources_subscribe_handler;
+pub mod resources_templates_list_handler;
 pub mod resources_unsubscribe_handler;
 
 use actix_web::HttpResponse;

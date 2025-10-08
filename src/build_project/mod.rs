@@ -261,9 +261,7 @@ pub async fn build_project(
     }
 
     if !error_collection.is_empty() {
-        error_collection.render();
-
-        return Err(anyhow!("{} errors", error_collection.len()));
+        return Err(anyhow!("{error_collection}"));
     }
 
     let available_collections_arc: Arc<HashSet<String>> = Arc::new(
@@ -340,8 +338,6 @@ pub async fn build_project(
             memory_filesystem,
         })
     } else {
-        error_collection.render();
-
-        Err(anyhow!("{} errors", error_collection.len()))
+        Err(anyhow!("{error_collection}"))
     }
 }

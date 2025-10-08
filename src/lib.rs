@@ -1,3 +1,4 @@
+mod anyhow_error_aggregate;
 mod asset_manager;
 mod asset_path_renderer;
 mod build_project;
@@ -38,5 +39,7 @@ mod rhai_template_renderer;
 mod rhai_template_renderer_holder;
 mod search_index;
 mod search_index_fields;
+mod search_index_parameters;
+mod search_index_reader;
 mod string_to_mdast;
 mod table_of_contents;

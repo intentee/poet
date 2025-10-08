@@ -1,3 +1,5 @@
+use std::fmt;
+
 use dashmap::DashMap;
 use itertools::Itertools as _;
 
@@ -14,10 +16,6 @@ impl DocumentErrorCollection {
         self.errors.is_empty()
     }
 
-    pub fn len(&self) -> usize {
-        self.errors.len()
-    }
-
     pub fn register_error(
         &self,
         err: anyhow::Error,
@@ -31,16 +29,26 @@ impl DocumentErrorCollection {
                 markdown_document_reference,
             });
     }
+}
 
-    pub fn render(&self) {
+impl fmt::Display for DocumentErrorCollection {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            formatter,
+            "Multiple errors occurred ({} total):",
+            self.errors.len()
+        )?;
+
         for errors in self
             .errors
             .iter()
             .sorted_by(|a, b| Ord::cmp(&a.key().basename(), &b.key().basename()))
         {
             for error in errors.value() {
-                error.render();
+                writeln!(formatter, "{error}")?;
             }
         }
+
+        Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
-
-use log::error;
+use std::fmt;
 
 use crate::markdown_document_reference::MarkdownDocumentReference;
 
@@ -9,18 +8,19 @@ pub struct DocumentError {
     pub markdown_document_reference: MarkdownDocumentReference,
 }
 
-impl DocumentError {
-    pub fn render(&self) {
-        let mut error_chain = String::new();
+impl fmt::Display for DocumentError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            formatter,
+            "{}:",
+            self.markdown_document_reference.basename()
+        )?;
 
         for cause in self.err.chain() {
-            error_chain.push_str(&format!("- {cause}\n"));
+            writeln!(formatter, "- {cause}")?;
         }
 
-        error!(
-            "{}:\n{error_chain}",
-            self.markdown_document_reference.basename(),
-        );
+        Ok(())
     }
 }
 

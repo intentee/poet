@@ -44,7 +44,6 @@ impl Handler for Generate {
 
         let BuildProjectResult {
             esbuild_metafile,
-            markdown_document_reference_collection: _,
             markdown_document_sources: _,
             memory_filesystem,
         } = build_project(

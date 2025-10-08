@@ -8,6 +8,7 @@ pub mod mcp_http_service_factory;
 pub mod mcp_responder;
 pub mod mcp_responder_context;
 pub mod mcp_responder_handler;
+pub mod prompt;
 pub mod resource;
 pub mod resource_content_parts;
 pub mod resource_list_aggregate;

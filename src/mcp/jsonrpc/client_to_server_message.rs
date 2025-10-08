@@ -22,6 +22,8 @@ pub enum ClientToServerMessage {
     LoggingSetLevel(LoggingSetLevel),
     #[serde(rename = "ping")]
     Ping(Ping),
+    // #[serde(rename = "prompts/list")]
+    // PromptsList(PromptsList),
     #[serde(rename = "resources/list")]
     ResourcesList(ResourcesList),
     #[serde(rename = "resources/read")]

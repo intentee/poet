@@ -33,9 +33,7 @@ impl Holder for BuildProjectResultHolder {
     fn on_update(&self, build_project_result: &Option<Self::Item>) {
         self.total.store(
             if let Some(build_project_result) = build_project_result {
-                build_project_result
-                    .markdown_document_reference_collection
-                    .len()
+                build_project_result.markdown_document_sources.len()
             } else {
                 0
             },

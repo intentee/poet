@@ -178,7 +178,7 @@ pub async fn build_project(
             markdown_document_by_basename
                 .insert(basename.clone(), markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {
-                mdast,
+                mdast: mdast.clone(),
                 reference: markdown_document_reference.clone(),
             });
 
@@ -189,6 +189,7 @@ pub async fn build_project(
                     relative_path.clone(),
                     MarkdownDocumentSource {
                         file_entry: file,
+                        mdast,
                         reference: markdown_document_reference,
                         relative_path,
                     },
@@ -333,20 +334,8 @@ pub async fn build_project(
         });
 
     if error_collection.is_empty() {
-        let mut markdown_document_reference_collection: BTreeMap<
-            String,
-            MarkdownDocumentReference,
-        > = Default::default();
-
-        for (key, value) in markdown_document_reference_collection_dashmap.into_iter() {
-            markdown_document_reference_collection.insert(key, value);
-        }
-
         Ok(BuildProjectResult {
             esbuild_metafile,
-            markdown_document_reference_collection: Arc::new(
-                markdown_document_reference_collection,
-            ),
             markdown_document_sources: Arc::new(markdown_document_sources),
             memory_filesystem,
         })

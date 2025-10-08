@@ -24,7 +24,7 @@ use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
-pub fn find_headings_in_mdast(
+fn find_headings_in_mdast(
     mdast: &Node,
     component_context: &ComponentContext,
     headings: &mut Vec<Heading>,

@@ -9,6 +9,7 @@ use tokio::sync::Notify;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::filesystem::Filesystem;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
+use crate::markdown_document_source::MarkdownDocumentSource;
 use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
@@ -45,16 +46,18 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
             .0
             .must_get_build_project_result()
             .await?
-            .markdown_document_reference_collection
+            .markdown_document_sources
             .iter()
             .skip(offset)
             .take(limit)
-            .map(|(basename, reference)| Resource {
-                description: reference.front_matter.description.to_owned(),
-                name: basename.to_string(),
-                title: reference.front_matter.title.to_owned(),
-                uri: self.resource_uri(basename),
-            })
+            .map(
+                |(basename, MarkdownDocumentSource { reference, .. })| Resource {
+                    description: reference.front_matter.description.to_owned(),
+                    name: basename.to_string(),
+                    title: reference.front_matter.title.to_owned(),
+                    uri: self.resource_uri(basename),
+                },
+            )
             .collect())
     }
 
@@ -69,11 +72,8 @@ impl ResourceProvider for McpResourceProviderGeneratedPages {
     ) -> Result<Option<ResourceContentParts>> {
         let build_project_result = self.0.must_get_build_project_result().await?;
 
-        match build_project_result
-            .markdown_document_reference_collection
-            .get(&path)
-        {
-            Some(reference) => match build_project_result
+        match build_project_result.markdown_document_sources.get(&path) {
+            Some(MarkdownDocumentSource { reference, .. }) => match build_project_result
                 .memory_filesystem
                 .read_file_contents(
                     &reference

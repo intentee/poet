@@ -81,8 +81,12 @@ impl SearchIndex {
 
         Ok(())
     }
+}
 
-    pub fn reader(self) -> Result<SearchIndexReader> {
+impl TryInto<SearchIndexReader> for SearchIndex {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<SearchIndexReader> {
         let index_reader: IndexReader = self
             .index
             .reader_builder()
@@ -136,7 +140,7 @@ mod tests {
 
         search_index.index_markdown_document_sources(markdown_document_sources)?;
 
-        let search_index_reader = search_index.reader()?;
+        let search_index_reader: SearchIndexReader = search_index.try_into()?;
         let results = search_index_reader.query("test")?;
 
         for result in results {

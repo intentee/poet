@@ -74,7 +74,6 @@ impl McpResponder for RespondToPost {
                 }
             };
 
-
         match client_to_server_message {
             ClientToServerMessage::Initialize(_) => {}
             _ => {

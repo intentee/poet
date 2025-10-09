@@ -11,6 +11,7 @@ use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::watch::service::Service;
 use crate::holder::Holder as _;
 use crate::search_index::SearchIndex;
+use crate::search_index_reader::SearchIndexReader;
 
 pub struct SearchIndexBuilder {
     pub build_project_result_holder: BuildProjectResultHolder,
@@ -44,7 +45,7 @@ impl Service for SearchIndexBuilder {
                 return;
             }
 
-            let search_index_reader = match search_index.reader() {
+            let search_index_reader: SearchIndexReader = match search_index.try_into() {
                 Ok(search_index_reader) => search_index_reader,
                 Err(err) => {
                     error!("Unable to create search index reader: {err:#?}");

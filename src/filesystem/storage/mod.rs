@@ -12,6 +12,7 @@ use tokio::fs;
 use super::Filesystem;
 use super::file_entry::FileEntry;
 use super::read_file_contents_result::ReadFileContentsResult;
+use crate::filesystem::file_entry_stub::FileEntryStub;
 use crate::filesystem::storage::create_parent_directories::create_parent_directories;
 
 pub struct Storage {
@@ -46,13 +47,15 @@ impl Filesystem for Storage {
                     if let Some(extension) = path.extension() {
                         match extension.to_str() {
                             Some("md") | Some("rhai") => {
-                                files.push(FileEntry {
-                                    contents: fs::read_to_string(&path).await.context(format!(
-                                        "Failed to read file: {}",
-                                        path.display()
-                                    ))?,
-                                    relative_path,
-                                });
+                                files.push(
+                                    FileEntryStub {
+                                        contents: fs::read_to_string(&path).await.context(
+                                            format!("Failed to read file: {}", path.display()),
+                                        )?,
+                                        relative_path,
+                                    }
+                                    .try_into()?,
+                                );
                             }
                             Some(_) => debug!("Skipping path: {}", path.display()),
                             None => {}

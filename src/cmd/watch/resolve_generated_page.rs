@@ -7,6 +7,7 @@ use log::error;
 
 use crate::filesystem::Filesystem;
 use crate::filesystem::file_entry::FileEntry;
+use crate::filesystem::file_entry_stub::FileEntryStub;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 
 pub async fn resolve_generated_page<TFilesystem>(
@@ -30,10 +31,14 @@ where
                 Ok(None)
             }
         }
-        Ok(ReadFileContentsResult::Found { contents }) => Ok(Some(FileEntry {
-            contents,
-            relative_path: std_path.to_path_buf(),
-        })),
+        Ok(ReadFileContentsResult::Found { contents }) => Ok(Some(
+            FileEntryStub {
+                contents,
+                relative_path: std_path.to_path_buf(),
+            }
+            .try_into()
+            .map_err(ErrorInternalServerError)?,
+        )),
         Ok(ReadFileContentsResult::NotFound) => {
             let path_string = std_path.display().to_string();
             let path_str = path_string.as_str();

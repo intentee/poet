@@ -27,7 +27,7 @@ impl Handler for ResourcesTemplatesListHandler {
 
     async fn handle(
         self,
-        ResourcesTemplatesListRequest { id, .. }: ResourcesTemplatesListRequest,
+        ResourcesTemplatesListRequest { id, .. }: Self::Request,
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         let response = ServerToClientResponse::ResourcesTemplatesList(Success {

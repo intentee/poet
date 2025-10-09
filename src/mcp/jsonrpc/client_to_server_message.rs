@@ -5,6 +5,7 @@ use crate::mcp::jsonrpc::notification::initialized::Initialized;
 use crate::mcp::jsonrpc::request::initialize::Initialize;
 use crate::mcp::jsonrpc::request::logging_set_level::LoggingSetLevel;
 use crate::mcp::jsonrpc::request::ping::Ping;
+use crate::mcp::jsonrpc::request::prompts_list::PromptsList;
 use crate::mcp::jsonrpc::request::resources_list::ResourcesList;
 use crate::mcp::jsonrpc::request::resources_read::ResourcesRead;
 use crate::mcp::jsonrpc::request::resources_subscribe::ResourcesSubscribe;
@@ -22,8 +23,8 @@ pub enum ClientToServerMessage {
     LoggingSetLevel(LoggingSetLevel),
     #[serde(rename = "ping")]
     Ping(Ping),
-    // #[serde(rename = "prompts/list")]
-    // PromptsList(PromptsList),
+    #[serde(rename = "prompts/list")]
+    PromptsList(PromptsList),
     #[serde(rename = "resources/list")]
     ResourcesList(ResourcesList),
     #[serde(rename = "resources/read")]

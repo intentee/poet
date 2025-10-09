@@ -22,7 +22,7 @@ impl Handler for ResourcesUnsubscribeHandler {
             id,
             params: ResourcesUnsubscribeParams { uri, .. },
             ..
-        }: ResourcesUnsubscribe,
+        }: Self::Request,
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         if let Some(cancallation_token) = session

@@ -150,7 +150,7 @@ pub async fn build_project(
         Default::default();
 
     for file in files {
-        if file.is_markdown() {
+        if file.kind.is_content() {
             let mdast = string_to_mdast(&file.contents)?;
             let front_matter = find_front_matter_in_mdast(&mdast)?.ok_or_else(|| {
                 anyhow!("No front matter found in file: {:?}", file.relative_path)

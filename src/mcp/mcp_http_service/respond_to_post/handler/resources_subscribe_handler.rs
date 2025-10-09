@@ -38,7 +38,7 @@ impl Handler for ResourcesSubscribeHandler {
             id,
             params: ResourcesSubscribeParams { uri, .. },
             ..
-        }: ResourcesSubscribe,
+        }: Self::Request,
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         let cancellation_token = session

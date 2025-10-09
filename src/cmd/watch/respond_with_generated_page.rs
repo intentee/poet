@@ -23,6 +23,7 @@ pub async fn respond_with_generated_page(
         }) => match resolve_generated_page(memory_filesystem, std_path, check_for_index).await? {
             Some(FileEntry {
                 contents,
+                kind: _,
                 relative_path,
             }) => Ok(HttpResponse::Ok()
                 .content_type(mime_guess::from_path(relative_path).first_or_octet_stream())

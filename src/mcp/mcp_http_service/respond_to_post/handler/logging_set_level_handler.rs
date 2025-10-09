@@ -24,7 +24,7 @@ impl Handler for LoggingSetLevelHandler {
             id,
             params: LoggingSetLevelParams { level, .. },
             ..
-        }: LoggingSetLevel,
+        }: Self::Request,
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         self.session_manager

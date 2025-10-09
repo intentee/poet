@@ -19,6 +19,7 @@ use crate::mcp::mcp_http_service::respond_to_post::handler::initialize_handler::
 use crate::mcp::mcp_http_service::respond_to_post::handler::initialized_handler::InitializedHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::logging_set_level_handler::LoggingSetLevelHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::ping_handler::PingHandler;
+use crate::mcp::mcp_http_service::respond_to_post::handler::prompts_list_handler::PromptsListHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_list_handler::ResourcesListHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_read_handler::ResourcesReadHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_subscribe_handler::ResourcesSubscribeHandler;
@@ -73,6 +74,8 @@ impl McpResponder for RespondToPost {
                 }
             };
 
+        self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+
         match client_to_server_message {
             ClientToServerMessage::Initialize(request) => {
                 self.assert_no_session(&session)?;
@@ -85,26 +88,24 @@ impl McpResponder for RespondToPost {
                 .await
             }
             ClientToServerMessage::Initialized(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 let session = self.assert_session(&session)?;
 
                 InitializedHandler {}.handle(request, session).await
             }
             ClientToServerMessage::LoggingSetLevel(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 let session = self.assert_session(&session)?;
 
                 LoggingSetLevelHandler { session_manager }
                     .handle(request, session)
                     .await
             }
-            ClientToServerMessage::Ping(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+            ClientToServerMessage::Ping(request) => PingHandler {}.handle(request, ()).await,
+            ClientToServerMessage::PromptsList(request) => {
+                let session = self.assert_session(&session)?;
 
-                PingHandler {}.handle(request, ()).await
+                PromptsListHandler {}.handle(request, session).await
             }
             ClientToServerMessage::ResourcesList(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 let session = self.assert_session(&session)?;
 
                 ResourcesListHandler {
@@ -114,7 +115,6 @@ impl McpResponder for RespondToPost {
                 .await
             }
             ClientToServerMessage::ResourcesRead(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 let session = self.assert_session(&session)?;
 
                 ResourcesReadHandler {
@@ -124,7 +124,6 @@ impl McpResponder for RespondToPost {
                 .await
             }
             ClientToServerMessage::ResourcesSubscribe(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 let session = self.assert_session(&session)?;
 
                 ResourcesSubscribeHandler {
@@ -134,7 +133,6 @@ impl McpResponder for RespondToPost {
                 .await
             }
             ClientToServerMessage::ResourcesTemplatesList(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 let session = self.assert_session(&session)?;
 
                 ResourcesTemplatesListHandler {
@@ -144,7 +142,6 @@ impl McpResponder for RespondToPost {
                 .await
             }
             ClientToServerMessage::ResourcesUnsubscribe(request) => {
-                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
                 let session = self.assert_session(&session)?;
 
                 ResourcesUnsubscribeHandler {}

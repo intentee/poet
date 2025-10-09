@@ -35,7 +35,7 @@ impl Handler for ResourcesListHandler {
             id,
             params: ResourcesListParams { cursor, .. },
             ..
-        }: ResourcesListRequest,
+        }: Self::Request,
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         let response = ServerToClientResponse::ResourcesList(Success {

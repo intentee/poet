@@ -8,6 +8,7 @@ use dashmap::DashMap;
 use super::Filesystem;
 use super::file_entry::FileEntry;
 use super::read_file_contents_result::ReadFileContentsResult;
+use crate::filesystem::file_entry_stub::FileEntryStub;
 
 pub struct Memory {
     files: DashMap<String, String>,
@@ -24,16 +25,16 @@ impl Default for Memory {
 #[async_trait]
 impl Filesystem for Memory {
     async fn read_content_files(&self) -> Result<Vec<FileEntry>> {
-        let file_entries = self
-            .files
+        self.files
             .iter()
-            .map(|entry| FileEntry {
-                contents: entry.value().clone(),
-                relative_path: entry.key().into(),
+            .map(|entry| {
+                FileEntryStub {
+                    contents: entry.value().clone(),
+                    relative_path: entry.key().into(),
+                }
+                .try_into()
             })
-            .collect();
-
-        Ok(file_entries)
+            .collect::<Result<Vec<FileEntry>>>()
     }
 
     async fn read_file_contents(&self, relative_path: &Path) -> Result<ReadFileContentsResult> {

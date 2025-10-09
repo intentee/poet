@@ -1,4 +1,6 @@
 pub mod file_entry;
+pub mod file_entry_kind;
+pub mod file_entry_stub;
 pub mod memory;
 pub mod read_file_contents_result;
 pub mod storage;
@@ -25,6 +27,7 @@ pub trait Filesystem: Send + Sync {
     async fn copy_from<TFilesystem: Filesystem>(&self, other: Arc<TFilesystem>) -> Result<()> {
         for FileEntry {
             contents,
+            kind: _,
             relative_path,
         } in other.read_content_files().await?
         {

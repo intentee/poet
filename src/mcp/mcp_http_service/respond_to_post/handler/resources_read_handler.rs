@@ -35,7 +35,7 @@ impl Handler for ResourcesReadHandler {
             id,
             params: ResourcesReadParams { uri, .. },
             ..
-        }: ResourcesReadRequest,
+        }: Self::Request,
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         let response = match self

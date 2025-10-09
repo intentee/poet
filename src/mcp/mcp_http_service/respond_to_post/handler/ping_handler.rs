@@ -19,7 +19,7 @@ impl Handler for PingHandler {
 
     async fn handle(
         self,
-        Ping { id, .. }: Ping,
+        Ping { id, .. }: Self::Request,
         _: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         Ok(

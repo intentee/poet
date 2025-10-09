@@ -118,7 +118,7 @@ impl Handler for InitializeHandler {
 
     async fn handle(
         self,
-        Initialize { id, .. }: Initialize,
+        Initialize { id, .. }: Self::Request,
         _: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         let SessionWithNotificationsReceiver {

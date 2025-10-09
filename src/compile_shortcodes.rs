@@ -21,7 +21,7 @@ pub async fn compile_shortcodes(source_filesystem: Arc<Storage>) -> Result<RhaiT
     );
 
     for file in &files {
-        if file.is_rhai() {
+        if file.kind.is_shortcode() {
             rhai_template_factory.register_component_file(file.clone());
         }
     }

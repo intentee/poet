@@ -15,8 +15,8 @@ use crate::anyhow_error_aggregate::AnyhowErrorAggregate;
 use crate::markdown_document_source::MarkdownDocumentSource;
 use crate::mdast_to_tantivy_document::mdast_to_tantivy_document;
 use crate::search_index_fields::SearchIndexFields;
-use crate::search_index_schema::SearchIndexSchema;
 use crate::search_index_reader::SearchIndexReader;
+use crate::search_index_schema::SearchIndexSchema;
 
 pub struct SearchIndex {
     fields: Arc<SearchIndexFields>,

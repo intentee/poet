@@ -47,6 +47,7 @@ async fn respond(
                 }) => match resolve_generated_page(memory_filesystem, std_path, true).await {
                     Ok(Some(FileEntry {
                         contents,
+                        kind: _,
                         relative_path: _,
                     })) => {
                         if let Err(err) = session.text(contents).await {

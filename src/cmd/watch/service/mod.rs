@@ -3,12 +3,10 @@ pub mod project_builder;
 pub mod search_index_builder;
 pub mod shortcodes_compiler;
 
-use std::sync::Arc;
-
 use anyhow::Result;
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait Service {
-    async fn run(self: Arc<Self>) -> Result<()>;
+    async fn run(&self) -> Result<()>;
 }

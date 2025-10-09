@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use log::error;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
@@ -18,18 +19,25 @@ pub struct ShortcodesCompiler {
     pub source_filesystem: Arc<Storage>,
 }
 
+impl ShortcodesCompiler {
+    async fn do_compile_shortcodes(&self) {
+        match compile_shortcodes(self.source_filesystem.clone()).await {
+            Ok(rhai_template_renderer) => {
+                self.rhai_template_renderer_holder
+                    .set(Some(rhai_template_renderer))
+                    .await;
+            }
+            Err(err) => error!("Unable to compile shortcodes: {err:#?}"),
+        };
+    }
+}
+
 #[async_trait]
 impl Service for ShortcodesCompiler {
-    async fn run(self: Arc<Self>) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         loop {
-            let rhai_template_renderer = compile_shortcodes(self.source_filesystem.clone()).await?;
-
-            self.rhai_template_renderer_holder
-                .set(Some(rhai_template_renderer))
-                .await;
-
             tokio::select! {
-                _ = self.on_shortcode_file_changed.notified() => {},
+                _ = self.on_shortcode_file_changed.notified() => self.do_compile_shortcodes().await,
                 _ = self.ctrlc_notifier.cancelled() => {
                     break;
                 },

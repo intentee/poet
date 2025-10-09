@@ -18,7 +18,7 @@ use log::warn;
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::cmd::watch::app_data::AppData;
 use crate::cmd::watch::resolve_generated_page::resolve_generated_page;
-use crate::filesystem::file_entry::FileEntry;
+use crate::filesystem::file_entry_stub::FileEntryStub;
 use crate::holder::Holder as _;
 
 pub fn register(cfg: &mut web::ServiceConfig) {
@@ -45,9 +45,8 @@ async fn respond(
                     markdown_document_sources: _,
                     memory_filesystem,
                 }) => match resolve_generated_page(memory_filesystem, std_path, true).await {
-                    Ok(Some(FileEntry {
+                    Ok(Some(FileEntryStub {
                         contents,
-                        kind: _,
                         relative_path: _,
                     })) => {
                         if let Err(err) = session.text(contents).await {

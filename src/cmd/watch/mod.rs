@@ -25,9 +25,9 @@ use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::watch::service::http_server::HttpServer;
 use crate::cmd::watch::service::project_builder::ProjectBuilder;
+use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::cmd::watch::service_manager::ServiceManager;
-use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp_resource_provider_generated_pages::McpResourceProviderGeneratedPages;
 use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
@@ -67,14 +67,23 @@ impl Handler for Watch {
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
+        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> = vec![
+            Arc::new(McpResourceProviderGeneratedPages(
+                build_project_result_holder.clone(),
+            )),
+            Arc::new(McpResourceProviderMarkdownPages(
+                build_project_result_holder.clone(),
+            )),
+        ];
 
         let mut service_manager: ServiceManager = Default::default();
 
-        service_manager.register_service(Arc::new(ShortcodesCompiler {
+        service_manager.register_service(Arc::new(HttpServer {
+            addr: self.addr,
+            assets_directory: self.assets_directory(),
+            build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
-            on_shortcode_file_changed,
-            rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
-            source_filesystem: source_filesystem.clone(),
+            resource_list_aggregate: Arc::new(resource_list_providers.try_into()?),
         }));
 
         service_manager.register_service(Arc::new(ProjectBuilder {
@@ -82,28 +91,20 @@ impl Handler for Watch {
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
             on_content_file_changed,
-            rhai_template_renderer_holder,
-            source_filesystem,
+            rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
+            source_filesystem: source_filesystem.clone(),
         }));
 
-        let resource_list_aggregate: Arc<ResourceListAggregate> = Arc::new(
-            vec![
-                Arc::new(McpResourceProviderGeneratedPages(
-                    build_project_result_holder.clone(),
-                )) as Arc<dyn ResourceProvider>,
-                Arc::new(McpResourceProviderMarkdownPages(
-                    build_project_result_holder.clone(),
-                )) as Arc<dyn ResourceProvider>,
-            ]
-            .try_into()?,
-        );
+        service_manager.register_service(Arc::new(SearchIndexBuilder {
+            build_project_result_holder: build_project_result_holder.clone(),
+            ctrlc_notifier: ctrlc_notifier.clone(),
+        }));
 
-        service_manager.register_service(Arc::new(HttpServer {
-            addr: self.addr,
-            assets_directory: self.assets_directory(),
-            build_project_result_holder,
-            ctrlc_notifier,
-            resource_list_aggregate,
+        service_manager.register_service(Arc::new(ShortcodesCompiler {
+            ctrlc_notifier: ctrlc_notifier.clone(),
+            on_shortcode_file_changed,
+            rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
+            source_filesystem: source_filesystem.clone(),
         }));
 
         service_manager.run().await?;

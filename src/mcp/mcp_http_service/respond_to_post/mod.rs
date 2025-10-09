@@ -74,7 +74,13 @@ impl McpResponder for RespondToPost {
                 }
             };
 
-        self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+
+        match client_to_server_message {
+            ClientToServerMessage::Initialize(_) => {}
+            _ => {
+                self.assert_protocol_version_header(&req, MCP_PROTOCOL_VERSION)?;
+            }
+        }
 
         match client_to_server_message {
             ClientToServerMessage::Initialize(request) => {

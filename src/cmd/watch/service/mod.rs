@@ -1,5 +1,6 @@
 pub mod http_server;
 pub mod project_builder;
+pub mod search_index_builder;
 pub mod shortcodes_compiler;
 
 use std::sync::Arc;

@@ -6,7 +6,6 @@ use actix_web::error::ErrorInternalServerError;
 use log::error;
 
 use crate::filesystem::Filesystem;
-use crate::filesystem::file_entry::FileEntry;
 use crate::filesystem::file_entry_stub::FileEntryStub;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 
@@ -14,7 +13,7 @@ pub async fn resolve_generated_page<TFilesystem>(
     filesystem: Arc<TFilesystem>,
     std_path: &StdPath,
     check_for_index: bool,
-) -> Result<Option<FileEntry>>
+) -> Result<Option<FileEntryStub>>
 where
     TFilesystem: Filesystem,
 {
@@ -31,14 +30,10 @@ where
                 Ok(None)
             }
         }
-        Ok(ReadFileContentsResult::Found { contents }) => Ok(Some(
-            FileEntryStub {
-                contents,
-                relative_path: std_path.to_path_buf(),
-            }
-            .try_into()
-            .map_err(ErrorInternalServerError)?,
-        )),
+        Ok(ReadFileContentsResult::Found { contents }) => Ok(Some(FileEntryStub {
+            contents,
+            relative_path: std_path.to_path_buf(),
+        })),
         Ok(ReadFileContentsResult::NotFound) => {
             let path_string = std_path.display().to_string();
             let path_str = path_string.as_str();

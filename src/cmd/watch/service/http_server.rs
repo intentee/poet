@@ -51,9 +51,7 @@ impl Service for HttpServer {
             let app_data = Data::new(AppData {
                 build_project_result_holder: self.build_project_result_holder.clone(),
             });
-            let assets_directory = self.assets_directory.clone();
             let ctrlc_notifier = self.ctrlc_notifier.clone();
-            let resource_list_aggregate = self.resource_list_aggregate.clone();
             let server_info = Implementation {
                 name: "poet".to_string(),
                 title: Some("Poet".to_string()),
@@ -62,17 +60,18 @@ impl Service for HttpServer {
             let session_manager = SessionManager {
                 session_storage: Arc::new(Default::default()),
             };
+            let this = self.clone();
 
             if let Err(err) = ActixHttpServer::new(move || {
                 App::new()
                     .app_data(app_data.clone())
                     .service(
-                        Files::new(STATIC_FILES_PUBLIC_PATH, assets_directory.clone())
+                        Files::new(STATIC_FILES_PUBLIC_PATH, this.assets_directory.clone())
                             .prefer_utf8(true),
                     )
                     .service(McpHttpServiceFactory {
                         mount_path: "/mcp/streamable".to_string(),
-                        resource_list_aggregate: resource_list_aggregate.clone(),
+                        resource_list_aggregate: this.resource_list_aggregate.clone(),
                         server_info: server_info.clone(),
                         session_manager: session_manager.clone(),
                     })

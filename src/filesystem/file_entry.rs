@@ -59,7 +59,12 @@ impl TryFrom<FileEntryStub> for FileEntry {
                 ("content", "md") => FileEntryKind::Content,
                 ("prompts", "md") => FileEntryKind::Prompt,
                 ("shortcodes", "rhai") => FileEntryKind::Shortcode,
-                _ => return Err(anyhow!("Unable to figure out file kind")),
+                _ => {
+                    return Err(anyhow!(
+                        "Unable to figure out file kind for: {}",
+                        file_entry_stub.relative_path.display()
+                    ));
+                }
             },
             relative_path: file_entry_stub.relative_path,
         })
@@ -74,12 +79,12 @@ mod tests {
     fn test_get_stem_relative_to() {
         let file_entry: FileEntry = FileEntryStub {
             contents: String::new(),
-            relative_path: PathBuf::from("project/shortcodes/example/foo.rhai"),
+            relative_path: PathBuf::from("shortcodes/example/foo.rhai"),
         }
         .try_into()
         .unwrap();
 
-        let base = PathBuf::from("project/shortcodes");
+        let base = PathBuf::from("shortcodes");
         let stem = file_entry.get_stem_relative_to(&base);
 
         assert_eq!(stem, "example/foo");

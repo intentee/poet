@@ -36,7 +36,7 @@ impl BuildsProject for Generate {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl Handler for Generate {
     async fn handle(&self) -> Result<()> {
         let source_filesystem = self.source_filesystem();

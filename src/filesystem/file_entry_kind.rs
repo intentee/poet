@@ -10,7 +10,11 @@ impl FileEntryKind {
         *self == Self::Content
     }
 
+    pub fn is_prompt(&self) -> bool {
+        *self == Self::Prompt
+    }
+
     pub fn is_shortcode(&self) -> bool {
-        *self == Self::Content
+        *self == Self::Shortcode
     }
 }

@@ -15,7 +15,7 @@ use crate::anyhow_error_aggregate::AnyhowErrorAggregate;
 use crate::markdown_document_source::MarkdownDocumentSource;
 use crate::mdast_to_tantivy_document::mdast_to_tantivy_document;
 use crate::search_index_fields::SearchIndexFields;
-use crate::search_index_parameters::SearchIndexParameters;
+use crate::search_index_schema::SearchIndexSchema;
 use crate::search_index_reader::SearchIndexReader;
 
 pub struct SearchIndex {
@@ -26,7 +26,7 @@ pub struct SearchIndex {
 
 impl SearchIndex {
     pub fn create_in_ram() -> Self {
-        let SearchIndexParameters { fields, schema } = SearchIndexParameters::new();
+        let SearchIndexSchema { fields, schema } = SearchIndexSchema::new();
 
         let index = Index::create_in_ram(schema.clone());
 

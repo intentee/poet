@@ -7,6 +7,8 @@ fn template(context, props, content) {
       </head>
       <body>
         Hello!
+
+        {content}
       </body>
     </html>
   }

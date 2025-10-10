@@ -26,7 +26,6 @@ mod markdown_document_reference;
 mod markdown_document_source;
 mod markdown_document_tree_node;
 mod mcp;
-mod mcp_resource_provider_generated_pages;
 mod mcp_resource_provider_markdown_pages;
 mod mdast_children_to_heading_id;
 mod mdast_to_tantivy_document;

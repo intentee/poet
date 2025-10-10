@@ -10,7 +10,7 @@ use rhai::TypeBuilder;
 use crate::filesystem::file_entry_kind::FileEntryKind;
 use crate::filesystem::file_entry_stub::FileEntryStub;
 
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug)]
 pub struct FileEntry {
     pub contents: String,
     pub contents_hash: Hash,
@@ -45,12 +45,6 @@ impl CustomType for FileEntry {
     }
 }
 
-impl PartialEq for FileEntry {
-    fn eq(&self, other: &Self) -> bool {
-        self.contents_hash == other.contents_hash
-    }
-}
-
 impl TryFrom<FileEntryStub> for FileEntry {
     type Error = anyhow::Error;
 
@@ -69,12 +63,7 @@ impl TryFrom<FileEntryStub> for FileEntry {
                 ("content", "md") => FileEntryKind::Content,
                 ("prompts", "md") => FileEntryKind::Prompt,
                 ("shortcodes", "rhai") => FileEntryKind::Shortcode,
-                _ => {
-                    return Err(anyhow!(
-                        "Unable to figure out file kind for: {}",
-                        file_entry_stub.relative_path.display()
-                    ));
-                }
+                _ => FileEntryKind::Other,
             },
             relative_path: file_entry_stub.relative_path,
         })

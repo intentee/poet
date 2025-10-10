@@ -13,7 +13,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use blake3::hash;
 use dashmap::DashMap;
 use esbuild_metafile::EsbuildMetaFile;
 use log::debug;
@@ -176,7 +175,8 @@ pub async fn build_project(
                 markdown_basename_by_id.insert(id.clone(), basename.clone());
             }
 
-            markdown_document_by_basename.insert(basename.clone(), markdown_document_reference.clone());
+            markdown_document_by_basename
+                .insert(basename.clone(), markdown_document_reference.clone());
             markdown_document_list.push(MarkdownDocument {
                 mdast: mdast.clone(),
                 reference: markdown_document_reference.clone(),

@@ -64,15 +64,14 @@ impl Handler for ResourcesSubscribeHandler {
                             }
                             resource_content_parts = resource_content_parts_rx.recv() => {
                                 if let Some(ResourceContentParts {
-                                    parts: _,
-                                    title,
                                     uri,
+                                    ..
                                 }) = resource_content_parts {
                                     if let Err(err) = session_clone
                                         .notify(ServerToClientNotification::ResourcesUpdated(
                                             ResourcesUpdated {
                                                 jsonrpc: JSONRPC_VERSION.to_string(),
-                                                params: ResourcesUpdatedParams { title, uri },
+                                                params: ResourcesUpdatedParams { uri },
                                             },
                                         ))
                                         .await

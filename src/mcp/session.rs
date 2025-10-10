@@ -36,6 +36,10 @@ impl Session {
         self.session_id.clone()
     }
 
+    pub fn is_subscribed_to_resource(&self, resource_uri: &str) -> bool {
+        self.resource_subscriptions.contains_key(resource_uri)
+    }
+
     pub async fn log(&self, message: Message) -> Result<(), SendError<ServerToClientNotification>> {
         if message.params.level >= self.log_level {
             self.notify(ServerToClientNotification::Message(message))

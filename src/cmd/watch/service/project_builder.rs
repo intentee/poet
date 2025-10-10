@@ -18,13 +18,16 @@ use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
 use crate::mcp::jsonrpc::notification::resources_list_changed::ResourcesListChanged;
 use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
+use crate::mcp::resource_provider::ResourceProvider as _;
 use crate::mcp::session_manager::SessionManager;
+use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 pub struct ProjectBuilder {
     pub addr: SocketAddr,
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
+    pub mcp_resource_provider_markdown_pages: Arc<McpResourceProviderMarkdownPages>,
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
     pub session_manager: SessionManager,
@@ -55,17 +58,39 @@ impl ProjectBuilder {
         .await
         {
             Ok(build_project_result) => {
-                self.build_project_result_holder
-                    .set(Some(build_project_result))
-                    .await;
+                if let Some(old_build_project_result) = self
+                    .build_project_result_holder
+                    .swap(Some(build_project_result.clone()))
+                    .await
+                {
+                    for changed_resource_reference in
+                        build_project_result.changed_compared_to(&old_build_project_result)
+                    {
+                        let resource_uri = self
+                            .mcp_resource_provider_markdown_pages
+                            .resource_uri(&changed_resource_reference.basename());
 
-                if let Err(err) = self.session_manager
+                        if let Err(err) = self
+                            .session_manager
+                            .broadcast_resource_updated(&resource_uri)
+                            .await
+                        {
+                            error!(
+                                "Unable to notify about changed resource '{resource_uri}': {err:#?}"
+                            );
+                        }
+                    }
+                }
+
+                if let Err(err) = self
+                    .session_manager
                     .broadcast(ServerToClientNotification::ResourcesListChanged(
                         ResourcesListChanged {
                             jsonrpc: JSONRPC_VERSION.to_string(),
                         },
                     ))
-                    .await {
+                    .await
+                {
                     error!("Failed to notify MCP sessions: {err:#?}");
                 }
 

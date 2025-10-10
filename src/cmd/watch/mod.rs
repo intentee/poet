@@ -30,7 +30,6 @@ use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::cmd::watch::service_manager::ServiceManager;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
-use crate::mcp_resource_provider_generated_pages::McpResourceProviderGeneratedPages;
 use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
@@ -66,16 +65,13 @@ impl Handler for Watch {
         } = watch_project_files(self.source_directory.clone())?;
 
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
+        let mcp_resource_provider_markdown_pages = Arc::new(McpResourceProviderMarkdownPages(
+            build_project_result_holder.clone(),
+        ));
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
-        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> = vec![
-            Arc::new(McpResourceProviderGeneratedPages(
-                build_project_result_holder.clone(),
-            )),
-            Arc::new(McpResourceProviderMarkdownPages(
-                build_project_result_holder.clone(),
-            )),
-        ];
+        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
+            vec![mcp_resource_provider_markdown_pages.clone()];
         let session_manager = SessionManager {
             session_storage: Arc::new(Default::default()),
         };
@@ -95,6 +91,7 @@ impl Handler for Watch {
             addr: self.addr,
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
+            mcp_resource_provider_markdown_pages,
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             session_manager,

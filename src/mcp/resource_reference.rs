@@ -8,6 +8,7 @@ pub struct ResourceReference {
     pub path: String,
     pub scheme: String,
     pub uri: Uri,
+    pub uri_string: String,
 }
 
 impl TryFrom<Uri> for ResourceReference {
@@ -34,6 +35,7 @@ impl TryFrom<Uri> for ResourceReference {
                 .scheme_str()
                 .ok_or_else(|| anyhow!("Unable to establish uri scheme: {uri}"))?
                 .to_string(),
+            uri_string: uri.to_string(),
             uri,
         })
     }

@@ -203,7 +203,8 @@ mod tests {
         }
 
         async fn resource_update_notifier(
-            &self,
+            self: Arc<Self>,
+            _: CancellationToken,
             _: ResourceReference,
         ) -> Result<Option<Arc<Notify>>> {
             unimplemented!();

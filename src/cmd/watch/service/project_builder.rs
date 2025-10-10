@@ -18,7 +18,6 @@ use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
 use crate::mcp::jsonrpc::notification::resources_list_changed::ResourcesListChanged;
 use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
-use crate::mcp::resource_provider::ResourceProvider as _;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
@@ -57,30 +56,18 @@ impl ProjectBuilder {
         )
         .await
         {
-            Ok(build_project_result) => {
-                if let Some(old_build_project_result) = self
-                    .build_project_result_holder
-                    .swap(Some(build_project_result.clone()))
-                    .await
-                {
-                    for changed_resource_reference in
-                        build_project_result.changed_compared_to(&old_build_project_result)
-                    {
-                        let resource_uri = self
-                            .mcp_resource_provider_markdown_pages
-                            .resource_uri(&changed_resource_reference.basename());
-
-                        if let Err(err) = self
-                            .session_manager
-                            .broadcast_resource_updated(&resource_uri)
-                            .await
+            Ok(build_project_result_stub) => {
+                self.build_project_result_holder
+                    .set(Some(
+                        if let Some(old_build_project_result) =
+                            self.build_project_result_holder.get().await
                         {
-                            error!(
-                                "Unable to notify about changed resource '{resource_uri}': {err:#?}"
-                            );
-                        }
-                    }
-                }
+                            build_project_result_stub.changed_compared_to(old_build_project_result)
+                        } else {
+                            build_project_result_stub.into()
+                        },
+                    ))
+                    .await;
 
                 if let Err(err) = self
                     .session_manager

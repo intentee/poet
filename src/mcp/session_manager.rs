@@ -47,6 +47,7 @@ impl SessionManager {
             let session = entry.value();
 
             if session.is_subscribed_to_resource(resource_uri) {
+                println!("subscribed to: {resource_uri}");
                 session
                     .notify(ServerToClientNotification::ResourcesUpdated(
                         ResourcesUpdated {

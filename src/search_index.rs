@@ -107,11 +107,11 @@ mod tests {
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_project::build_project;
-    use crate::build_project::build_project_result::BuildProjectResult;
+    use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::storage::Storage;
 
-    async fn do_build_project() -> Result<BuildProjectResult> {
+    async fn do_build_project() -> Result<BuildProjectResultStub> {
         let public_path: String = "https://example.com".to_string();
         let source_filesystem = Arc::new(Storage {
             base_directory: env!("CARGO_MANIFEST_DIR").into(),
@@ -132,7 +132,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_index_is_searchable() -> Result<()> {
-        let BuildProjectResult {
+        let BuildProjectResultStub {
             markdown_document_sources,
             ..
         } = do_build_project().await?;

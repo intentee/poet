@@ -17,9 +17,7 @@ pub async fn respond_with_generated_page(
 ) -> Result<HttpResponse> {
     match app_data.build_project_result_holder.get().await {
         Some(BuildProjectResult {
-            esbuild_metafile: _,
-            markdown_document_sources: _,
-            memory_filesystem,
+            memory_filesystem, ..
         }) => match resolve_generated_page(memory_filesystem, std_path, check_for_index).await? {
             Some(FileEntryStub {
                 contents,

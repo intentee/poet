@@ -27,7 +27,8 @@ pub trait ResourceProvider: ResourceTemplateProvider + Send + Sync + 'static {
     ) -> Result<Option<ResourceContentParts>>;
 
     async fn resource_update_notifier(
-        &self,
+        self: Arc<Self>,
+        cancellation_token: CancellationToken,
         resource_reference: ResourceReference,
     ) -> Result<Option<Arc<Notify>>>;
 
@@ -44,7 +45,8 @@ pub trait ResourceProvider: ResourceTemplateProvider + Send + Sync + 'static {
     ) -> Result<Option<Receiver<ResourceContentParts>>> {
         let (resource_content_parts_tx, resource_content_parts_rx) = mpsc::channel(3);
         let resource_update_notifier: Arc<Notify> = self
-            .resource_update_notifier(resource_reference.clone())
+            .clone()
+            .resource_update_notifier(cancellation_token.clone(), resource_reference.clone())
             .await?
             .ok_or_else(|| {
                 anyhow!(

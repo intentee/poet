@@ -11,7 +11,7 @@ use super::value_parser::validate_is_directory;
 use super::value_parser::validate_is_directory_or_create;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
-use crate::build_project::build_project_result::BuildProjectResult;
+use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::Filesystem;
@@ -42,10 +42,10 @@ impl Handler for Generate {
         let source_filesystem = self.source_filesystem();
         let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
 
-        let BuildProjectResult {
+        let BuildProjectResultStub {
             esbuild_metafile,
-            markdown_document_sources: _,
             memory_filesystem,
+            ..
         } = build_project(
             AssetPathRenderer {
                 base_path: self.public_path.clone(),

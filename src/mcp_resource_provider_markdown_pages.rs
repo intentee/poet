@@ -1,11 +1,14 @@
 use std::sync::Arc;
 use std::sync::atomic;
 
+use actix_web::rt;
 use anyhow::Result;
 use async_trait::async_trait;
 use tokio::sync::Notify;
+use tokio_util::sync::CancellationToken;
 
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
 use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
@@ -70,10 +73,7 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
     async fn read_resource_contents(
         &self,
         ResourceReference {
-            class: _,
-            path,
-            scheme: _,
-            uri,
+            path, uri_string, ..
         }: ResourceReference,
     ) -> Result<Option<ResourceContentParts>> {
         let build_project_result = self.0.must_get_build_project_result().await?;
@@ -84,21 +84,51 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
                     meta: None,
                     mime_type: self.mime_type(),
                     text: markdown_document_source.file_entry.contents.clone(),
-                    uri: uri.to_string(),
+                    uri: uri_string.clone(),
                 })],
                 title: markdown_document_source
                     .reference
                     .front_matter
                     .title
                     .clone(),
-                uri: uri.to_string(),
+                uri: uri_string.clone(),
             })),
             None => Ok(None),
         }
     }
 
-    async fn resource_update_notifier(&self, _: ResourceReference) -> Result<Option<Arc<Notify>>> {
-        Ok(Some(self.0.update_notifier.clone()))
+    async fn resource_update_notifier(
+        self: Arc<Self>,
+        cancellation_token: CancellationToken,
+        resource_reference: ResourceReference,
+    ) -> Result<Option<Arc<Notify>>> {
+        let build_project_result_holder = self.0.clone();
+        let build_update_notifier = self.0.update_notifier.clone();
+        let resource_update_notifier: Arc<Notify> = Default::default();
+
+        let resource_update_notifier_clone = resource_update_notifier.clone();
+        let this = self.clone();
+
+        rt::spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = cancellation_token.cancelled() => break,
+                    _ = build_update_notifier.notified() => {
+                        if let Some(build_project_result) = build_project_result_holder.get().await {
+                            for markdown_document_source in build_project_result.changed_since_last_build {
+                                let reference_uri = this.resource_uri(&markdown_document_source.relative_path);
+
+                                if reference_uri == resource_reference.uri_string {
+                                    resource_update_notifier_clone.notify_waiters();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        Ok(Some(resource_update_notifier))
     }
 
     fn total(&self) -> usize {

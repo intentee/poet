@@ -1,4 +1,3 @@
-use std::mem::replace;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -33,20 +32,5 @@ pub trait Holder {
         }
 
         self.update_notifier().notify_waiters();
-    }
-
-    async fn swap(&self, item: Option<Self::Item>) -> Option<Self::Item> {
-        let old_item: Option<Self::Item> = {
-            let rw_lock = self.rw_lock();
-            let mut item_shared_writer = rw_lock.write().await;
-
-            self.on_update(&item);
-
-            replace(&mut *item_shared_writer, item)
-        };
-
-        self.update_notifier().notify_waiters();
-
-        old_item
     }
 }

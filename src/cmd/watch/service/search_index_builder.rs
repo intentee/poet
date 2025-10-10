@@ -19,9 +19,8 @@ pub struct SearchIndexBuilder {
 impl SearchIndexBuilder {
     async fn do_build_search_index(&self) {
         let BuildProjectResult {
-            esbuild_metafile: _,
             markdown_document_sources,
-            memory_filesystem: _,
+            ..
         } = match self.build_project_result_holder.get().await {
             Some(build_project_result) => build_project_result,
             None => {

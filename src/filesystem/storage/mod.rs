@@ -1,4 +1,5 @@
 pub mod create_parent_directories;
+pub mod project_files_iterator;
 
 use std::path::Path;
 use std::path::PathBuf;
@@ -21,9 +22,10 @@ pub struct Storage {
 
 #[async_trait]
 impl Filesystem for Storage {
-    async fn read_content_files(&self) -> Result<Vec<FileEntry>> {
+    async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
         let mut to_visit: Vec<PathBuf> = vec![
             self.base_directory.join("content"),
+            self.base_directory.join("prompts"),
             self.base_directory.join("shortcodes"),
         ];
         let mut files = Vec::new();

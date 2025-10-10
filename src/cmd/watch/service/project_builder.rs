@@ -15,6 +15,10 @@ use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::watch::service::Service;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;
+use crate::mcp::jsonrpc::JSONRPC_VERSION;
+use crate::mcp::jsonrpc::notification::resources_list_changed::ResourcesListChanged;
+use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
+use crate::mcp::session_manager::SessionManager;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 pub struct ProjectBuilder {
@@ -23,6 +27,7 @@ pub struct ProjectBuilder {
     pub ctrlc_notifier: CancellationToken,
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
+    pub session_manager: SessionManager,
     pub source_filesystem: Arc<Storage>,
 }
 
@@ -54,6 +59,16 @@ impl ProjectBuilder {
                     .set(Some(build_project_result))
                     .await;
 
+                if let Err(err) = self.session_manager
+                    .broadcast(ServerToClientNotification::ResourcesListChanged(
+                        ResourcesListChanged {
+                            jsonrpc: JSONRPC_VERSION.to_string(),
+                        },
+                    ))
+                    .await {
+                    error!("Failed to notify MCP sessions: {err:#?}");
+                }
+
                 info!("Build successful");
             }
             Err(err) => error!("Failed to build project: {err:#}"),
@@ -65,12 +80,12 @@ impl ProjectBuilder {
 impl Service for ProjectBuilder {
     async fn run(&self) -> Result<()> {
         loop {
+            self.do_build_project().await;
+
             tokio::select! {
-                _ = self.on_content_file_changed.notified() => self.do_build_project().await,
-                _ = self.rhai_template_renderer_holder.update_notifier.notified() => self.do_build_project().await,
-                _ = self.ctrlc_notifier.cancelled() => {
-                    break;
-                },
+                _ = self.on_content_file_changed.notified() => continue,
+                _ = self.rhai_template_renderer_holder.update_notifier.notified() => continue,
+                _ = self.ctrlc_notifier.cancelled() => break,
             }
         }
 

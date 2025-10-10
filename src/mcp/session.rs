@@ -18,8 +18,8 @@ use crate::mcp::log_level::LogLevel;
 pub struct Session {
     log_level: LogLevel,
     notification_tx: Sender<ServerToClientNotification>,
+    resource_subscriptions: Arc<DashMap<String, CancellationToken>>,
     session_id: String,
-    subscriptions: Arc<DashMap<String, CancellationToken>>,
 }
 
 impl Session {
@@ -27,8 +27,8 @@ impl Session {
         Self {
             log_level: LogLevel::Info,
             notification_tx,
+            resource_subscriptions: Default::default(),
             session_id,
-            subscriptions: Default::default(),
         }
     }
 
@@ -63,8 +63,8 @@ impl Session {
         self.notification_tx.send(notification).await
     }
 
-    pub async fn subscribe_to(&self, uri: &str) -> Result<CancellationToken> {
-        if self.subscriptions.contains_key(uri) {
+    pub async fn subscribe_to_resource(&self, uri: &str) -> Result<CancellationToken> {
+        if self.resource_subscriptions.contains_key(uri) {
             let message = format!("You are already subscribed to '{uri}'");
 
             self.log_message(MessageParams {
@@ -77,16 +77,16 @@ impl Session {
         }
 
         let cancellation_token = CancellationToken::new();
-        let subscriptions = self.subscriptions.clone();
+        let resource_subscriptions = self.resource_subscriptions.clone();
 
-        subscriptions.insert(uri.to_string(), cancellation_token.clone());
+        resource_subscriptions.insert(uri.to_string(), cancellation_token.clone());
 
         let cancellation_token_clone = cancellation_token.clone();
         let uri_clone: String = uri.to_string();
 
         rt::spawn(async move {
             cancellation_token_clone.cancelled().await;
-            subscriptions.remove(&uri_clone);
+            resource_subscriptions.remove(&uri_clone);
         });
 
         Ok(cancellation_token)
@@ -94,13 +94,13 @@ impl Session {
 
     pub fn subscribe_token(&self, uri: &str) -> Result<Option<CancellationToken>> {
         Ok(self
-            .subscriptions
+            .resource_subscriptions
             .get(uri)
             .map(|dashmap_ref| dashmap_ref.value().clone()))
     }
 
     pub async fn terminate(self) {
-        for ref_multi in self.subscriptions.iter() {
+        for ref_multi in self.resource_subscriptions.iter() {
             ref_multi.value().cancel();
         }
     }
@@ -109,8 +109,8 @@ impl Session {
         Self {
             log_level,
             notification_tx: self.notification_tx,
+            resource_subscriptions: self.resource_subscriptions,
             session_id: self.session_id,
-            subscriptions: self.subscriptions,
         }
     }
 }

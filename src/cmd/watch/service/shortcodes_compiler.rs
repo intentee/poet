@@ -36,11 +36,11 @@ impl ShortcodesCompiler {
 impl Service for ShortcodesCompiler {
     async fn run(&self) -> Result<()> {
         loop {
+            self.do_compile_shortcodes().await;
+
             tokio::select! {
-                _ = self.on_shortcode_file_changed.notified() => self.do_compile_shortcodes().await,
-                _ = self.ctrlc_notifier.cancelled() => {
-                    break;
-                },
+                _ = self.on_shortcode_file_changed.notified() => continue,
+                _ = self.ctrlc_notifier.cancelled() => break,
             }
         }
 

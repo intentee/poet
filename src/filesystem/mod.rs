@@ -16,7 +16,7 @@ use self::read_file_contents_result::ReadFileContentsResult;
 
 #[async_trait]
 pub trait Filesystem: Send + Sync {
-    async fn read_content_files(&self) -> Result<Vec<FileEntry>>;
+    async fn read_project_files(&self) -> Result<Vec<FileEntry>>;
 
     async fn read_file_contents(&self, path: &Path) -> Result<ReadFileContentsResult>;
 
@@ -27,9 +27,9 @@ pub trait Filesystem: Send + Sync {
     async fn copy_from<TFilesystem: Filesystem>(&self, other: Arc<TFilesystem>) -> Result<()> {
         for FileEntry {
             contents,
-            kind: _,
             relative_path,
-        } in other.read_content_files().await?
+            ..
+        } in other.read_project_files().await?
         {
             self.set_file_contents(&relative_path, &contents).await?;
         }
@@ -70,7 +70,7 @@ mod tests {
             .await?;
 
         println!("{log_prefix} - Reading project files");
-        let mut files = filesystem.read_content_files().await?;
+        let mut files = filesystem.read_project_files().await?;
 
         println!("{log_prefix} - Sorting project files");
         files.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));

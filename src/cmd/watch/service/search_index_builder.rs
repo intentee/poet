@@ -54,11 +54,11 @@ impl SearchIndexBuilder {
 impl Service for SearchIndexBuilder {
     async fn run(&self) -> Result<()> {
         loop {
+            self.do_build_search_index().await;
+
             tokio::select! {
-                _ = self.build_project_result_holder.update_notifier.notified() => self.do_build_search_index().await,
-                _ = self.ctrlc_notifier.cancelled() => {
-                    break;
-                },
+                _ = self.build_project_result_holder.update_notifier.notified() => continue,
+                _ = self.ctrlc_notifier.cancelled() => break,
             }
         }
 

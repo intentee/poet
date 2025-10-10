@@ -29,6 +29,7 @@ use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::cmd::watch::service_manager::ServiceManager;
 use crate::mcp::resource_provider::ResourceProvider;
+use crate::mcp::session_manager::SessionManager;
 use crate::mcp_resource_provider_generated_pages::McpResourceProviderGeneratedPages;
 use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
@@ -75,6 +76,9 @@ impl Handler for Watch {
                 build_project_result_holder.clone(),
             )),
         ];
+        let session_manager = SessionManager {
+            session_storage: Arc::new(Default::default()),
+        };
 
         let mut service_manager: ServiceManager = Default::default();
 
@@ -84,6 +88,7 @@ impl Handler for Watch {
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
             resource_list_aggregate: Arc::new(resource_list_providers.try_into()?),
+            session_manager: session_manager.clone(),
         }));
 
         service_manager.register_service(Arc::new(ProjectBuilder {
@@ -92,6 +97,7 @@ impl Handler for Watch {
             ctrlc_notifier: ctrlc_notifier.clone(),
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
+            session_manager,
             source_filesystem: source_filesystem.clone(),
         }));
 

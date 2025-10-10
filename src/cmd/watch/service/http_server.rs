@@ -29,6 +29,7 @@ pub struct HttpServer {
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
+    pub session_manager: SessionManager,
 }
 
 #[async_trait]
@@ -54,13 +55,11 @@ impl Service for HttpServer {
             let assets_directory = self.assets_directory.clone();
             let ctrlc_notifier = self.ctrlc_notifier.clone();
             let resource_list_aggregate = self.resource_list_aggregate.clone();
+            let session_manager = self.session_manager.clone();
             let server_info = Implementation {
                 name: "poet".to_string(),
                 title: Some("Poet".to_string()),
                 version: env!("CARGO_PKG_VERSION").to_string(),
-            };
-            let session_manager = SessionManager {
-                session_storage: Arc::new(Default::default()),
             };
 
             if let Err(err) = ActixHttpServer::new(move || {

@@ -6,6 +6,6 @@ use crate::markdown_document_reference::MarkdownDocumentReference;
 pub struct MarkdownDocumentSource {
     pub file_entry: FileEntry,
     pub mdast: Node,
-    pub relative_path: String,
     pub reference: MarkdownDocumentReference,
+    pub relative_path: String,
 }

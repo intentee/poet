@@ -4,9 +4,11 @@ use actix_web::Result;
 use actix_web::dev::ServiceRequest;
 use actix_web::error::ErrorInternalServerError;
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::error::SendError;
 use uuid::Uuid;
 
 use crate::mcp::MCP_HEADER_SESSION;
+use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
 use crate::mcp::session::Session;
 use crate::mcp::session_storage::SessionStorage;
 use crate::mcp::session_with_notifications_receiver::SessionWithNotificationsReceiver;
@@ -21,6 +23,19 @@ pub struct SessionManager {
 }
 
 impl SessionManager {
+    pub async fn broadcast(
+        &self,
+        notification: ServerToClientNotification,
+    ) -> Result<(), SendError<ServerToClientNotification>> {
+        for entry in &self.session_storage.sessions {
+            let session = entry.value();
+
+            session.notify(notification.clone()).await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn restore_session(&self, req: &ServiceRequest) -> Result<Option<Session>> {
         match req.headers().get(MCP_HEADER_SESSION) {
             Some(session_id) => {

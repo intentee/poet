@@ -42,7 +42,7 @@ impl Handler for ResourcesSubscribeHandler {
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
         let cancellation_token = session
-            .subscribe_to(&uri)
+            .subscribe_to_resource(&uri)
             .await
             .map_err(ErrorInternalServerError)?;
         let cancellation_token_clone = cancellation_token.clone();

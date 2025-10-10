@@ -22,6 +22,7 @@ use crate::mcp::jsonrpc::response::success::initialize_result::InitializeResult;
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilities;
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityPrompts;
 use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityResources;
+use crate::mcp::jsonrpc::response::success::initialize_result::ServerCapabilityTools;
 use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
 use crate::mcp::jsonrpc::server_to_client_response::ServerToClientResponse;
 use crate::mcp::mcp_http_service::respond_to_post::handler::Handler;
@@ -58,7 +59,9 @@ impl InitializeHandler {
                             list_changed: true,
                             subscribe: true,
                         }),
-                        tools: None,
+                        tools: Some(ServerCapabilityTools {
+                            list_changed: true,
+                        }),
                     },
                     instructions: None,
                     protocol_version: MCP_PROTOCOL_VERSION.to_string(),

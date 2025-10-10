@@ -2,15 +2,18 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use anyhow::anyhow;
+use blake3::Hash;
+use blake3::hash;
 use rhai::CustomType;
 use rhai::TypeBuilder;
 
 use crate::filesystem::file_entry_kind::FileEntryKind;
 use crate::filesystem::file_entry_stub::FileEntryStub;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct FileEntry {
     pub contents: String,
+    pub contents_hash: Hash,
     pub kind: FileEntryKind,
     pub relative_path: PathBuf,
 }
@@ -42,6 +45,12 @@ impl CustomType for FileEntry {
     }
 }
 
+impl PartialEq for FileEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.contents_hash == other.contents_hash
+    }
+}
+
 impl TryFrom<FileEntryStub> for FileEntry {
     type Error = anyhow::Error;
 
@@ -54,6 +63,7 @@ impl TryFrom<FileEntryStub> for FileEntry {
             .ok_or_else(|| anyhow!("Unable to find file's extension"))?;
 
         Ok(Self {
+            contents_hash: hash(file_entry_stub.contents.as_bytes()),
             contents: file_entry_stub.contents,
             kind: match (top_directory.as_str(), extension.as_str()) {
                 ("content", "md") => FileEntryKind::Content,

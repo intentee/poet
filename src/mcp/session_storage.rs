@@ -5,7 +5,7 @@ use crate::mcp::session::Session;
 
 #[derive(Clone, Default)]
 pub struct SessionStorage {
-    sessions: DashMap<String, Session>,
+    pub sessions: DashMap<String, Session>,
 }
 
 impl SessionStorage {

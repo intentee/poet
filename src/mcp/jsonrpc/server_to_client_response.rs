@@ -9,6 +9,7 @@ use crate::mcp::jsonrpc::response::success::prompts_list::PromptsList;
 use crate::mcp::jsonrpc::response::success::resource_templates_list::ResourcesTemplatesList;
 use crate::mcp::jsonrpc::response::success::resources_list::ResourcesList;
 use crate::mcp::jsonrpc::response::success::resources_read::ResourcesRead;
+use crate::mcp::jsonrpc::response::success::tools_list::ToolsList;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, untagged)]
@@ -20,4 +21,5 @@ pub enum ServerToClientResponse {
     ResourcesList(Success<ResourcesList>),
     ResourcesRead(Success<ResourcesRead>),
     ResourcesTemplatesList(Success<ResourcesTemplatesList>),
+    ToolsList(Success<ToolsList>),
 }

@@ -23,6 +23,7 @@ pub mod session_manager;
 pub mod session_storage;
 pub mod session_with_notifications_receiver;
 pub mod tool;
+pub mod tool_call_result;
 pub mod tool_handler;
 pub mod tool_handler_service;
 pub mod tool_provider;

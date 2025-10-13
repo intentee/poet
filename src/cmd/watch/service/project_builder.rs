@@ -19,14 +19,12 @@ use crate::mcp::jsonrpc::JSONRPC_VERSION;
 use crate::mcp::jsonrpc::notification::resources_list_changed::ResourcesListChanged;
 use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
 use crate::mcp::session_manager::SessionManager;
-use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 pub struct ProjectBuilder {
     pub addr: SocketAddr,
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
-    pub mcp_resource_provider_markdown_pages: Arc<McpResourceProviderMarkdownPages>,
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
     pub session_manager: SessionManager,

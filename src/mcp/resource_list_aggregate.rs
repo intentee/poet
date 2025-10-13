@@ -15,19 +15,19 @@ use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::resource::Resource;
 use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_provider::ResourceProvider;
-use crate::mcp::resource_provider_handler::ResourceProviderHandler;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
+use crate::mcp::resource_provider_ordered::ResourceProviderOrdered;
 use crate::mcp::resource_reference::ResourceReference;
 use crate::mcp::resource_template::ResourceTemplate;
 
 struct FoundProvider<'provider> {
-    pub provider: &'provider ResourceProviderHandler,
+    pub provider: &'provider ResourceProviderOrdered,
     pub resource_reference: ResourceReference,
 }
 
 pub struct ResourceListAggregate {
     /// Providers need to be sorted for the offset to work
-    pub providers: BTreeSet<ResourceProviderHandler>,
+    pub providers: BTreeSet<ResourceProviderOrdered>,
 }
 
 impl ResourceListAggregate {
@@ -136,13 +136,11 @@ impl ResourceListAggregate {
     }
 }
 
-impl TryFrom<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
-    type Error = anyhow::Error;
-
-    fn try_from(providers: Vec<Arc<dyn ResourceProvider>>) -> Result<Self> {
-        Ok(Self {
-            providers: providers.into_iter().map(ResourceProviderHandler).collect(),
-        })
+impl From<Vec<Arc<dyn ResourceProvider>>> for ResourceListAggregate {
+    fn from(providers: Vec<Arc<dyn ResourceProvider>>) -> Self {
+        Self {
+            providers: providers.into_iter().map(ResourceProviderOrdered).collect(),
+        }
     }
 }
 

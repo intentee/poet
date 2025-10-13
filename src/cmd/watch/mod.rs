@@ -30,8 +30,10 @@ use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::cmd::watch::service_manager::ServiceManager;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
+use crate::mcp::tool_registry::ToolRegistry;
 use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
+use crate::search_tool::SearchTool;
 
 #[derive(Parser)]
 pub struct Watch {
@@ -65,16 +67,17 @@ impl Handler for Watch {
         } = watch_project_files(self.source_directory.clone())?;
 
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
-        let mcp_resource_provider_markdown_pages = Arc::new(McpResourceProviderMarkdownPages(
-            build_project_result_holder.clone(),
-        ));
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
-        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
-            vec![mcp_resource_provider_markdown_pages.clone()];
+        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> = vec![Arc::new(
+            McpResourceProviderMarkdownPages(build_project_result_holder.clone()),
+        )];
         let session_manager = SessionManager {
             session_storage: Arc::new(Default::default()),
         };
+        let mut tool_registry: ToolRegistry = Default::default();
+
+        tool_registry.register_owned(SearchTool {});
 
         let mut service_manager: ServiceManager = Default::default();
 
@@ -83,7 +86,7 @@ impl Handler for Watch {
             assets_directory: self.assets_directory(),
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
-            resource_list_aggregate: Arc::new(resource_list_providers.try_into()?),
+            resource_list_aggregate: Arc::new(resource_list_providers.into()),
             session_manager: session_manager.clone(),
         }));
 
@@ -91,7 +94,6 @@ impl Handler for Watch {
             addr: self.addr,
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
-            mcp_resource_provider_markdown_pages,
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             session_manager,

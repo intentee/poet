@@ -40,5 +40,6 @@ mod search_index;
 mod search_index_fields;
 mod search_index_reader;
 mod search_index_schema;
+mod search_tool;
 mod string_to_mdast;
 mod table_of_contents;

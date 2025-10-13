@@ -11,6 +11,7 @@ use crate::mcp::jsonrpc::request::resources_read::ResourcesRead;
 use crate::mcp::jsonrpc::request::resources_subscribe::ResourcesSubscribe;
 use crate::mcp::jsonrpc::request::resources_templates_list::ResourcesTemplatesList;
 use crate::mcp::jsonrpc::request::resources_unsubscribe::ResourcesUnsubscribe;
+use crate::mcp::jsonrpc::request::tools_list::ToolsList;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "method")]
@@ -35,4 +36,6 @@ pub enum ClientToServerMessage {
     ResourcesTemplatesList(ResourcesTemplatesList),
     #[serde(rename = "resources/unsubscribe")]
     ResourcesUnsubscribe(ResourcesUnsubscribe),
+    #[serde(rename = "tools/list")]
+    ToolsList(ToolsList),
 }

@@ -88,6 +88,7 @@ impl Handler for Watch {
             ctrlc_notifier: ctrlc_notifier.clone(),
             resource_list_aggregate: Arc::new(resource_list_providers.into()),
             session_manager: session_manager.clone(),
+            tool_registry: Arc::new(tool_registry),
         }));
 
         service_manager.register_service(Arc::new(ProjectBuilder {

@@ -20,6 +20,7 @@ use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
+use crate::mcp::tool_registry::ToolRegistry;
 
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";
 
@@ -30,6 +31,7 @@ pub struct HttpServer {
     pub ctrlc_notifier: CancellationToken,
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub session_manager: SessionManager,
+    pub tool_registry: Arc<ToolRegistry>,
 }
 
 #[async_trait]
@@ -56,6 +58,8 @@ impl Service for HttpServer {
             let ctrlc_notifier = self.ctrlc_notifier.clone();
             let resource_list_aggregate = self.resource_list_aggregate.clone();
             let session_manager = self.session_manager.clone();
+            let tool_registry = self.tool_registry.clone();
+
             let server_info = Implementation {
                 name: "poet".to_string(),
                 title: Some("Poet".to_string()),
@@ -74,6 +78,7 @@ impl Service for HttpServer {
                         resource_list_aggregate: resource_list_aggregate.clone(),
                         server_info: server_info.clone(),
                         session_manager: session_manager.clone(),
+                        tool_registry: tool_registry.clone(),
                     })
                     .configure(http_route::live_reload::register)
                     .configure(http_route::generated_pages::register)

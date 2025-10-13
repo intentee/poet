@@ -26,11 +26,13 @@ use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::mcp_responder_handler::McpResponderHandler;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
+use crate::mcp::tool_registry::ToolRegistry;
 
 pub struct McpHttpService {
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub server_info: Implementation,
     pub session_manager: SessionManager,
+    pub tool_registry: Arc<ToolRegistry>,
 }
 
 impl Service<ServiceRequest> for McpHttpService {
@@ -45,6 +47,7 @@ impl Service<ServiceRequest> for McpHttpService {
         let resource_list_aggregate = self.resource_list_aggregate.clone();
         let server_info = self.server_info.clone();
         let session_manager = self.session_manager.clone();
+        let tool_registry = self.tool_registry.clone();
 
         Box::pin(async move {
             let ctx = McpResponderContext {
@@ -62,6 +65,7 @@ impl Service<ServiceRequest> for McpHttpService {
                         resource_list_aggregate,
                         server_info,
                         session_manager,
+                        tool_registry,
                     })
                     .call((ctx,))
                     .await?

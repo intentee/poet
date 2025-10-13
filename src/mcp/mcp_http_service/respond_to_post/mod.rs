@@ -25,16 +25,19 @@ use crate::mcp::mcp_http_service::respond_to_post::handler::resources_read_handl
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_subscribe_handler::ResourcesSubscribeHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_templates_list_handler::ResourcesTemplatesListHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_unsubscribe_handler::ResourcesUnsubscribeHandler;
+use crate::mcp::mcp_http_service::respond_to_post::handler::tools_list_handler::ToolsListHandler;
 use crate::mcp::mcp_responder::McpResponder;
 use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
+use crate::mcp::tool_registry::ToolRegistry;
 
 #[derive(Clone)]
 pub struct RespondToPost {
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub server_info: Implementation,
     pub session_manager: SessionManager,
+    pub tool_registry: Arc<ToolRegistry>,
 }
 
 #[async_trait(?Send)]
@@ -152,6 +155,15 @@ impl McpResponder for RespondToPost {
                 ResourcesUnsubscribeHandler {}
                     .handle(request, session)
                     .await
+            }
+            ClientToServerMessage::ToolsList(request) => {
+                let session = self.assert_session(&session)?;
+
+                ToolsListHandler {
+                    tool_registry: self.tool_registry,
+                }
+                .handle(request, session)
+                .await
             }
         }
     }

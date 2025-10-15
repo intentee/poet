@@ -7,4 +7,5 @@ pub mod resources_read;
 pub mod resources_subscribe;
 pub mod resources_templates_list;
 pub mod resources_unsubscribe;
+pub mod tools_call;
 pub mod tools_list;

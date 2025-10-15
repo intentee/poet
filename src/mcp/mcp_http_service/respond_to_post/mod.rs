@@ -25,6 +25,7 @@ use crate::mcp::mcp_http_service::respond_to_post::handler::resources_read_handl
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_subscribe_handler::ResourcesSubscribeHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_templates_list_handler::ResourcesTemplatesListHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_unsubscribe_handler::ResourcesUnsubscribeHandler;
+use crate::mcp::mcp_http_service::respond_to_post::handler::tools_call_handler::ToolsCallHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::tools_list_handler::ToolsListHandler;
 use crate::mcp::mcp_responder::McpResponder;
 use crate::mcp::mcp_responder_context::McpResponderContext;
@@ -155,6 +156,15 @@ impl McpResponder for RespondToPost {
                 ResourcesUnsubscribeHandler {}
                     .handle(request, session)
                     .await
+            }
+            ClientToServerMessage::ToolsCall(request) => {
+                let session = self.assert_session(&session)?;
+
+                ToolsCallHandler {
+                    tool_registry: self.tool_registry,
+                }
+                .handle(request, session)
+                .await
             }
             ClientToServerMessage::ToolsList(request) => {
                 let session = self.assert_session(&session)?;

@@ -8,6 +8,7 @@ pub mod resources_read_handler;
 pub mod resources_subscribe_handler;
 pub mod resources_templates_list_handler;
 pub mod resources_unsubscribe_handler;
+pub mod tools_call_handler;
 pub mod tools_list_handler;
 
 use actix_web::HttpResponse;

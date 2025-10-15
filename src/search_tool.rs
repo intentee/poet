@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
+use tokio::task::spawn_blocking;
 
 use crate::holder::Holder;
 use crate::mcp::jsonrpc::content_block::ContentBlock;
@@ -38,18 +39,23 @@ impl ToolProvider for SearchTool {
 impl ToolResponder<Self> for SearchTool {
     async fn respond(
         &self,
-        input: SearchToolProviderInput,
+        SearchToolProviderInput { query }: SearchToolProviderInput,
     ) -> Result<ToolCallResult<SearchToolProviderOutput>> {
         match self
             .search_index_reader_holder
             .get()
             .await {
-            Some(search_index_reader_holder) => Ok(ToolCallResult::Success {
-                content: vec![
-                    ContentBlock::TextContent(TextContent {
-                        text: "hello".to_string(),
+            Some(search_index_reader) => Ok(ToolCallResult::Success {
+                content: spawn_blocking(move || -> Result<Vec<ContentBlock>> {
+                        Ok(search_index_reader
+                            .query(&query)?
+                            .into_iter()
+                            .map(|text| ContentBlock::TextContent(TextContent {
+                                text,
+                            }))
+                            .collect())
                     })
-                ],
+                    .await??,
                 structured_content: SearchToolProviderOutput {
                 }
             }),

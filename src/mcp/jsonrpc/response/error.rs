@@ -21,6 +21,12 @@ pub struct ResourceNotFound {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToolNotFound {
+    tool_name: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, untagged)]
 pub enum Error {
     GenericMessage {
@@ -31,6 +37,13 @@ pub enum Error {
     ResourceNotFound {
         code: i32,
         data: ResourceNotFound,
+        id: Id,
+        jsonrpc: String,
+        message: String,
+    },
+    ToolNotFound {
+        code: i32,
+        data: ToolNotFound,
         id: Id,
         jsonrpc: String,
         message: String,
@@ -61,6 +74,16 @@ impl Error {
             id,
             jsonrpc: JSONRPC_VERSION.to_string(),
             message: "Resource not found".to_string(),
+        }
+    }
+
+    pub fn tool_not_found(id: Id, tool_name: String) -> Self {
+        Self::ToolNotFound {
+            code: ERROR_RESOURCE_NOT_FOUND,
+            data: ToolNotFound { tool_name },
+            id,
+            jsonrpc: JSONRPC_VERSION.to_string(),
+            message: "Tool not found".to_string(),
         }
     }
 }

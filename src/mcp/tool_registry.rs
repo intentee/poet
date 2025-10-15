@@ -7,11 +7,10 @@ use serde_json::Value;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::tool::Tool;
-use crate::mcp::tool_call_result::ToolCallResult;
 use crate::mcp::tool_handler::ToolHandler;
 use crate::mcp::tool_handler_service::ToolHandlerService;
 use crate::mcp::tool_provider::ToolProvider;
-use crate::mcp::tool_provider::ToolProvider as _;
+use crate::mcp::tool_registry_call_result::ToolRegistryCallResult;
 use crate::mcp::tool_responder::ToolResponder;
 
 #[derive(Default)]
@@ -21,13 +20,13 @@ pub struct ToolRegistry {
 }
 
 impl ToolRegistry {
-    pub async fn call_tool(&self, tool_name: &str, input: Value) -> Result<ToolCallResult> {
+    pub async fn call_tool(&self, tool_name: &str, input: Value) -> Result<ToolRegistryCallResult> {
         match self.handlers.get(tool_name) {
             Some(handler) => handler
                 .handle(input)
                 .await
-                .map(|value| ToolCallResult::Success(value)),
-            None => Ok(ToolCallResult::NotFound),
+                .map(ToolRegistryCallResult::Success),
+            None => Ok(ToolRegistryCallResult::NotFound),
         }
     }
 
@@ -56,9 +55,9 @@ impl ToolRegistry {
     {
         let name = provider.name();
         let tool_handler_service = ToolHandlerService {
-            tool: provider.tool_definition(),
-            provider,
+            _provider_phantom: Default::default(),
             responder,
+            tool: provider.tool_definition(),
         };
 
         self.handlers.insert(name, Arc::new(tool_handler_service));

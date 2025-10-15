@@ -49,7 +49,10 @@ impl Handler for ResourcesReadHandler {
             }) => ServerToClientResponse::ResourcesRead(Success {
                 id,
                 jsonrpc: JSONRPC_VERSION.to_string(),
-                result: ResourcesReadResponse { contents },
+                result: ResourcesReadResponse {
+                    contents,
+                    meta: None,
+                },
             }),
             None => {
                 warn!("Resource not found: '{uri}'");

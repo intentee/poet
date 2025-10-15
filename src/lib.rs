@@ -39,6 +39,7 @@ mod rhai_template_renderer_holder;
 mod search_index;
 mod search_index_fields;
 mod search_index_reader;
+mod search_index_reader_holder;
 mod search_index_schema;
 mod search_tool;
 mod string_to_mdast;

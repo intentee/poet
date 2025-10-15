@@ -4,6 +4,7 @@ pub mod prompts_list;
 pub mod resource_templates_list;
 pub mod resources_list;
 pub mod resources_read;
+pub mod tool_call_result;
 pub mod tools_list;
 
 use serde::Deserialize;

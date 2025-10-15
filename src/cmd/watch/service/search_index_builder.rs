@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
@@ -10,10 +12,12 @@ use crate::cmd::watch::service::Service;
 use crate::holder::Holder as _;
 use crate::search_index::SearchIndex;
 use crate::search_index_reader::SearchIndexReader;
+use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 pub struct SearchIndexBuilder {
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
+    pub search_index_reader_holder: SearchIndexReaderHolder,
 }
 
 impl SearchIndexBuilder {
@@ -30,7 +34,7 @@ impl SearchIndexBuilder {
             }
         };
 
-        let search_index = SearchIndex::create_in_ram();
+        let search_index = SearchIndex::create_in_memory();
 
         if let Err(err) = search_index.index_markdown_document_sources(markdown_document_sources) {
             error!("Unable to index markdown document sources: {err:#?}");
@@ -46,6 +50,9 @@ impl SearchIndexBuilder {
                 return;
             }
         };
+
+        self.search_index_reader_holder
+            .set(Some(Arc::new(search_index_reader))).await;
     }
 }
 

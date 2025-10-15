@@ -4,16 +4,22 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::mcp::jsonrpc::response::success::tool_call_result::ToolCallResult;
 use crate::mcp::tool_provider::ToolProvider;
 use crate::mcp::tool_responder::ToolResponder;
+use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 #[derive(Deserialize, JsonSchema, Serialize)]
-pub struct SearchToolProviderInputSchema {}
+pub struct SearchToolProviderInputSchema {
+    pub query: String,
+}
 
 #[derive(Deserialize, JsonSchema, Serialize)]
 pub struct SearchToolProviderOutputSchema {}
 
-pub struct SearchTool {}
+pub struct SearchTool {
+    pub search_index_reader_holder: SearchIndexReaderHolder,
+}
 
 impl ToolProvider for SearchTool {
     type InputSchema = SearchToolProviderInputSchema;
@@ -29,7 +35,7 @@ impl ToolResponder<Self> for SearchTool {
     async fn respond(
         &self,
         input: SearchToolProviderInputSchema,
-    ) -> Result<SearchToolProviderOutputSchema> {
+    ) -> Result<ToolCallResult<SearchToolProviderOutputSchema>> {
         unimplemented!()
     }
 }

@@ -33,6 +33,7 @@ use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
 use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
+use crate::search_index_reader_holder::SearchIndexReaderHolder;
 use crate::search_tool::SearchTool;
 
 #[derive(Parser)]
@@ -72,12 +73,15 @@ impl Handler for Watch {
         let resource_list_providers: Vec<Arc<dyn ResourceProvider>> = vec![Arc::new(
             McpResourceProviderMarkdownPages(build_project_result_holder.clone()),
         )];
+        let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
         let session_manager = SessionManager {
             session_storage: Arc::new(Default::default()),
         };
         let mut tool_registry: ToolRegistry = Default::default();
 
-        tool_registry.register_owned(SearchTool {});
+        tool_registry.register_owned(SearchTool {
+            search_index_reader_holder: search_index_reader_holder.clone(),
+        });
 
         let mut service_manager: ServiceManager = Default::default();
 
@@ -104,6 +108,7 @@ impl Handler for Watch {
         service_manager.register_service(Arc::new(SearchIndexBuilder {
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
+            search_index_reader_holder,
         }));
 
         service_manager.register_service(Arc::new(ShortcodesCompiler {

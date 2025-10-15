@@ -25,7 +25,7 @@ pub struct SearchIndex {
 }
 
 impl SearchIndex {
-    pub fn create_in_ram() -> Self {
+    pub fn create_in_memory() -> Self {
         let SearchIndexSchema { fields, schema } = SearchIndexSchema::new();
 
         let index = Index::create_in_ram(schema.clone());
@@ -136,7 +136,7 @@ mod tests {
             markdown_document_sources,
             ..
         } = do_build_project().await?;
-        let search_index = SearchIndex::create_in_ram();
+        let search_index = SearchIndex::create_in_memory();
 
         search_index.index_markdown_document_sources(markdown_document_sources)?;
 

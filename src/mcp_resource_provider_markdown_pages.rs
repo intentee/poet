@@ -9,9 +9,9 @@ use tokio_util::sync::CancellationToken;
 
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::holder::Holder as _;
-use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
-use crate::mcp::jsonrpc::response::success::resources_read::TextResourceContent;
 use crate::mcp::resource::Resource;
+use crate::mcp::resource_content::ResourceContent;
+use crate::mcp::resource_content::TextResourceContent;
 use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
@@ -81,7 +81,6 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
         match build_project_result.markdown_document_sources.get(&path) {
             Some(markdown_document_source) => Ok(Some(ResourceContentParts {
                 parts: vec![ResourceContent::Text(TextResourceContent {
-                    meta: None,
                     mime_type: self.mime_type(),
                     text: markdown_document_source.file_entry.contents.clone(),
                     uri: uri_string.clone(),

@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::mcp::jsonrpc::response::success::resources_read::ResourceContent;
+use crate::mcp::resource_content::ResourceContent;
 
 #[derive(Deserialize, Serialize)]
 pub struct ResourceContentParts {

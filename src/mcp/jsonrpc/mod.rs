@@ -1,4 +1,5 @@
 pub mod client_to_server_message;
+pub mod content_block;
 pub mod empty_object;
 pub mod id;
 pub mod implementation;

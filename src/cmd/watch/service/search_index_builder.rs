@@ -52,7 +52,8 @@ impl SearchIndexBuilder {
         };
 
         self.search_index_reader_holder
-            .set(Some(Arc::new(search_index_reader))).await;
+            .set(Some(Arc::new(search_index_reader)))
+            .await;
     }
 }
 

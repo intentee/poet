@@ -12,6 +12,6 @@ where
 {
     async fn respond(
         &self,
-        input: <TToolProvider as ToolProvider>::InputSchema,
-    ) -> Result<ToolCallResult<<TToolProvider as ToolProvider>::OutputSchema>>;
+        input: <TToolProvider as ToolProvider>::Input,
+    ) -> Result<ToolCallResult<<TToolProvider as ToolProvider>::Output>>;
 }

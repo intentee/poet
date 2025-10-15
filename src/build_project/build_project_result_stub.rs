@@ -37,7 +37,6 @@ impl BuildProjectResultStub {
 
         BuildProjectResult {
             changed_since_last_build,
-            esbuild_metafile: self.esbuild_metafile,
             markdown_document_sources: self.markdown_document_sources,
             memory_filesystem: self.memory_filesystem,
         }

@@ -29,19 +29,13 @@ where
     TToolResponder: ToolResponder<TToolProvider>,
 {
     async fn handle(&self, input: Value) -> Result<ToolCallResult<Value>> {
-        let input_schema: TToolProvider::InputSchema = serde_json::from_value(input)?;
-        let ToolCallResult {
-            content,
-            is_error,
-            structured_content,
-        }: ToolCallResult<TToolProvider::OutputSchema> =
-            self.responder.respond(input_schema).await?;
+        let input_schema: TToolProvider::Input = serde_json::from_value(input)?;
 
-        Ok(ToolCallResult {
-            content,
-            is_error,
-            structured_content: serde_json::to_value(structured_content)?,
-        })
+        Ok(self
+            .responder
+            .respond(input_schema)
+            .await?
+            .try_into_value()?)
     }
 
     fn tool_definition(&self) -> Tool {

@@ -9,9 +9,11 @@ use crate::holder::Holder;
 use crate::mcp::jsonrpc::content_block::ContentBlock;
 use crate::mcp::jsonrpc::content_block::text_content::TextContent;
 use crate::mcp::jsonrpc::response::success::tool_call_result::ToolCallResult;
+use crate::mcp::jsonrpc::response::success::tool_call_result::success::Success;
 use crate::mcp::tool_call_error_message::ToolCallErrorMesage;
 use crate::mcp::tool_provider::ToolProvider;
 use crate::mcp::tool_responder::ToolResponder;
+use crate::search_index_query_params::SearchIndexQueryParams;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 #[derive(Deserialize, JsonSchema, Serialize)]
@@ -45,10 +47,13 @@ impl ToolResponder<Self> for SearchTool {
             .search_index_reader_holder
             .get()
             .await {
-            Some(search_index_reader) => Ok(ToolCallResult::Success {
+            Some(search_index_reader) => Ok(ToolCallResult::Success(Success {
                 content: spawn_blocking(move || -> Result<Vec<ContentBlock>> {
                         Ok(search_index_reader
-                            .query(&query)?
+                            .query(SearchIndexQueryParams {
+                                cursor: Default::default(),
+                                query,
+                            })?
                             .into_iter()
                             .map(|text| ContentBlock::TextContent(TextContent {
                                 text,
@@ -58,7 +63,7 @@ impl ToolResponder<Self> for SearchTool {
                     .await??,
                 structured_content: SearchToolProviderOutput {
                 }
-            }),
+            })),
             None => Ok(
                 ToolCallErrorMesage(
                     "Search index is not ready yet. There are no successful builds yet, or the server needs more time to start."

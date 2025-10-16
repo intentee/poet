@@ -13,12 +13,9 @@ use crate::mcp::jsonrpc::request::resources_list::ResourcesListParams;
 use crate::mcp::jsonrpc::response::success::Success;
 use crate::mcp::jsonrpc::response::success::resources_list::ResourcesList as ResourcesListResponse;
 use crate::mcp::jsonrpc::server_to_client_response::ServerToClientResponse;
-use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::mcp_http_service::respond_to_post::handler::Handler;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session::Session;
-
-const PER_PAGE: usize = 100;
 
 pub struct ResourcesListHandler {
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
@@ -44,10 +41,7 @@ impl Handler for ResourcesListHandler {
             result: ResourcesListResponse {
                 resources: self
                     .resource_list_aggregate
-                    .list_resources(ListResourcesParams {
-                        cursor: cursor.unwrap_or_default(),
-                        per_page: PER_PAGE,
-                    })
+                    .list_resources(cursor.unwrap_or_default())
                     .await
                     .map_err(ErrorInternalServerError)?,
             },

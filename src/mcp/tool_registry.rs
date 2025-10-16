@@ -5,7 +5,6 @@ use anyhow::Result;
 use serde_json::Value;
 
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
-use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::tool::Tool;
 use crate::mcp::tool_handler::ToolHandler;
 use crate::mcp::tool_handler_service::ToolHandlerService;
@@ -32,10 +31,7 @@ impl ToolRegistry {
 
     pub fn list_tool_definitions(
         &self,
-        ListResourcesParams {
-            cursor: ListResourcesCursor { offset },
-            per_page,
-        }: ListResourcesParams,
+        ListResourcesCursor { offset, per_page }: ListResourcesCursor,
     ) -> Vec<Tool> {
         self.handlers
             .values()

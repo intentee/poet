@@ -38,6 +38,7 @@ mod rhai_template_renderer;
 mod rhai_template_renderer_holder;
 mod search_index;
 mod search_index_fields;
+mod search_index_query_params;
 mod search_index_reader;
 mod search_index_reader_holder;
 mod search_index_schema;

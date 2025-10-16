@@ -56,7 +56,10 @@ mod tests {
             id: Id::Number(1),
             jsonrpc: JSONRPC_VERSION.to_string(),
             params: ResourcesListParams {
-                cursor: Some(ListResourcesCursor { offset: 5 }),
+                cursor: Some(ListResourcesCursor {
+                    offset: 5,
+                    per_page: 2,
+                }),
                 meta: None,
             },
         };

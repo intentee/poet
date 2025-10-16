@@ -110,6 +110,7 @@ mod tests {
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::storage::Storage;
+    use crate::search_index_query_params::SearchIndexQueryParams;
 
     async fn do_build_project() -> Result<BuildProjectResultStub> {
         let public_path: String = "https://example.com".to_string();
@@ -141,7 +142,10 @@ mod tests {
         search_index.index_markdown_document_sources(markdown_document_sources)?;
 
         let search_index_reader: SearchIndexReader = search_index.try_into()?;
-        let results = search_index_reader.query("test")?;
+        let results = search_index_reader.query(SearchIndexQueryParams {
+            cursor: Default::default(),
+            query: "test".to_string(),
+        })?;
 
         for result in results {
             println!("{:#?}", result);

@@ -11,7 +11,6 @@ use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
 
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
-use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::resource::Resource;
 use crate::mcp::resource_content_parts::ResourceContentParts;
 use crate::mcp::resource_provider::ResourceProvider;
@@ -33,10 +32,7 @@ pub struct ResourceListAggregate {
 impl ResourceListAggregate {
     pub async fn list_resources(
         &self,
-        ListResourcesParams {
-            cursor: ListResourcesCursor { offset },
-            per_page,
-        }: ListResourcesParams,
+        ListResourcesCursor { offset, per_page }: ListResourcesCursor,
     ) -> Result<Vec<Resource>> {
         let mut resources: Vec<Resource> = vec![];
         let mut to_skip = offset;
@@ -228,8 +224,8 @@ mod tests {
         .try_into()?;
 
         let resources_batch_1 = resource_list_aggregate
-            .list_resources(ListResourcesParams {
-                cursor: ListResourcesCursor { offset: 0 },
+            .list_resources(ListResourcesCursor {
+                offset: 0,
                 per_page: 2,
             })
             .await?;
@@ -245,8 +241,8 @@ mod tests {
         );
 
         let resources_batch_2 = resource_list_aggregate
-            .list_resources(ListResourcesParams {
-                cursor: ListResourcesCursor { offset: 2 },
+            .list_resources(ListResourcesCursor {
+                offset: 2,
                 per_page: 5,
             })
             .await?;

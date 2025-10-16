@@ -9,7 +9,9 @@ use tantivy::query::QueryParser;
 use tantivy::schema::Schema;
 use tantivy::schema::document::Document as _;
 
+use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::search_index_fields::SearchIndexFields;
+use crate::search_index_query_params::SearchIndexQueryParams;
 
 pub struct SearchIndexReader {
     pub fields: Arc<SearchIndexFields>,
@@ -19,7 +21,13 @@ pub struct SearchIndexReader {
 }
 
 impl SearchIndexReader {
-    pub fn query(&self, query_str: &str) -> Result<Vec<String>> {
+    pub fn query(
+        &self,
+        SearchIndexQueryParams {
+            cursor: ListResourcesCursor { offset, per_page },
+            query,
+        }: SearchIndexQueryParams,
+    ) -> Result<Vec<String>> {
         let mut query_parser = QueryParser::for_index(
             &self.index,
             vec![self.fields.title, self.fields.header, self.fields.paragraph],
@@ -29,10 +37,10 @@ impl SearchIndexReader {
         query_parser.set_field_boost(self.fields.description, 3.0);
         query_parser.set_field_boost(self.fields.header, 2.0);
 
-        let query = query_parser.parse_query(query_str)?;
+        let query = query_parser.parse_query(&query)?;
 
         let searcher = self.index_reader.searcher();
-        let results = searcher.search(&query, &TopDocs::with_limit(10))?;
+        let results = searcher.search(&query, &TopDocs::with_limit(per_page).and_offset(offset))?;
 
         let mut ret = Vec::new();
 

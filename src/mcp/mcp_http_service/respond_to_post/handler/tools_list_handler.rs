@@ -12,12 +12,9 @@ use crate::mcp::jsonrpc::request::tools_list::ToolsListParams;
 use crate::mcp::jsonrpc::response::success::Success;
 use crate::mcp::jsonrpc::response::success::tools_list::ToolsList as ToolsListResponse;
 use crate::mcp::jsonrpc::server_to_client_response::ServerToClientResponse;
-use crate::mcp::list_resources_params::ListResourcesParams;
 use crate::mcp::mcp_http_service::respond_to_post::handler::Handler;
 use crate::mcp::session::Session;
 use crate::mcp::tool_registry::ToolRegistry;
-
-const PER_PAGE: usize = 100;
 
 pub struct ToolsListHandler {
     pub tool_registry: Arc<ToolRegistry>,
@@ -43,10 +40,7 @@ impl Handler for ToolsListHandler {
             result: ToolsListResponse {
                 tools: self
                     .tool_registry
-                    .list_tool_definitions(ListResourcesParams {
-                        cursor: cursor.unwrap_or_default(),
-                        per_page: PER_PAGE,
-                    }),
+                    .list_tool_definitions(cursor.unwrap_or_default()),
             },
         });
 

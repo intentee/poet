@@ -10,13 +10,14 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::watch::service::Service;
 use crate::holder::Holder as _;
+use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
 use crate::search_index::SearchIndex;
-use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 pub struct SearchIndexBuilder {
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
+    pub mcp_resource_provider_markdown_pages: McpResourceProviderMarkdownPages,
     pub search_index_reader_holder: SearchIndexReaderHolder,
 }
 
@@ -34,26 +35,16 @@ impl SearchIndexBuilder {
             }
         };
 
-        let search_index = SearchIndex::create_in_memory();
-
-        if let Err(err) = search_index.index_markdown_document_sources(markdown_document_sources) {
-            error!("Unable to index markdown document sources: {err:#?}");
-
-            return;
-        }
-
-        let search_index_reader: SearchIndexReader = match search_index.try_into() {
-            Ok(search_index_reader) => search_index_reader,
+        match SearchIndex::create_in_memory(markdown_document_sources).index() {
             Err(err) => {
-                error!("Unable to create search index reader: {err:#?}");
-
-                return;
+                error!("Unable to index markdown document sources: {err:#?}");
             }
-        };
-
-        self.search_index_reader_holder
-            .set(Some(Arc::new(search_index_reader)))
-            .await;
+            Ok(search_index_reader) => {
+                self.search_index_reader_holder
+                    .set(Some(Arc::new(search_index_reader)))
+                    .await;
+            }
+        }
     }
 }
 

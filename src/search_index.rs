@@ -9,7 +9,6 @@ use tantivy::Index;
 use tantivy::IndexReader;
 use tantivy::IndexWriter;
 use tantivy::ReloadPolicy;
-use tantivy::schema::Schema;
 
 use crate::anyhow_error_aggregate::AnyhowErrorAggregate;
 use crate::markdown_document_source::MarkdownDocumentSource;
@@ -21,11 +20,13 @@ use crate::search_index_schema::SearchIndexSchema;
 pub struct SearchIndex {
     fields: Arc<SearchIndexFields>,
     index: Index,
-    schema: Schema,
+    markdown_document_sources: Arc<BTreeMap<String, MarkdownDocumentSource>>,
 }
 
 impl SearchIndex {
-    pub fn create_in_memory() -> Self {
+    pub fn create_in_memory(
+        markdown_document_sources: Arc<BTreeMap<String, MarkdownDocumentSource>>,
+    ) -> Self {
         let SearchIndexSchema { fields, schema } = SearchIndexSchema::new();
 
         let index = Index::create_in_ram(schema.clone());
@@ -33,20 +34,17 @@ impl SearchIndex {
         Self {
             fields: Arc::new(fields),
             index,
-            schema,
+            markdown_document_sources,
         }
     }
 
-    pub fn index_markdown_document_sources(
-        &self,
-        markdown_document_sources: Arc<BTreeMap<String, MarkdownDocumentSource>>,
-    ) -> Result<()> {
+    pub fn index(self) -> Result<SearchIndexReader> {
         let error_collection: AnyhowErrorAggregate = Default::default();
         let fields = self.fields.clone();
         let index_writer: Arc<RwLock<IndexWriter>> =
             Arc::new(RwLock::new(self.index.writer(50_000_000)?));
 
-        markdown_document_sources.par_iter().for_each(
+        self.markdown_document_sources.par_iter().for_each(
             |(
                 _key,
                 MarkdownDocumentSource {
@@ -55,6 +53,7 @@ impl SearchIndex {
             )| {
                 let mut document = mdast_to_tantivy_document(fields.clone(), mdast);
 
+                document.add_field_value(fields.basename, &reference.basename());
                 document.add_field_value(fields.title, &reference.front_matter.title);
                 document.add_field_value(fields.description, &reference.front_matter.description);
 
@@ -79,14 +78,6 @@ impl SearchIndex {
             .expect("Search index write lock is poisoned")
             .commit()?;
 
-        Ok(())
-    }
-}
-
-impl TryInto<SearchIndexReader> for SearchIndex {
-    type Error = anyhow::Error;
-
-    fn try_into(self) -> Result<SearchIndexReader> {
         let index_reader: IndexReader = self
             .index
             .reader_builder()
@@ -97,7 +88,7 @@ impl TryInto<SearchIndexReader> for SearchIndex {
             fields: self.fields,
             index: self.index,
             index_reader,
-            schema: self.schema,
+            markdown_document_sources: self.markdown_document_sources,
         })
     }
 }
@@ -137,11 +128,9 @@ mod tests {
             markdown_document_sources,
             ..
         } = do_build_project().await?;
-        let search_index = SearchIndex::create_in_memory();
+        let search_index = SearchIndex::create_in_memory(markdown_document_sources);
+        let search_index_reader: SearchIndexReader = search_index.index()?;
 
-        search_index.index_markdown_document_sources(markdown_document_sources)?;
-
-        let search_index_reader: SearchIndexReader = search_index.try_into()?;
         let results = search_index_reader.query(SearchIndexQueryParams {
             cursor: Default::default(),
             query: "test".to_string(),

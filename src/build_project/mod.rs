@@ -187,7 +187,7 @@ pub async fn build_project(
                 let relative_path = format!("{basename}.md");
 
                 markdown_document_sources.insert(
-                    relative_path.clone(),
+                    basename,
                     MarkdownDocumentSource {
                         file_entry: file,
                         mdast,

@@ -18,7 +18,7 @@ use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 use crate::mcp::resource_reference::ResourceReference;
 use crate::mcp::resource_template_provider::ResourceTemplateProvider;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct McpResourceProviderMarkdownPages(pub BuildProjectResultHolder);
 
 impl ResourceTemplateProvider for McpResourceProviderMarkdownPages {
@@ -50,7 +50,7 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
             .skip(offset)
             .take(limit)
             .map(|markdown_document_source| {
-                let relative_path = &markdown_document_source.relative_path;
+                let basename = markdown_document_source.reference.basename();
 
                 Resource {
                     description: markdown_document_source
@@ -63,8 +63,8 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
                         .front_matter
                         .title
                         .to_owned(),
-                    uri: self.resource_uri(relative_path),
-                    name: relative_path.to_string(),
+                    uri: self.resource_uri(&basename),
+                    name: basename,
                 }
             })
             .collect())

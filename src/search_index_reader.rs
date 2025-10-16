@@ -1,23 +1,26 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use anyhow::Result;
+use anyhow::anyhow;
 use tantivy::Index;
 use tantivy::IndexReader;
 use tantivy::TantivyDocument;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
-use tantivy::schema::Schema;
-use tantivy::schema::document::Document as _;
+use tantivy::schema::Value as _;
 
+use crate::markdown_document_source::MarkdownDocumentSource;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::search_index_fields::SearchIndexFields;
+use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;
 
 pub struct SearchIndexReader {
     pub fields: Arc<SearchIndexFields>,
     pub index: Index,
     pub index_reader: IndexReader,
-    pub schema: Schema,
+    pub markdown_document_sources: Arc<BTreeMap<String, MarkdownDocumentSource>>,
 }
 
 impl SearchIndexReader {
@@ -27,7 +30,7 @@ impl SearchIndexReader {
             cursor: ListResourcesCursor { offset, per_page },
             query,
         }: SearchIndexQueryParams,
-    ) -> Result<Vec<String>> {
+    ) -> Result<Vec<SearchIndexFoundDocument>> {
         let mut query_parser = QueryParser::for_index(
             &self.index,
             vec![self.fields.title, self.fields.header, self.fields.paragraph],
@@ -45,11 +48,22 @@ impl SearchIndexReader {
         let mut ret = Vec::new();
 
         for (_score, doc_address) in results {
-            ret.push(
-                searcher
-                    .doc::<TantivyDocument>(doc_address)?
-                    .to_json(&self.schema),
-            );
+            let tantivy_document: TantivyDocument = searcher.doc::<TantivyDocument>(doc_address)?;
+
+            let basename: &str = tantivy_document
+                .get_first(self.fields.basename)
+                .ok_or_else(|| anyhow!("Document does not have a stored basename"))?
+                .as_str()
+                .ok_or_else(|| anyhow!("Unable to convert Tantivy Value to string slice"))?;
+
+            let MarkdownDocumentSource { reference, .. }: &MarkdownDocumentSource = self
+                .markdown_document_sources
+                .get(basename)
+                .ok_or_else(|| anyhow!("There is no document with basename: '{basename}'"))?;
+
+            ret.push(SearchIndexFoundDocument {
+                markdown_document_reference: reference.clone(),
+            });
         }
 
         Ok(ret)

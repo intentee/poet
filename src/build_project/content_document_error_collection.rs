@@ -3,35 +3,35 @@ use std::fmt;
 use dashmap::DashMap;
 use itertools::Itertools as _;
 
-use crate::build_project::document_error::DocumentError;
-use crate::markdown_document_reference::MarkdownDocumentReference;
+use crate::build_project::content_document_error::ContentDocumentError;
+use crate::content_document_reference::ContentDocumentReference;
 
 #[derive(Default)]
-pub struct DocumentErrorCollection {
-    errors: DashMap<MarkdownDocumentReference, Vec<DocumentError>>,
+pub struct ContentDocumentErrorCollection {
+    errors: DashMap<ContentDocumentReference, Vec<ContentDocumentError>>,
 }
 
-impl DocumentErrorCollection {
+impl ContentDocumentErrorCollection {
     pub fn is_empty(&self) -> bool {
         self.errors.is_empty()
     }
 
     pub fn register_error(
         &self,
+        content_document_reference: ContentDocumentReference,
         err: anyhow::Error,
-        markdown_document_reference: MarkdownDocumentReference,
     ) {
         self.errors
-            .entry(markdown_document_reference.clone())
+            .entry(content_document_reference.clone())
             .or_default()
-            .push(DocumentError {
+            .push(ContentDocumentError {
+                content_document_reference,
                 err,
-                markdown_document_reference,
             });
     }
 }
 
-impl fmt::Display for DocumentErrorCollection {
+impl fmt::Display for ContentDocumentErrorCollection {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             formatter,

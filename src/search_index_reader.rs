@@ -10,17 +10,17 @@ use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::schema::Value as _;
 
-use crate::markdown_document_source::MarkdownDocumentSource;
+use crate::content_document_source::ContentDocumentSource;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::search_index_fields::SearchIndexFields;
 use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;
 
 pub struct SearchIndexReader {
+    pub content_document_sources: Arc<BTreeMap<String, ContentDocumentSource>>,
     pub fields: Arc<SearchIndexFields>,
     pub index: Index,
     pub index_reader: IndexReader,
-    pub markdown_document_sources: Arc<BTreeMap<String, MarkdownDocumentSource>>,
 }
 
 impl SearchIndexReader {
@@ -56,13 +56,13 @@ impl SearchIndexReader {
                 .as_str()
                 .ok_or_else(|| anyhow!("Unable to convert Tantivy Value to string slice"))?;
 
-            let MarkdownDocumentSource { reference, .. }: &MarkdownDocumentSource = self
-                .markdown_document_sources
+            let ContentDocumentSource { reference, .. }: &ContentDocumentSource = self
+                .content_document_sources
                 .get(basename)
                 .ok_or_else(|| anyhow!("There is no document with basename: '{basename}'"))?;
 
             ret.push(SearchIndexFoundDocument {
-                markdown_document_reference: reference.clone(),
+                content_document_reference: reference.clone(),
             });
         }
 

@@ -3,16 +3,16 @@ use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
-use crate::markdown_document_reference::MarkdownDocumentReference;
-use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
+use crate::content_document_reference::ContentDocumentReference;
+use crate::content_document_tree_node::ContentDocumentTreeNode;
 
 #[derive(Clone)]
-pub struct MarkdownDocumentHierarchy {
-    pub flat: Vec<MarkdownDocumentReference>,
-    pub roots: Vec<MarkdownDocumentTreeNode>,
+pub struct ContentDocumentHierarchy {
+    pub flat: Vec<ContentDocumentReference>,
+    pub roots: Vec<ContentDocumentTreeNode>,
 }
 
-impl MarkdownDocumentHierarchy {
+impl ContentDocumentHierarchy {
     fn rhai_after(&mut self, basename: String) -> Result<Dynamic, Box<EvalAltResult>> {
         let mut flat_peekable = self
             .flat
@@ -23,7 +23,7 @@ impl MarkdownDocumentHierarchy {
 
         while let Some(node) = flat_peekable.next() {
             if node.basename() == basename {
-                let next: Option<&MarkdownDocumentReference> = flat_peekable.peek();
+                let next: Option<&ContentDocumentReference> = flat_peekable.peek();
 
                 if let Some(next) = next {
                     return Ok(Dynamic::from(next.clone()));
@@ -37,7 +37,7 @@ impl MarkdownDocumentHierarchy {
     }
 
     fn rhai_before(&mut self, basename: String) -> Result<Dynamic, Box<EvalAltResult>> {
-        let mut previous: Option<MarkdownDocumentReference> = None;
+        let mut previous: Option<ContentDocumentReference> = None;
 
         for node in &self.flat {
             if node.front_matter.render {
@@ -57,18 +57,18 @@ impl MarkdownDocumentHierarchy {
     }
 }
 
-impl CustomType for MarkdownDocumentHierarchy {
+impl CustomType for ContentDocumentHierarchy {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("MarkdownDocumentHierarchy")
+            .with_name("ContentDocumentHierarchy")
             .with_fn("after", Self::rhai_after)
             .with_fn("before", Self::rhai_before);
     }
 }
 
-impl From<Vec<MarkdownDocumentTreeNode>> for MarkdownDocumentHierarchy {
-    fn from(roots: Vec<MarkdownDocumentTreeNode>) -> Self {
-        let mut flat: Vec<MarkdownDocumentReference> = Vec::new();
+impl From<Vec<ContentDocumentTreeNode>> for ContentDocumentHierarchy {
+    fn from(roots: Vec<ContentDocumentTreeNode>) -> Self {
+        let mut flat: Vec<ContentDocumentReference> = Vec::new();
 
         for node in &roots {
             flat.append(&mut node.flatten());

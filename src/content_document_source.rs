@@ -1,12 +1,12 @@
 use markdown::mdast::Node;
 
+use crate::content_document_reference::ContentDocumentReference;
 use crate::filesystem::file_entry::FileEntry;
-use crate::markdown_document_reference::MarkdownDocumentReference;
 
 #[derive(Clone)]
-pub struct MarkdownDocumentSource {
+pub struct ContentDocumentSource {
     pub file_entry: FileEntry,
     pub mdast: Node,
-    pub reference: MarkdownDocumentReference,
+    pub reference: ContentDocumentReference,
     pub relative_path: String,
 }

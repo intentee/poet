@@ -7,22 +7,21 @@ use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
 use crate::asset_manager::AssetManager;
+use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
+use crate::content_document_reference::ContentDocumentReference;
 use crate::front_matter::FrontMatter;
-use crate::markdown_document_collection_ranked::MarkdownDocumentCollectionRanked;
-use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::table_of_contents::TableOfContents;
 
 #[derive(Clone)]
 pub struct ComponentContext {
     pub asset_manager: AssetManager,
     pub available_collections: Arc<HashSet<String>>,
+    pub content_document_basename_by_id: Arc<HashMap<String, String>>,
+    pub content_document_by_basename: Arc<HashMap<String, ContentDocumentReference>>,
+    pub content_document_collections_ranked: Arc<HashMap<String, ContentDocumentCollectionRanked>>,
     pub front_matter: FrontMatter,
     pub is_watching: bool,
-    pub markdown_basename_by_id: Arc<HashMap<String, String>>,
-    pub markdown_document_by_basename: Arc<HashMap<String, MarkdownDocumentReference>>,
-    pub markdown_document_collections_ranked:
-        Arc<HashMap<String, MarkdownDocumentCollectionRanked>>,
-    pub reference: MarkdownDocumentReference,
+    pub reference: ContentDocumentReference,
     pub table_of_contents: Option<TableOfContents>,
 }
 
@@ -34,7 +33,7 @@ impl ComponentContext {
     pub fn link_to(&self, path: &str) -> Result<String, String> {
         let basename = self.resolve_id(path)?;
 
-        if let Some(reference) = self.markdown_document_by_basename.get(&basename) {
+        if let Some(reference) = self.content_document_by_basename.get(&basename) {
             if !reference.front_matter.render {
                 return Err(format!(
                     "Document cannot be linked to, because rendering of it is disabled: {basename}"
@@ -56,11 +55,11 @@ impl ComponentContext {
         Self {
             asset_manager: self.asset_manager,
             available_collections: self.available_collections,
+            content_document_basename_by_id: self.content_document_basename_by_id,
+            content_document_by_basename: self.content_document_by_basename,
+            content_document_collections_ranked: self.content_document_collections_ranked,
             front_matter: self.front_matter,
             is_watching: self.is_watching,
-            markdown_basename_by_id: self.markdown_basename_by_id,
-            markdown_document_by_basename: self.markdown_document_by_basename,
-            markdown_document_collections_ranked: self.markdown_document_collections_ranked,
             reference: self.reference,
             table_of_contents: Some(table_of_contents),
         }
@@ -68,12 +67,12 @@ impl ComponentContext {
 
     fn resolve_id(&self, path: &str) -> Result<String, String> {
         if path.starts_with("#") {
-            if let Some(basename) = self
-                .markdown_basename_by_id
-                .get(match path.strip_prefix('#') {
-                    Some(id) => id,
-                    None => return Err("Unable to strip prefix from document id".into()),
-                })
+            if let Some(basename) =
+                self.content_document_basename_by_id
+                    .get(match path.strip_prefix('#') {
+                        Some(id) => id,
+                        None => return Err("Unable to strip prefix from document id".into()),
+                    })
             {
                 Ok(basename.into())
             } else {
@@ -100,9 +99,9 @@ impl ComponentContext {
     fn rhai_collection(
         &mut self,
         collection_name: &str,
-    ) -> Result<MarkdownDocumentCollectionRanked, Box<EvalAltResult>> {
+    ) -> Result<ContentDocumentCollectionRanked, Box<EvalAltResult>> {
         if let Some(collection) = self
-            .markdown_document_collections_ranked
+            .content_document_collections_ranked
             .get(collection_name)
         {
             Ok(collection.clone())
@@ -118,7 +117,7 @@ impl ComponentContext {
     fn rhai_is_current_page(&mut self, other: String) -> Result<bool, Box<EvalAltResult>> {
         let basename = self.resolve_id(&other)?;
 
-        if self.markdown_document_by_basename.contains_key(&basename) {
+        if self.content_document_by_basename.contains_key(&basename) {
             Ok(self.reference.basename() == basename)
         } else {
             Err(format!("Document does not exist: {basename}").into())
@@ -135,7 +134,7 @@ impl ComponentContext {
 
     fn rhai_primary_collection(
         &mut self,
-    ) -> Result<MarkdownDocumentCollectionRanked, Box<EvalAltResult>> {
+    ) -> Result<ContentDocumentCollectionRanked, Box<EvalAltResult>> {
         match self.front_matter.collections.placements.len() {
             0 => return Err("Document does not belong to any collection".into()),
             1 => {
@@ -163,7 +162,7 @@ impl ComponentContext {
         Err("Unable to determine the primary collection".into())
     }
 
-    fn rhai_reference(&mut self) -> MarkdownDocumentReference {
+    fn rhai_reference(&mut self) -> ContentDocumentReference {
         self.reference.clone()
     }
 

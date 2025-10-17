@@ -19,9 +19,9 @@ use crate::mcp::resource_reference::ResourceReference;
 use crate::mcp::resource_template_provider::ResourceTemplateProvider;
 
 #[derive(Clone, Default)]
-pub struct McpResourceProviderMarkdownPages(pub BuildProjectResultHolder);
+pub struct McpResourceProviderContentDocuments(pub BuildProjectResultHolder);
 
-impl ResourceTemplateProvider for McpResourceProviderMarkdownPages {
+impl ResourceTemplateProvider for McpResourceProviderContentDocuments {
     fn mime_type(&self) -> String {
         "text/markdown".to_string()
     }
@@ -36,7 +36,7 @@ impl ResourceTemplateProvider for McpResourceProviderMarkdownPages {
 }
 
 #[async_trait]
-impl ResourceProvider for McpResourceProviderMarkdownPages {
+impl ResourceProvider for McpResourceProviderContentDocuments {
     async fn list_resources(
         &self,
         ResourceProviderListParams { limit, offset }: ResourceProviderListParams,
@@ -45,7 +45,7 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
             .0
             .must_get_build_project_result()
             .await?
-            .markdown_document_sources
+            .content_document_sources
             .values()
             .skip(offset)
             .take(limit)
@@ -78,7 +78,7 @@ impl ResourceProvider for McpResourceProviderMarkdownPages {
     ) -> Result<Option<ResourceContentParts>> {
         let build_project_result = self.0.must_get_build_project_result().await?;
 
-        match build_project_result.markdown_document_sources.get(&path) {
+        match build_project_result.content_document_sources.get(&path) {
             Some(markdown_document_source) => Ok(Some(ResourceContentParts {
                 parts: vec![ResourceContent::Text(TextResourceContent {
                     mime_type: self.mime_type(),

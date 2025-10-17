@@ -5,18 +5,18 @@ use rhai::CustomType;
 use rhai::Dynamic;
 use rhai::TypeBuilder;
 
-use crate::markdown_document_reference::MarkdownDocumentReference;
+use crate::content_document_reference::ContentDocumentReference;
 
 #[derive(Clone)]
-pub struct MarkdownDocumentTreeNode {
-    pub children: LinkedList<MarkdownDocumentTreeNode>,
+pub struct ContentDocumentTreeNode {
+    pub children: LinkedList<ContentDocumentTreeNode>,
     pub collection_name: String,
-    pub reference: MarkdownDocumentReference,
+    pub reference: ContentDocumentReference,
 }
 
-impl MarkdownDocumentTreeNode {
-    pub fn flatten(&self) -> Vec<MarkdownDocumentReference> {
-        let mut flat: Vec<MarkdownDocumentReference> = Vec::new();
+impl ContentDocumentTreeNode {
+    pub fn flatten(&self) -> Vec<ContentDocumentReference> {
+        let mut flat: Vec<ContentDocumentReference> = Vec::new();
 
         flat.push(self.reference.clone());
 
@@ -38,15 +38,15 @@ impl MarkdownDocumentTreeNode {
         self.collection_name.clone()
     }
 
-    fn rhai_reference(&mut self) -> MarkdownDocumentReference {
+    fn rhai_reference(&mut self) -> ContentDocumentReference {
         self.reference.clone()
     }
 }
 
-impl CustomType for MarkdownDocumentTreeNode {
+impl CustomType for ContentDocumentTreeNode {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("MarkdownDocumentTreeNode")
+            .with_name("ContentDocumentTreeNode")
             .with_get("children", Self::rhai_children)
             .with_get("collection_name", Self::rhai_collection_name)
             .with_get("reference", Self::rhai_reference);

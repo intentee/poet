@@ -11,21 +11,21 @@ use tantivy::IndexWriter;
 use tantivy::ReloadPolicy;
 
 use crate::anyhow_error_aggregate::AnyhowErrorAggregate;
-use crate::markdown_document_source::MarkdownDocumentSource;
+use crate::content_document_source::ContentDocumentSource;
 use crate::mdast_to_tantivy_document::mdast_to_tantivy_document;
 use crate::search_index_fields::SearchIndexFields;
 use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_schema::SearchIndexSchema;
 
 pub struct SearchIndex {
+    content_document_sources: Arc<BTreeMap<String, ContentDocumentSource>>,
     fields: Arc<SearchIndexFields>,
     index: Index,
-    markdown_document_sources: Arc<BTreeMap<String, MarkdownDocumentSource>>,
 }
 
 impl SearchIndex {
     pub fn create_in_memory(
-        markdown_document_sources: Arc<BTreeMap<String, MarkdownDocumentSource>>,
+        content_document_sources: Arc<BTreeMap<String, ContentDocumentSource>>,
     ) -> Self {
         let SearchIndexSchema { fields, schema } = SearchIndexSchema::new();
 
@@ -34,7 +34,7 @@ impl SearchIndex {
         Self {
             fields: Arc::new(fields),
             index,
-            markdown_document_sources,
+            content_document_sources,
         }
     }
 
@@ -44,10 +44,10 @@ impl SearchIndex {
         let index_writer: Arc<RwLock<IndexWriter>> =
             Arc::new(RwLock::new(self.index.writer(50_000_000)?));
 
-        self.markdown_document_sources.par_iter().for_each(
+        self.content_document_sources.par_iter().for_each(
             |(
                 _key,
-                MarkdownDocumentSource {
+                ContentDocumentSource {
                     mdast, reference, ..
                 },
             )| {
@@ -85,10 +85,10 @@ impl SearchIndex {
             .try_into()?;
 
         Ok(SearchIndexReader {
+            content_document_sources: self.content_document_sources,
             fields: self.fields,
             index: self.index,
             index_reader,
-            markdown_document_sources: self.markdown_document_sources,
         })
     }
 }
@@ -125,10 +125,10 @@ mod tests {
     #[tokio::test]
     async fn test_index_is_searchable() -> Result<()> {
         let BuildProjectResultStub {
-            markdown_document_sources,
+            content_document_sources,
             ..
         } = do_build_project().await?;
-        let search_index = SearchIndex::create_in_memory(markdown_document_sources);
+        let search_index = SearchIndex::create_in_memory(content_document_sources);
         let search_index_reader: SearchIndexReader = search_index.index()?;
 
         let results = search_index_reader.query(SearchIndexQueryParams {

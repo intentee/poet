@@ -3,12 +3,12 @@ use rhai::EvalAltResult;
 use rhai::FnPtr;
 use rhai::NativeCallContext;
 
-use crate::markdown_document_hierarchy::MarkdownDocumentHierarchy;
-use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
+use crate::content_document_hierarchy::ContentDocumentHierarchy;
+use crate::content_document_tree_node::ContentDocumentTreeNode;
 
 fn render_node(
     context: &NativeCallContext,
-    node: &MarkdownDocumentTreeNode,
+    node: &ContentDocumentTreeNode,
     callback: &FnPtr,
     nesting_level: i64,
 ) -> Result<Dynamic, Box<EvalAltResult>> {
@@ -34,7 +34,7 @@ fn render_node(
 
 pub fn render_hierarchy(
     context: NativeCallContext,
-    hierarchy: MarkdownDocumentHierarchy,
+    hierarchy: ContentDocumentHierarchy,
     callback: FnPtr,
 ) -> Result<String, Box<EvalAltResult>> {
     let results = hierarchy

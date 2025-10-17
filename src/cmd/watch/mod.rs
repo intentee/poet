@@ -31,7 +31,7 @@ use crate::cmd::watch::service_manager::ServiceManager;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
-use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
+use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 use crate::search_tool::SearchTool;
@@ -68,12 +68,12 @@ impl Handler for Watch {
         } = watch_project_files(self.source_directory.clone())?;
 
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
-        let mcp_resource_provider_markdown_pages: McpResourceProviderMarkdownPages =
-            McpResourceProviderMarkdownPages(build_project_result_holder.clone());
+        let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
+            McpResourceProviderContentDocuments(build_project_result_holder.clone());
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
         let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
-            vec![Arc::new(mcp_resource_provider_markdown_pages.clone())];
+            vec![Arc::new(mcp_resource_provider_content_documents.clone())];
         let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
         let session_manager = SessionManager {
             session_storage: Arc::new(Default::default()),
@@ -81,7 +81,8 @@ impl Handler for Watch {
         let mut tool_registry: ToolRegistry = Default::default();
 
         tool_registry.register_owned(SearchTool {
-            mcp_resource_provider_markdown_pages: mcp_resource_provider_markdown_pages.clone(),
+            mcp_resource_provider_content_documents: mcp_resource_provider_content_documents
+                .clone(),
             search_index_reader_holder: search_index_reader_holder.clone(),
         });
 
@@ -110,7 +111,7 @@ impl Handler for Watch {
         service_manager.register_service(Arc::new(SearchIndexBuilder {
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
-            mcp_resource_provider_markdown_pages,
+            mcp_resource_provider_content_documents,
             search_index_reader_holder,
         }));
 

@@ -1,6 +1,6 @@
-use crate::markdown_document_reference::MarkdownDocumentReference;
+use crate::content_document_reference::ContentDocumentReference;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SearchIndexFoundDocument {
-    pub markdown_document_reference: MarkdownDocumentReference,
+    pub content_document_reference: ContentDocumentReference,
 }

@@ -5,9 +5,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use tokio::task::spawn_blocking;
 
+use crate::content_document_reference::ContentDocumentReference;
 use crate::front_matter::FrontMatter;
 use crate::holder::Holder;
-use crate::markdown_document_reference::MarkdownDocumentReference;
 use crate::mcp::jsonrpc::content_block::ContentBlock;
 use crate::mcp::jsonrpc::content_block::resource_link::ResourceLink;
 use crate::mcp::jsonrpc::response::success::tool_call_result::ToolCallResult;
@@ -16,7 +16,7 @@ use crate::mcp::resource_provider::ResourceProvider as _;
 use crate::mcp::tool_call_error_message::ToolCallErrorMesage;
 use crate::mcp::tool_provider::ToolProvider;
 use crate::mcp::tool_responder::ToolResponder;
-use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
+use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
@@ -30,7 +30,7 @@ pub struct SearchToolProviderInput {
 pub struct SearchToolProviderOutput {}
 
 pub struct SearchTool {
-    pub mcp_resource_provider_markdown_pages: McpResourceProviderMarkdownPages,
+    pub mcp_resource_provider_content_documents: McpResourceProviderContentDocuments,
     pub search_index_reader_holder: SearchIndexReaderHolder,
 }
 
@@ -64,12 +64,12 @@ impl ToolResponder<Self> for SearchTool {
 
                 Ok(ToolCallResult::Success(Success {
                     content: search_index_found_documents
-                        .into_iter()
+                        .iter()
                         .map(|SearchIndexFoundDocument {
-                            markdown_document_reference: ref markdown_document_reference @ MarkdownDocumentReference {
+                            content_document_reference: content_document_reference @ ContentDocumentReference {
                                 front_matter: FrontMatter {
-                                    ref description,
-                                    ref title,
+                                    description,
+                                    title,
                                     ..
                                 },
                                 ..
@@ -79,7 +79,7 @@ impl ToolResponder<Self> for SearchTool {
                             mime_type: Some("text/markdown".to_string()),
                             name: title.to_string(),
                             title: Some(title.to_string()),
-                            uri: self.mcp_resource_provider_markdown_pages.resource_uri(&markdown_document_reference.basename()),
+                            uri: self.mcp_resource_provider_content_documents.resource_uri(&content_document_reference.basename()),
                         }))
                         .collect()
                     ,

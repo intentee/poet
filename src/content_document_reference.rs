@@ -11,13 +11,13 @@ use rhai::TypeBuilder;
 use crate::front_matter::FrontMatter;
 
 #[derive(Clone, Debug)]
-pub struct MarkdownDocumentReference {
+pub struct ContentDocumentReference {
     pub basename_path: PathBuf,
     pub front_matter: FrontMatter,
     pub generated_page_base_path: String,
 }
 
-impl MarkdownDocumentReference {
+impl ContentDocumentReference {
     pub fn basename(&self) -> String {
         self.basename_path.display().to_string()
     }
@@ -90,37 +90,37 @@ impl MarkdownDocumentReference {
     }
 }
 
-impl CustomType for MarkdownDocumentReference {
+impl CustomType for ContentDocumentReference {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("MarkdownDocumentReference")
+            .with_name("ContentDocumentReference")
             .with_get("basename", Self::rhai_basename)
             .with_get("canonical_link", Self::rhai_canonical_link)
             .with_get("front_matter", Self::rhai_front_matter);
     }
 }
 
-impl Eq for MarkdownDocumentReference {}
+impl Eq for ContentDocumentReference {}
 
-impl Hash for MarkdownDocumentReference {
+impl Hash for ContentDocumentReference {
     fn hash<THasher: Hasher>(&self, state: &mut THasher) {
         self.basename_path.hash(state);
     }
 }
 
-impl Ord for MarkdownDocumentReference {
+impl Ord for ContentDocumentReference {
     fn cmp(&self, other: &Self) -> Ordering {
         self.basename_path.cmp(&other.basename_path)
     }
 }
 
-impl PartialEq for MarkdownDocumentReference {
+impl PartialEq for ContentDocumentReference {
     fn eq(&self, other: &Self) -> bool {
         self.basename_path == other.basename_path
     }
 }
 
-impl PartialOrd for MarkdownDocumentReference {
+impl PartialOrd for ContentDocumentReference {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn target_path_is_generated_for_base_index() -> Result<()> {
-        let reference = MarkdownDocumentReference {
+        let reference = ContentDocumentReference {
             basename_path: "index".into(),
             front_matter: FrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn target_path_is_generated_for_base() -> Result<()> {
-        let reference = MarkdownDocumentReference {
+        let reference = ContentDocumentReference {
             basename_path: "bar".into(),
             front_matter: FrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn target_path_is_generated() -> Result<()> {
-        let reference = MarkdownDocumentReference {
+        let reference = ContentDocumentReference {
             basename_path: "foo/bar".into(),
             front_matter: FrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn target_path_is_generated_for_index() -> Result<()> {
-        let reference = MarkdownDocumentReference {
+        let reference = ContentDocumentReference {
             basename_path: "foo/index".into(),
             front_matter: FrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),

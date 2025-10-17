@@ -10,21 +10,21 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::watch::service::Service;
 use crate::holder::Holder as _;
-use crate::mcp_resource_provider_markdown_pages::McpResourceProviderMarkdownPages;
+use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 use crate::search_index::SearchIndex;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 pub struct SearchIndexBuilder {
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
-    pub mcp_resource_provider_markdown_pages: McpResourceProviderMarkdownPages,
+    pub mcp_resource_provider_content_documents: McpResourceProviderContentDocuments,
     pub search_index_reader_holder: SearchIndexReaderHolder,
 }
 
 impl SearchIndexBuilder {
     async fn do_build_search_index(&self) {
         let BuildProjectResult {
-            markdown_document_sources,
+            content_document_sources,
             ..
         } = match self.build_project_result_holder.get().await {
             Some(build_project_result) => build_project_result,
@@ -35,7 +35,7 @@ impl SearchIndexBuilder {
             }
         };
 
-        match SearchIndex::create_in_memory(markdown_document_sources).index() {
+        match SearchIndex::create_in_memory(content_document_sources).index() {
             Err(err) => {
                 error!("Unable to index markdown document sources: {err:#?}");
             }

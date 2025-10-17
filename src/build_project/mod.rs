@@ -1,9 +1,9 @@
 pub mod build_project_result;
 pub mod build_project_result_holder;
 pub mod build_project_result_stub;
-mod document_error;
-mod document_error_collection;
-mod document_rendering_context;
+mod content_document_error;
+mod content_document_error_collection;
+mod content_document_rendering_context;
 
 use std::collections::BTreeMap;
 use std::collections::HashMap;
@@ -26,10 +26,16 @@ use syntect::parsing::SyntaxSet;
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
-use crate::build_project::document_error_collection::DocumentErrorCollection;
-use crate::build_project::document_rendering_context::DocumentRenderingContext;
+use crate::build_project::content_document_error_collection::ContentDocumentErrorCollection;
+use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
 use crate::build_timer::BuildTimer;
 use crate::component_context::ComponentContext;
+use crate::content_document::ContentDocument;
+use crate::content_document_collection::ContentDocumentCollection;
+use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
+use crate::content_document_in_collection::ContentDocumentInCollection;
+use crate::content_document_reference::ContentDocumentReference;
+use crate::content_document_source::ContentDocumentSource;
 use crate::eval_mdast::eval_mdast;
 use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
@@ -37,47 +43,41 @@ use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::filesystem::storage::Storage;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
-use crate::markdown_document::MarkdownDocument;
-use crate::markdown_document_collection::MarkdownDocumentCollection;
-use crate::markdown_document_collection_ranked::MarkdownDocumentCollectionRanked;
-use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
-use crate::markdown_document_reference::MarkdownDocumentReference;
-use crate::markdown_document_source::MarkdownDocumentSource;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
 
 fn render_document<'render>(
-    DocumentRenderingContext {
+    ContentDocumentRenderingContext {
         asset_path_renderer,
         available_collections,
-        esbuild_metafile,
-        is_watching,
-        markdown_basename_by_id,
-        markdown_document:
-            MarkdownDocument {
+        content_document:
+            ContentDocument {
                 mdast,
                 reference:
-                    reference @ MarkdownDocumentReference {
+                    reference @ ContentDocumentReference {
                         basename_path: _,
                         front_matter,
                         generated_page_base_path: _,
                     },
             },
-        markdown_document_by_basename,
-        markdown_document_collections_ranked,
+        content_document_basename_by_id,
+        content_document_by_basename,
+        content_document_collections_ranked,
+        esbuild_metafile,
+        is_watching,
         rhai_template_renderer,
         syntax_set,
-    }: DocumentRenderingContext<'render>,
+    }: ContentDocumentRenderingContext<'render>,
 ) -> Result<String> {
     let component_context = ComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
         available_collections,
-        is_watching,
+        content_document_basename_by_id,
+        content_document_by_basename,
+        content_document_collections_ranked,
         front_matter: front_matter.clone(),
-        markdown_basename_by_id,
-        markdown_document_by_basename,
+        is_watching,
         reference: reference.clone(),
-        markdown_document_collections_ranked,
         table_of_contents: None,
     };
 
@@ -115,7 +115,7 @@ pub async fn build_project(
     info!("Processing content files...");
 
     let _build_timer = BuildTimer::new();
-    let error_collection: DocumentErrorCollection = Default::default();
+    let error_collection: ContentDocumentErrorCollection = Default::default();
     let esbuild_metafile: Arc<EsbuildMetaFile> = match source_filesystem
         .read_file_contents(&PathBuf::from("esbuild-meta.json"))
         .await?
@@ -137,18 +137,15 @@ pub async fn build_project(
     let memory_filesystem = Arc::new(Memory::default());
     let syntax_set = SyntaxSet::load_defaults_newlines();
 
-    let mut markdown_basename_by_id: HashMap<String, String> = HashMap::new();
-    let mut markdown_document_by_basename: HashMap<String, MarkdownDocumentReference> =
+    let mut content_document_basename_by_id: HashMap<String, String> = HashMap::new();
+    let mut content_document_by_basename: HashMap<String, ContentDocumentReference> =
         HashMap::new();
-    let mut markdown_document_collections: HashMap<String, MarkdownDocumentCollection> =
+    let mut content_document_collections: HashMap<String, ContentDocumentCollection> =
         HashMap::new();
-    let mut markdown_document_collections_ranked: HashMap<
-        String,
-        MarkdownDocumentCollectionRanked,
-    > = HashMap::new();
-    let mut markdown_document_list: Vec<MarkdownDocument> = Vec::new();
-    let mut markdown_document_sources: BTreeMap<String, MarkdownDocumentSource> =
-        Default::default();
+    let mut content_document_collections_ranked: HashMap<String, ContentDocumentCollectionRanked> =
+        HashMap::new();
+    let mut content_document_list: Vec<ContentDocument> = Vec::new();
+    let mut content_document_sources: BTreeMap<String, ContentDocumentSource> = Default::default();
 
     for file in files {
         if file.kind.is_content() {
@@ -159,39 +156,39 @@ pub async fn build_project(
 
             let basename_path = file.get_stem_path_relative_to(&PathBuf::from("content"));
             let basename = basename_path.display().to_string();
-            let markdown_document_reference = MarkdownDocumentReference {
+            let content_document_reference = ContentDocumentReference {
                 basename_path,
                 front_matter: front_matter.clone(),
                 generated_page_base_path: generated_page_base_path.clone(),
             };
 
             if let Some(id) = &front_matter.id {
-                if markdown_basename_by_id.contains_key(id) {
+                if content_document_basename_by_id.contains_key(id) {
                     error_collection.register_error(
+                        content_document_reference.clone(),
                         anyhow!("Duplicate document id: #{id} in '{basename}'"),
-                        markdown_document_reference.clone(),
                     );
                 }
 
-                markdown_basename_by_id.insert(id.clone(), basename.clone());
+                content_document_basename_by_id.insert(id.clone(), basename.clone());
             }
 
-            markdown_document_by_basename
-                .insert(basename.clone(), markdown_document_reference.clone());
-            markdown_document_list.push(MarkdownDocument {
+            content_document_by_basename
+                .insert(basename.clone(), content_document_reference.clone());
+            content_document_list.push(ContentDocument {
                 mdast: mdast.clone(),
-                reference: markdown_document_reference.clone(),
+                reference: content_document_reference.clone(),
             });
 
-            if markdown_document_reference.front_matter.render {
+            if content_document_reference.front_matter.render {
                 let relative_path = format!("{basename}.md");
 
-                markdown_document_sources.insert(
+                content_document_sources.insert(
                     basename,
-                    MarkdownDocumentSource {
+                    ContentDocumentSource {
                         file_entry: file,
                         mdast,
-                        reference: markdown_document_reference,
+                        reference: content_document_reference,
                         relative_path,
                     },
                 );
@@ -200,7 +197,7 @@ pub async fn build_project(
     }
 
     // Validate before/after/parent documents in collections
-    for reference in markdown_document_by_basename.values() {
+    for reference in content_document_by_basename.values() {
         // Validate primary collections
         if let Some(primary_collection) = &reference.front_matter.primary_collection
             && !reference
@@ -211,53 +208,53 @@ pub async fn build_project(
                 .any(|placement| placement.name == *primary_collection)
         {
             error_collection.register_error(
+                reference.clone(),
                 anyhow!(
                     "Document does belong to the collection it claims to be it's primary collection"
                 ),
-                reference.clone(),
             );
         }
 
         for collection in &reference.front_matter.collections.placements {
             if let Some(after) = &collection.after
-                && !markdown_document_by_basename.contains_key(after)
+                && !content_document_by_basename.contains_key(after)
             {
                 error_collection.register_error(
-                    anyhow!("Succeeding document does not exist: '{after}'"),
                     reference.clone(),
+                    anyhow!("Succeeding document does not exist: '{after}'"),
                 );
             }
 
             if let Some(parent) = &collection.parent
-                && !markdown_document_by_basename.contains_key(parent)
+                && !content_document_by_basename.contains_key(parent)
             {
                 error_collection.register_error(
-                    anyhow!("Parent document does not exist: '{parent}'"),
                     reference.clone(),
+                    anyhow!("Parent document does not exist: '{parent}'"),
                 );
             }
 
-            markdown_document_collections
+            content_document_collections
                 .entry(collection.name.clone())
-                .or_insert_with(|| MarkdownDocumentCollection {
+                .or_insert_with(|| ContentDocumentCollection {
                     documents: Default::default(),
                     name: collection.name.clone(),
                 })
                 .documents
-                .push(MarkdownDocumentInCollection {
+                .push(ContentDocumentInCollection {
                     collection_placement: collection.clone(),
                     reference: reference.clone(),
                 })
         }
     }
 
-    for markdown_document_collection in markdown_document_collections.values() {
-        let markdown_document_collection_ranked: MarkdownDocumentCollectionRanked =
-            markdown_document_collection.clone().try_into()?;
+    for content_document_collection in content_document_collections.values() {
+        let content_document_collection_ranked: ContentDocumentCollectionRanked =
+            content_document_collection.clone().try_into()?;
 
-        markdown_document_collections_ranked.insert(
-            markdown_document_collection.name.clone(),
-            markdown_document_collection_ranked,
+        content_document_collections_ranked.insert(
+            content_document_collection.name.clone(),
+            content_document_collection_ranked,
         );
     }
 
@@ -266,24 +263,24 @@ pub async fn build_project(
     }
 
     let available_collections_arc: Arc<HashSet<String>> = Arc::new(
-        markdown_document_collections
+        content_document_collections
             .keys()
             .map(|key| key.to_string())
             .collect::<HashSet<String>>(),
     );
-    let markdown_document_reference_collection_dashmap: DashMap<String, MarkdownDocumentReference> =
+    let content_document_reference_collection_dashmap: DashMap<String, ContentDocumentReference> =
         Default::default();
-    let markdown_basename_by_id_arc = Arc::new(markdown_basename_by_id);
-    let markdown_document_by_basename_arc = Arc::new(markdown_document_by_basename);
-    let markdown_document_collections_ranked_arc = Arc::new(markdown_document_collections_ranked);
+    let content_document_basename_by_id_arc = Arc::new(content_document_basename_by_id);
+    let content_document_by_basename_arc = Arc::new(content_document_by_basename);
+    let content_document_collections_ranked_arc = Arc::new(content_document_collections_ranked);
 
-    markdown_document_list
+    content_document_list
         .par_iter()
-        .filter(|markdown_document| {
-            if !markdown_document.reference.front_matter.render {
+        .filter(|content_document| {
+            if !content_document.reference.front_matter.render {
                 debug!(
                     "Document will not be rendered: {}",
-                    markdown_document.reference.basename()
+                    content_document.reference.basename()
                 );
 
                 false
@@ -291,43 +288,43 @@ pub async fn build_project(
                 true
             }
         })
-        .for_each(|markdown_document| {
-            match render_document(DocumentRenderingContext {
+        .for_each(|content_document| {
+            match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,
-                markdown_basename_by_id: markdown_basename_by_id_arc.clone(),
-                markdown_document,
-                markdown_document_by_basename: markdown_document_by_basename_arc.clone(),
-                markdown_document_collections_ranked: markdown_document_collections_ranked_arc
+                content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
+                content_document,
+                content_document_by_basename: content_document_by_basename_arc.clone(),
+                content_document_collections_ranked: content_document_collections_ranked_arc
                     .clone(),
                 rhai_template_renderer: &rhai_template_renderer,
                 syntax_set: &syntax_set,
             }) {
                 Ok(processed_file) => {
-                    match markdown_document.reference.target_file_relative_path() {
+                    match content_document.reference.target_file_relative_path() {
                         Ok(relative_path) => {
                             if let Err(err) = memory_filesystem
                                 .set_file_contents_sync(&relative_path, &processed_file)
                             {
                                 error_collection
-                                    .register_error(err, markdown_document.reference.clone());
+                                    .register_error(content_document.reference.clone(), err);
                             } else {
-                                markdown_document_reference_collection_dashmap.insert(
+                                content_document_reference_collection_dashmap.insert(
                                     relative_path.display().to_string(),
-                                    markdown_document.reference.clone(),
+                                    content_document.reference.clone(),
                                 );
                             }
                         }
                         Err(err) => {
                             error_collection
-                                .register_error(anyhow!(err), markdown_document.reference.clone());
+                                .register_error(content_document.reference.clone(), anyhow!(err));
                         }
                     }
                 }
                 Err(err) => {
-                    error_collection.register_error(err, markdown_document.reference.clone())
+                    error_collection.register_error(content_document.reference.clone(), err)
                 }
             }
         });
@@ -335,7 +332,7 @@ pub async fn build_project(
     if error_collection.is_empty() {
         Ok(BuildProjectResultStub {
             esbuild_metafile,
-            markdown_document_sources: Arc::new(markdown_document_sources),
+            content_document_sources: Arc::new(content_document_sources),
             memory_filesystem,
         })
     } else {

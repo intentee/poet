@@ -9,12 +9,12 @@ use rhai::module_resolvers::FileModuleResolver;
 
 use crate::asset_manager::AssetManager;
 use crate::component_context::ComponentContext;
+use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
+use crate::content_document_hierarchy::ContentDocumentHierarchy;
+use crate::content_document_reference::ContentDocumentReference;
+use crate::content_document_tree_node::ContentDocumentTreeNode;
 use crate::filesystem::file_entry::FileEntry;
 use crate::front_matter::FrontMatter;
-use crate::markdown_document_collection_ranked::MarkdownDocumentCollectionRanked;
-use crate::markdown_document_hierarchy::MarkdownDocumentHierarchy;
-use crate::markdown_document_reference::MarkdownDocumentReference;
-use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
 use crate::rhai_components::component_meta_module::ComponentMetaModule;
 use crate::rhai_components::component_reference::ComponentReference;
 use crate::rhai_components::component_registry::ComponentRegistry;
@@ -74,13 +74,13 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
 
         engine.build_type::<AssetManager>();
         engine.build_type::<ComponentContext>();
+        engine.build_type::<ContentDocumentCollectionRanked>();
+        engine.build_type::<ContentDocumentHierarchy>();
+        engine.build_type::<ContentDocumentReference>();
+        engine.build_type::<ContentDocumentTreeNode>();
         engine.build_type::<FileEntry>();
         engine.build_type::<FrontMatter>();
         engine.build_type::<Heading>();
-        engine.build_type::<MarkdownDocumentCollectionRanked>();
-        engine.build_type::<MarkdownDocumentHierarchy>();
-        engine.build_type::<MarkdownDocumentReference>();
-        engine.build_type::<MarkdownDocumentTreeNode>();
         engine.build_type::<TableOfContents>();
         engine.register_fn("clsx", clsx);
         engine.register_fn("error", error);

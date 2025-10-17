@@ -6,14 +6,14 @@ use anyhow::anyhow;
 use petgraph::algo::toposort;
 use petgraph::stable_graph::StableDiGraph;
 
-use crate::markdown_document_in_collection::MarkdownDocumentInCollection;
-use crate::markdown_document_tree_node::MarkdownDocumentTreeNode;
+use crate::content_document_in_collection::ContentDocumentInCollection;
+use crate::content_document_tree_node::ContentDocumentTreeNode;
 
 fn find_children(
     collection_name: String,
-    parent: &MarkdownDocumentInCollection,
-    sorted_documents: &mut LinkedList<MarkdownDocumentInCollection>,
-) -> LinkedList<MarkdownDocumentTreeNode> {
+    parent: &ContentDocumentInCollection,
+    sorted_documents: &mut LinkedList<ContentDocumentInCollection>,
+) -> LinkedList<ContentDocumentTreeNode> {
     let children = sorted_documents
         .extract_if(|document| {
             document.collection_placement.parent == Some(parent.reference.basename())
@@ -22,31 +22,31 @@ fn find_children(
 
     children
         .iter()
-        .map(|document| MarkdownDocumentTreeNode {
+        .map(|document| ContentDocumentTreeNode {
             children: find_children(collection_name.clone(), document, sorted_documents),
             collection_name: collection_name.clone(),
             reference: document.reference.clone(),
         })
-        .collect::<LinkedList<MarkdownDocumentTreeNode>>()
+        .collect::<LinkedList<ContentDocumentTreeNode>>()
 }
 
 #[derive(Clone, Debug)]
-pub struct MarkdownDocumentCollection {
-    pub documents: Vec<MarkdownDocumentInCollection>,
+pub struct ContentDocumentCollection {
+    pub documents: Vec<ContentDocumentInCollection>,
     pub name: String,
 }
 
-impl MarkdownDocumentCollection {
+impl ContentDocumentCollection {
     /// Returns a list of roots
-    pub fn build_hierarchy(&self) -> Result<Vec<MarkdownDocumentTreeNode>> {
+    pub fn build_hierarchy(&self) -> Result<Vec<ContentDocumentTreeNode>> {
         let mut sorted_documents = self.sort_by_successors()?;
         let roots = sorted_documents
             .extract_if(|document| document.collection_placement.parent.is_none())
-            .collect::<LinkedList<MarkdownDocumentInCollection>>();
+            .collect::<LinkedList<ContentDocumentInCollection>>();
 
         Ok(roots
             .iter()
-            .map(|document| MarkdownDocumentTreeNode {
+            .map(|document| ContentDocumentTreeNode {
                 children: find_children(self.name.clone(), document, &mut sorted_documents),
                 collection_name: self.name.clone(),
                 reference: document.reference.clone(),
@@ -54,7 +54,7 @@ impl MarkdownDocumentCollection {
             .collect::<Vec<_>>())
     }
 
-    pub fn sort_by_successors(&self) -> Result<LinkedList<MarkdownDocumentInCollection>> {
+    pub fn sort_by_successors(&self) -> Result<LinkedList<ContentDocumentInCollection>> {
         let mut basename_to_node = HashMap::new();
         let mut successors_graph: StableDiGraph<String, ()> = StableDiGraph::new();
         let mut node_to_document = HashMap::new();
@@ -88,7 +88,7 @@ impl MarkdownDocumentCollection {
 
         match toposort(&successors_graph, None) {
             Ok(sorted_nodes) => {
-                let mut sorted_documents: LinkedList<MarkdownDocumentInCollection> =
+                let mut sorted_documents: LinkedList<ContentDocumentInCollection> =
                     LinkedList::new();
 
                 for node_id in sorted_nodes {
@@ -110,12 +110,12 @@ impl MarkdownDocumentCollection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content_document_reference::ContentDocumentReference;
     use crate::front_matter::FrontMatter;
     use crate::front_matter::collection_placement::CollectionPlacement;
-    use crate::markdown_document_reference::MarkdownDocumentReference;
 
-    fn create_document_reference(name: &str) -> MarkdownDocumentReference {
-        MarkdownDocumentReference {
+    fn create_document_reference(name: &str) -> ContentDocumentReference {
+        ContentDocumentReference {
             basename_path: name.into(),
             front_matter: FrontMatter::mock(name),
             generated_page_base_path: "/".to_string(),
@@ -124,12 +124,12 @@ mod tests {
 
     #[test]
     fn test_sort_by_successors() -> Result<()> {
-        let mut collection = MarkdownDocumentCollection {
+        let mut collection = ContentDocumentCollection {
             documents: Default::default(),
             name: "my_collection".to_string(),
         };
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: None,
                 name: "my_collection".to_string(),
@@ -138,7 +138,7 @@ mod tests {
             reference: create_document_reference("1"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
@@ -147,7 +147,7 @@ mod tests {
             reference: create_document_reference("5"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
@@ -156,7 +156,7 @@ mod tests {
             reference: create_document_reference("4"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("1".to_string()),
                 name: "my_collection".to_string(),
@@ -165,7 +165,7 @@ mod tests {
             reference: create_document_reference("2"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("2".to_string()),
                 name: "my_collection".to_string(),
@@ -187,12 +187,12 @@ mod tests {
 
     #[test]
     fn test_hierarchy() -> Result<()> {
-        let mut collection = MarkdownDocumentCollection {
+        let mut collection = ContentDocumentCollection {
             documents: Default::default(),
             name: "my_collection".to_string(),
         };
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: None,
                 name: "my_collection".to_string(),
@@ -201,7 +201,7 @@ mod tests {
             reference: create_document_reference("1"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
@@ -210,7 +210,7 @@ mod tests {
             reference: create_document_reference("5"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("3".to_string()),
                 name: "my_collection".to_string(),
@@ -219,7 +219,7 @@ mod tests {
             reference: create_document_reference("4"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("1".to_string()),
                 name: "my_collection".to_string(),
@@ -228,7 +228,7 @@ mod tests {
             reference: create_document_reference("2"),
         });
 
-        collection.documents.push(MarkdownDocumentInCollection {
+        collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
                 after: Some("2".to_string()),
                 name: "my_collection".to_string(),

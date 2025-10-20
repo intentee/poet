@@ -1,4 +1,3 @@
-use std::net::SocketAddr;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -14,6 +13,7 @@ use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::watch::service::Service;
+use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
@@ -23,9 +23,11 @@ use crate::mcp::session_manager::SessionManager;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 pub struct ProjectBuilder {
-    pub addr: SocketAddr,
+    pub asset_path_renderer: AssetPathRenderer,
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
+    pub esbuild_metafile_holder: EsbuildMetaFileHolder,
+    pub generated_page_base_path: String,
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
     pub session_manager: SessionManager,
@@ -34,6 +36,15 @@ pub struct ProjectBuilder {
 
 impl ProjectBuilder {
     async fn do_build_project(&self) {
+        let esbuild_metafile = match self.esbuild_metafile_holder.get().await {
+            Some(esbuild_metafile) => esbuild_metafile,
+            None => {
+                debug!("Esbuild metafile is not ready yet. Skipping build");
+
+                return;
+            }
+        };
+
         let rhai_template_renderer = match self.rhai_template_renderer_holder.get().await {
             Some(rhai_template_renderer) => rhai_template_renderer,
             None => {
@@ -42,13 +53,11 @@ impl ProjectBuilder {
                 return;
             }
         };
-        let base_path = format!("http://{}/", self.addr);
 
         match build_project(BuildProjectParams {
-            asset_path_renderer: AssetPathRenderer {
-                base_path: base_path.clone(),
-            },
-            generated_page_base_path: base_path,
+            asset_path_renderer: self.asset_path_renderer.clone(),
+            esbuild_metafile,
+            generated_page_base_path: self.generated_page_base_path.clone(),
             is_watching: true,
             rhai_template_renderer,
             source_filesystem: self.source_filesystem.clone(),

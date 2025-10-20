@@ -4,6 +4,7 @@ use anyhow::Context as _;
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
+use rhai::CustomType;
 use rhai::Dynamic;
 use rhai::Engine;
 use rhai::Scope;
@@ -35,7 +36,7 @@ impl RhaiTemplateRenderer {
         content: Dynamic,
     ) -> Result<String>
     where
-        TComponentContext: Clone + Send + Sync + 'static,
+        TComponentContext: CustomType,
     {
         if let Some(component_reference) = self.templates.get(name) {
             Ok(self.expression_engine.eval_fn_call(
@@ -54,7 +55,7 @@ impl RhaiTemplateRenderer {
         expression: &str,
     ) -> Result<Dynamic>
     where
-        TComponentContext: Clone + Send + Sync + 'static,
+        TComponentContext: CustomType,
     {
         let mut scope = Scope::new();
 

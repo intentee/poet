@@ -18,6 +18,7 @@ use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::Filesystem;
 use crate::filesystem::storage::Storage;
 use crate::filesystem::storage::create_parent_directories::create_parent_directories;
+use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 
 #[derive(Parser)]
 pub struct Generate {
@@ -51,6 +52,7 @@ impl Handler for Generate {
             asset_path_renderer: AssetPathRenderer {
                 base_path: self.public_path.clone(),
             },
+            esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.clone()).await?,
             generated_page_base_path: self.public_path.clone(),
             is_watching: false,
             rhai_template_renderer,

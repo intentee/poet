@@ -31,17 +31,11 @@ use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
 use rhai::Dynamic;
-use syntect::html::ClassStyle;
-use syntect::html::ClassedHTMLGenerator;
-use syntect::parsing::SyntaxSet;
-use syntect::util::LinesWithEndings;
 
 use crate::escape_html::escape_html;
 use crate::escape_html_attribute::escape_html_attribute;
 use crate::is_external_link::is_external_link;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
-use crate::parse_markdown_metadata_line::metadata_line_item::MetadataLineItem;
-use crate::parse_markdown_metadata_line::parse_markdown_metadata_line;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
@@ -50,7 +44,6 @@ pub fn eval_content_document_children(
     children: &Vec<Node>,
     component_context: &PromptDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
-    syntax_set: &SyntaxSet,
 ) -> Result<String> {
     let mut content = String::new();
 
@@ -59,7 +52,6 @@ pub fn eval_content_document_children(
             child,
             component_context,
             rhai_template_renderer,
-            syntax_set,
         )?);
     }
 
@@ -70,7 +62,6 @@ pub fn eval_prompt_document_mdast(
     mdast: &Node,
     component_context: &PromptDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
-    syntax_set: &SyntaxSet,
 ) -> Result<String> {
     let mut result = String::new();
 
@@ -81,7 +72,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</blockquote>");
         }
@@ -91,66 +81,8 @@ pub fn eval_prompt_document_mdast(
         Node::Code(Code {
             meta, lang, value, ..
         }) => {
-            result.push_str("<pre class=\"code");
-
-            if let Some(lang) = lang {
-                result.push_str(&format!(" language-{lang}\""));
-                result.push_str(&format!(" data-lang=\"{}\"", escape_html_attribute(lang)));
-            } else {
-                result.push('"');
-            }
-
-            if let Some(meta) = meta {
-                result.push_str(&format!(
-                    r#" data-meta-line="{}""#,
-                    escape_html_attribute(meta)
-                ));
-
-                for item in parse_markdown_metadata_line(meta)? {
-                    match item {
-                        MetadataLineItem::Flag { name } => {
-                            result.push_str(&format!(" {name}"));
-                        }
-                        MetadataLineItem::Pair { name, value } => {
-                            result.push_str(&format!(
-                                " data-meta-{}=\"{}\"",
-                                escape_html(&name),
-                                escape_html_attribute(&value)
-                            ));
-                        }
-                    }
-                }
-            }
-
-            result.push_str("><code>");
-
-            if let Some(lang) = lang {
-                let syntax = syntax_set.find_syntax_by_token(lang);
-
-                match syntax {
-                    Some(syntax) => {
-                        let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
-                            syntax,
-                            syntax_set,
-                            ClassStyle::Spaced,
-                        );
-                        for line in LinesWithEndings::from(value) {
-                            html_generator.parse_html_for_line_which_includes_newline(line)?;
-                        }
-                        let html_rs = html_generator.finalize();
-
-                        result.push_str(&html_rs);
-                    }
-                    None => {
-                        warn!("No syntax found for language: {}", lang);
-
-                        result.push_str(&escape_html(value));
-                    }
-                }
-            } else {
-                result.push_str(&escape_html(value));
-            }
-
+            result.push_str("<pre class=\"code\"><code>");
+            result.push_str(&escape_html(value));
             result.push_str("</code></pre>");
         }
         Node::Definition(node) => {
@@ -162,7 +94,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</del>");
         }
@@ -172,7 +103,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</em>");
         }
@@ -206,7 +136,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str(&format!("</{}>", tag));
         }
@@ -270,7 +199,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</a>");
         }
@@ -290,7 +218,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
 
             if *ordered {
@@ -305,7 +232,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</li>");
         }
@@ -381,7 +307,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?;
 
             if tag_name.is_component() {
@@ -422,7 +347,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</p>");
         }
@@ -431,7 +355,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
         }
         Node::Strong(Strong { children, .. }) => {
@@ -440,7 +363,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</strong>");
         }
@@ -450,7 +372,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</table>");
         }
@@ -460,7 +381,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</td>");
         }
@@ -470,7 +390,6 @@ pub fn eval_prompt_document_mdast(
                 children,
                 component_context,
                 rhai_template_renderer,
-                syntax_set,
             )?);
             result.push_str("</tr>");
         }

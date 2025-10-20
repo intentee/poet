@@ -3,12 +3,14 @@ use std::sync::Arc;
 
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::content_document_basename::ContentDocumentBasename;
+use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_source::ContentDocumentSource;
 use crate::filesystem::memory::Memory;
 
 #[derive(Clone)]
 pub struct BuildProjectResult {
     pub changed_since_last_build: Vec<ContentDocumentSource>,
+    pub content_document_linker: ContentDocumentLinker,
     pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     pub memory_filesystem: Arc<Memory>,
 }
@@ -16,6 +18,7 @@ pub struct BuildProjectResult {
 impl From<BuildProjectResultStub> for BuildProjectResult {
     fn from(
         BuildProjectResultStub {
+            content_document_linker,
             content_document_sources,
             memory_filesystem,
             ..
@@ -23,6 +26,7 @@ impl From<BuildProjectResultStub> for BuildProjectResult {
     ) -> Self {
         Self {
             changed_since_last_build: vec![],
+            content_document_linker,
             content_document_sources,
             memory_filesystem,
         }

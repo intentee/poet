@@ -10,16 +10,13 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::str::FromStr as _;
 use std::sync::Arc;
 
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
-use esbuild_metafile::EsbuildMetaFile;
 use log::debug;
 use log::info;
-use log::warn;
 use rayon::prelude::*;
 use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
@@ -43,7 +40,6 @@ use crate::content_document_source::ContentDocumentSource;
 use crate::eval_content_document_mdast::eval_content_document_mdast;
 use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
-use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
 use crate::string_to_mdast::string_to_mdast;
@@ -108,6 +104,7 @@ fn render_document<'render>(
 pub async fn build_project(
     BuildProjectParams {
         asset_path_renderer,
+        esbuild_metafile,
         generated_page_base_path,
         is_watching,
         rhai_template_renderer,
@@ -118,23 +115,6 @@ pub async fn build_project(
 
     let _build_timer = BuildTimer::new();
     let error_collection: ContentDocumentErrorCollection = Default::default();
-    let esbuild_metafile: Arc<EsbuildMetaFile> = match source_filesystem
-        .read_file_contents(&PathBuf::from("esbuild-meta.json"))
-        .await?
-    {
-        ReadFileContentsResult::Directory => {
-            return Err(anyhow!(
-                "esbuild metafile should be a file, not a directory"
-            ));
-        }
-        ReadFileContentsResult::Found { contents } => EsbuildMetaFile::from_str(&contents)?,
-        ReadFileContentsResult::NotFound => {
-            warn!("esbuild metafile not found, proceeding without it");
-
-            EsbuildMetaFile::default()
-        }
-    }
-    .into();
     let memory_filesystem = Arc::new(Memory::default());
     let syntax_set = SyntaxSet::load_defaults_newlines();
 
@@ -279,6 +259,10 @@ pub async fn build_project(
     let content_document_basename_by_id_arc = Arc::new(content_document_basename_by_id);
     let content_document_by_basename_arc = Arc::new(content_document_by_basename);
     let content_document_collections_ranked_arc = Arc::new(content_document_collections_ranked);
+    let content_document_linker = ContentDocumentLinker {
+        content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
+        content_document_by_basename: content_document_by_basename_arc.clone(),
+    };
 
     content_document_list
         .par_iter()
@@ -303,10 +287,7 @@ pub async fn build_project(
                 content_document,
                 content_document_collections_ranked: content_document_collections_ranked_arc
                     .clone(),
-                content_document_linker: ContentDocumentLinker {
-                    content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
-                    content_document_by_basename: content_document_by_basename_arc.clone(),
-                },
+                content_document_linker: content_document_linker.clone(),
                 rhai_template_renderer: &rhai_template_renderer,
                 syntax_set: &syntax_set,
             }) {
@@ -340,6 +321,7 @@ pub async fn build_project(
     if error_collection.is_empty() {
         Ok(BuildProjectResultStub {
             esbuild_metafile,
+            content_document_linker,
             content_document_sources: Arc::new(content_document_sources),
             memory_filesystem,
         })

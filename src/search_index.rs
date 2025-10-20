@@ -115,6 +115,7 @@ mod tests {
             asset_path_renderer: AssetPathRenderer {
                 base_path: public_path.clone(),
             },
+            esbuild_metafile: Default::default(),
             generated_page_base_path: public_path,
             is_watching: false,
             rhai_template_renderer,

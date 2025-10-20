@@ -6,10 +6,12 @@ use rayon::prelude::*;
 
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::content_document_basename::ContentDocumentBasename;
+use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_source::ContentDocumentSource;
 use crate::filesystem::memory::Memory;
 
 pub struct BuildProjectResultStub {
+    pub content_document_linker: ContentDocumentLinker,
     pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,
     pub memory_filesystem: Arc<Memory>,
@@ -38,6 +40,7 @@ impl BuildProjectResultStub {
 
         BuildProjectResult {
             changed_since_last_build,
+            content_document_linker: self.content_document_linker,
             content_document_sources: self.content_document_sources,
             memory_filesystem: self.memory_filesystem,
         }

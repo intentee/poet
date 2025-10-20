@@ -18,6 +18,7 @@ use tokio::sync::Notify;
 pub struct WatchProjectHandle {
     pub debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
     pub on_content_file_changed: Arc<Notify>,
+    pub on_esbuild_metafile_changed: Arc<Notify>,
     pub on_prompt_file_changed: Arc<Notify>,
     pub on_shortcode_file_changed: Arc<Notify>,
 }
@@ -47,12 +48,14 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
     let shortcodes_directory = source_directory.join("shortcodes");
 
     let on_content_file_changed = Arc::new(Notify::new());
+    let on_esbuild_metafile_changed = Arc::new(Notify::new());
     let on_prompt_file_changed = Arc::new(Notify::new());
     let on_shortcode_file_changed = Arc::new(Notify::new());
 
     let content_directory_clone = content_directory.clone();
     let on_shortcode_file_changed_clone = on_shortcode_file_changed.clone();
     let on_content_file_changed_clone = on_content_file_changed.clone();
+    let on_esbuild_metafile_changed_clone = on_esbuild_metafile_changed.clone();
     let on_prompt_file_changed_clone = on_prompt_file_changed.clone();
     let prompts_directory_clone = prompts_directory.clone();
     let shortcodes_directory_clone = shortcodes_directory.clone();
@@ -88,12 +91,18 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
                                     return;
                                 }
 
-                                if is_inside_directory(&content_directory_clone, path)
-                                    || esbuild_metafile_path == *path
-                                {
+                                if is_inside_directory(&content_directory_clone, path) {
                                     info!("Content file change detected: {:?}", path.display());
 
                                     on_content_file_changed_clone.notify_waiters();
+
+                                    return;
+                                }
+
+                                if esbuild_metafile_path == *path {
+                                    info!("Esbuild metafile change detected: {:?}", path.display());
+
+                                    on_esbuild_metafile_changed_clone.notify_waiters();
 
                                     return;
                                 }
@@ -119,6 +128,7 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
     Ok(WatchProjectHandle {
         debouncer,
         on_content_file_changed,
+        on_esbuild_metafile_changed,
         on_prompt_file_changed,
         on_shortcode_file_changed,
     })

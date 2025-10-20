@@ -26,10 +26,6 @@ pub struct ContentDocumentComponentContext {
 }
 
 impl ContentDocumentComponentContext {
-    pub fn get_assets(&mut self) -> AssetManager {
-        self.asset_manager.clone()
-    }
-
     pub fn with_table_of_contents(self, table_of_contents: TableOfContents) -> Self {
         Self {
             asset_manager: self.asset_manager,
@@ -72,6 +68,10 @@ impl ContentDocumentComponentContext {
 
     fn rhai_front_matter(&mut self) -> ContentDocumentFrontMatter {
         self.front_matter.clone()
+    }
+
+    pub fn rhai_get_assets(&mut self) -> AssetManager {
+        self.asset_manager.clone()
     }
 
     fn rhai_is_current_page(&mut self, other: String) -> Result<bool, Box<EvalAltResult>> {
@@ -135,7 +135,7 @@ impl CustomType for ContentDocumentComponentContext {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("ContentDocumentComponentContext")
-            .with_get("assets", Self::get_assets)
+            .with_get("assets", Self::rhai_get_assets)
             .with_get("front_matter", Self::rhai_front_matter)
             .with_get("is_watching", Self::rhai_is_watching)
             .with_get("primary_collection", Self::rhai_primary_collection)

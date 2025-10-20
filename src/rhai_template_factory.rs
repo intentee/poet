@@ -15,6 +15,7 @@ use crate::content_document_hierarchy::ContentDocumentHierarchy;
 use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_tree_node::ContentDocumentTreeNode;
 use crate::filesystem::file_entry::FileEntry;
+use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::rhai_components::component_meta_module::ComponentMetaModule;
 use crate::rhai_components::component_reference::ComponentReference;
 use crate::rhai_components::component_registry::ComponentRegistry;
@@ -81,6 +82,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
         engine.build_type::<ContentDocumentTreeNode>();
         engine.build_type::<FileEntry>();
         engine.build_type::<Heading>();
+        engine.build_type::<PromptDocumentComponentContext>();
         engine.build_type::<TableOfContents>();
         engine.register_fn("clsx", clsx);
         engine.register_fn("error", error);

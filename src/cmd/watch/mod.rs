@@ -21,14 +21,17 @@ use self::watch_project_files::watch_project_files;
 use super::Handler;
 use super::value_parser::parse_socket_addr;
 use super::value_parser::validate_is_directory;
+use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
+use crate::cmd::watch::service::esbuild_metafile_reader::EsbuildMetaFileReader;
 use crate::cmd::watch::service::http_server::HttpServer;
 use crate::cmd::watch::service::project_builder::ProjectBuilder;
-use crate::cmd::watch::service::prompt_builder::PromptBuilder;
+use crate::cmd::watch::service::prompt_controller_collection_builder::PromptControllerCollectionBuilder;
 use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::cmd::watch::service_manager::ServiceManager;
+use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
@@ -65,11 +68,18 @@ impl Handler for Watch {
         let WatchProjectHandle {
             debouncer: _debouncer,
             on_content_file_changed,
+            on_esbuild_metafile_changed,
             on_prompt_file_changed,
             on_shortcode_file_changed,
         } = watch_project_files(self.source_directory.clone())?;
 
+        let generated_page_base_path = format!("http://{}/", self.addr);
+
+        let asset_path_renderer = AssetPathRenderer {
+            base_path: generated_page_base_path.clone(),
+        };
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
+        let esbuild_metafile_holder: EsbuildMetaFileHolder = Default::default();
         let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
             McpResourceProviderContentDocuments(build_project_result_holder.clone());
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
@@ -90,6 +100,13 @@ impl Handler for Watch {
 
         let mut service_manager: ServiceManager = Default::default();
 
+        service_manager.register_service(Arc::new(EsbuildMetaFileReader {
+            ctrlc_notifier: ctrlc_notifier.clone(),
+            esbuild_metafile_holder: esbuild_metafile_holder.clone(),
+            on_esbuild_metafile_changed,
+            source_filesystem: source_filesystem.clone(),
+        }));
+
         service_manager.register_service(Arc::new(HttpServer {
             addr: self.addr,
             assets_directory: self.assets_directory(),
@@ -101,18 +118,24 @@ impl Handler for Watch {
         }));
 
         service_manager.register_service(Arc::new(ProjectBuilder {
-            addr: self.addr,
+            asset_path_renderer: asset_path_renderer.clone(),
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
+            esbuild_metafile_holder: esbuild_metafile_holder.clone(),
+            generated_page_base_path: generated_page_base_path.clone(),
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             session_manager,
             source_filesystem: source_filesystem.clone(),
         }));
 
-        service_manager.register_service(Arc::new(PromptBuilder {
+        service_manager.register_service(Arc::new(PromptControllerCollectionBuilder {
+            asset_path_renderer,
+            build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
+            esbuild_metafile_holder,
             on_prompt_file_changed,
+            rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             source_filesystem: source_filesystem.clone(),
         }));
 

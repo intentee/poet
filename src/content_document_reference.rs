@@ -8,18 +8,19 @@ use rhai::CustomType;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
-use crate::front_matter::FrontMatter;
+use crate::content_document_basename::ContentDocumentBasename;
+use crate::content_document_front_matter::ContentDocumentFrontMatter;
 
 #[derive(Clone, Debug)]
 pub struct ContentDocumentReference {
     pub basename_path: PathBuf,
-    pub front_matter: FrontMatter,
+    pub front_matter: ContentDocumentFrontMatter,
     pub generated_page_base_path: String,
 }
 
 impl ContentDocumentReference {
-    pub fn basename(&self) -> String {
-        self.basename_path.display().to_string()
+    pub fn basename(&self) -> ContentDocumentBasename {
+        self.basename_path.clone().into()
     }
 
     pub fn canonical_link(&self) -> Result<String, String> {
@@ -78,14 +79,14 @@ impl ContentDocumentReference {
     }
 
     fn rhai_basename(&mut self) -> String {
-        self.basename()
+        self.basename().to_string()
     }
 
     fn rhai_canonical_link(&mut self) -> Result<String, Box<EvalAltResult>> {
         Ok(self.canonical_link()?)
     }
 
-    fn rhai_front_matter(&mut self) -> FrontMatter {
+    fn rhai_front_matter(&mut self) -> ContentDocumentFrontMatter {
         self.front_matter.clone()
     }
 }
@@ -136,7 +137,7 @@ mod tests {
     fn target_path_is_generated_for_base_index() -> Result<()> {
         let reference = ContentDocumentReference {
             basename_path: "index".into(),
-            front_matter: FrontMatter::mock("foo"),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),
         };
 
@@ -158,7 +159,7 @@ mod tests {
     fn target_path_is_generated_for_base() -> Result<()> {
         let reference = ContentDocumentReference {
             basename_path: "bar".into(),
-            front_matter: FrontMatter::mock("foo"),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),
         };
 
@@ -180,7 +181,7 @@ mod tests {
     fn target_path_is_generated() -> Result<()> {
         let reference = ContentDocumentReference {
             basename_path: "foo/bar".into(),
-            front_matter: FrontMatter::mock("foo"),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),
         };
 
@@ -202,7 +203,7 @@ mod tests {
     fn target_path_is_generated_for_index() -> Result<()> {
         let reference = ContentDocumentReference {
             basename_path: "foo/index".into(),
-            front_matter: FrontMatter::mock("foo"),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
             generated_page_base_path: "/".to_string(),
         };
 

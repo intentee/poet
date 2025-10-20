@@ -3,6 +3,7 @@ use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
+use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_tree_node::ContentDocumentTreeNode;
 
@@ -13,7 +14,8 @@ pub struct ContentDocumentHierarchy {
 }
 
 impl ContentDocumentHierarchy {
-    fn rhai_after(&mut self, basename: String) -> Result<Dynamic, Box<EvalAltResult>> {
+    fn rhai_after(&mut self, basename_string: String) -> Result<Dynamic, Box<EvalAltResult>> {
+        let basename: ContentDocumentBasename = basename_string.into();
         let mut flat_peekable = self
             .flat
             .clone()
@@ -36,7 +38,8 @@ impl ContentDocumentHierarchy {
         Err(format!("Next page is not used in the hierarchy: '{basename}'").into())
     }
 
-    fn rhai_before(&mut self, basename: String) -> Result<Dynamic, Box<EvalAltResult>> {
+    fn rhai_before(&mut self, basename_string: String) -> Result<Dynamic, Box<EvalAltResult>> {
+        let basename: ContentDocumentBasename = basename_string.into();
         let mut previous: Option<ContentDocumentReference> = None;
 
         for node in &self.flat {

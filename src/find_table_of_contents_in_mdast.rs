@@ -17,8 +17,8 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use syntect::parsing::SyntaxSet;
 
-use crate::component_context::ComponentContext;
-use crate::eval_mdast::eval_children;
+use crate::content_document_component_context::ContentDocumentComponentContext;
+use crate::eval_content_document_mdast::eval_content_document_children;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::table_of_contents::TableOfContents;
@@ -26,7 +26,7 @@ use crate::table_of_contents::heading::Heading;
 
 fn find_headings_in_mdast(
     mdast: &Node,
-    component_context: &ComponentContext,
+    component_context: &ContentDocumentComponentContext,
     headings: &mut Vec<Heading>,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
@@ -62,7 +62,7 @@ fn find_headings_in_mdast(
             children, depth, ..
         }) => {
             headings.push(Heading {
-                content: eval_children(
+                content: eval_content_document_children(
                     children,
                     component_context,
                     rhai_template_renderer,
@@ -80,7 +80,7 @@ fn find_headings_in_mdast(
 
 pub fn find_table_of_contents_in_mdast(
     mdast: &Node,
-    component_context: &ComponentContext,
+    component_context: &ContentDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
 ) -> Result<TableOfContents> {

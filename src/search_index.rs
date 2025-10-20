@@ -11,6 +11,7 @@ use tantivy::IndexWriter;
 use tantivy::ReloadPolicy;
 
 use crate::anyhow_error_aggregate::AnyhowErrorAggregate;
+use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_source::ContentDocumentSource;
 use crate::mdast_to_tantivy_document::mdast_to_tantivy_document;
 use crate::search_index_fields::SearchIndexFields;
@@ -18,14 +19,14 @@ use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_schema::SearchIndexSchema;
 
 pub struct SearchIndex {
-    content_document_sources: Arc<BTreeMap<String, ContentDocumentSource>>,
+    content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     fields: Arc<SearchIndexFields>,
     index: Index,
 }
 
 impl SearchIndex {
     pub fn create_in_memory(
-        content_document_sources: Arc<BTreeMap<String, ContentDocumentSource>>,
+        content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     ) -> Self {
         let SearchIndexSchema { fields, schema } = SearchIndexSchema::new();
 
@@ -51,9 +52,10 @@ impl SearchIndex {
                     mdast, reference, ..
                 },
             )| {
+                let basename_string: String = reference.basename().to_string();
                 let mut document = mdast_to_tantivy_document(fields.clone(), mdast);
 
-                document.add_field_value(fields.basename, &reference.basename());
+                document.add_field_value(fields.basename, &basename_string);
                 document.add_field_value(fields.title, &reference.front_matter.title);
                 document.add_field_value(fields.description, &reference.front_matter.description);
 
@@ -62,9 +64,7 @@ impl SearchIndex {
                     .expect("Search index read lock is poisoned")
                     .add_document(document)
                 {
-                    error_collection
-                        .errors
-                        .insert(reference.basename(), err.into());
+                    error_collection.errors.insert(basename_string, err.into());
                 }
             },
         );
@@ -98,6 +98,7 @@ mod tests {
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_project::build_project;
+    use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::storage::Storage;
@@ -110,15 +111,15 @@ mod tests {
         });
         let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
 
-        build_project(
-            AssetPathRenderer {
+        build_project(BuildProjectParams {
+            asset_path_renderer: AssetPathRenderer {
                 base_path: public_path.clone(),
             },
-            public_path,
-            false,
+            generated_page_base_path: public_path,
+            is_watching: false,
             rhai_template_renderer,
             source_filesystem,
-        )
+        })
         .await
     }
 

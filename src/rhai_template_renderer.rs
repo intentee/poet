@@ -8,7 +8,6 @@ use rhai::Dynamic;
 use rhai::Engine;
 use rhai::Scope;
 
-use crate::component_context::ComponentContext;
 use crate::rhai_components::component_reference::ComponentReference;
 
 #[derive(Clone)]
@@ -28,13 +27,16 @@ impl RhaiTemplateRenderer {
         }
     }
 
-    pub fn render(
+    pub fn render<TComponentContext>(
         &self,
         name: &str,
-        context: ComponentContext,
+        context: TComponentContext,
         props: Dynamic,
         content: Dynamic,
-    ) -> Result<String> {
+    ) -> Result<String>
+    where
+        TComponentContext: Clone + Send + Sync + 'static,
+    {
         if let Some(component_reference) = self.templates.get(name) {
             Ok(self.expression_engine.eval_fn_call(
                 component_reference.global_fn_name.clone(),
@@ -46,11 +48,14 @@ impl RhaiTemplateRenderer {
         }
     }
 
-    pub fn render_expression(
+    pub fn render_expression<TComponentContext>(
         &self,
-        context: ComponentContext,
+        context: TComponentContext,
         expression: &str,
-    ) -> Result<Dynamic> {
+    ) -> Result<Dynamic>
+    where
+        TComponentContext: Clone + Send + Sync + 'static,
+    {
         let mut scope = Scope::new();
 
         scope.push("context", context);

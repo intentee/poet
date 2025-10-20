@@ -8,78 +8,38 @@ use rhai::TypeBuilder;
 
 use crate::asset_manager::AssetManager;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
+use crate::content_document_front_matter::ContentDocumentFrontMatter;
+use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_reference::ContentDocumentReference;
-use crate::front_matter::FrontMatter;
 use crate::table_of_contents::TableOfContents;
 
 #[derive(Clone)]
-pub struct ComponentContext {
+pub struct ContentDocumentComponentContext {
     pub asset_manager: AssetManager,
     pub available_collections: Arc<HashSet<String>>,
-    pub content_document_basename_by_id: Arc<HashMap<String, String>>,
-    pub content_document_by_basename: Arc<HashMap<String, ContentDocumentReference>>,
     pub content_document_collections_ranked: Arc<HashMap<String, ContentDocumentCollectionRanked>>,
-    pub front_matter: FrontMatter,
+    pub content_document_linker: ContentDocumentLinker,
+    pub front_matter: ContentDocumentFrontMatter,
     pub is_watching: bool,
     pub reference: ContentDocumentReference,
     pub table_of_contents: Option<TableOfContents>,
 }
 
-impl ComponentContext {
+impl ContentDocumentComponentContext {
     pub fn get_assets(&mut self) -> AssetManager {
         self.asset_manager.clone()
-    }
-
-    pub fn link_to(&self, path: &str) -> Result<String, String> {
-        let basename = self.resolve_id(path)?;
-
-        if let Some(reference) = self.content_document_by_basename.get(&basename) {
-            if !reference.front_matter.render {
-                return Err(format!(
-                    "Document cannot be linked to, because rendering of it is disabled: {basename}"
-                ));
-            }
-
-            match reference.canonical_link() {
-                Ok(canonical_link) => Ok(canonical_link),
-                Err(err) => Err(format!(
-                    "Unable to generate canonical link for {basename}: {err}"
-                )),
-            }
-        } else {
-            Err(format!("Document does not exist: {path}"))
-        }
     }
 
     pub fn with_table_of_contents(self, table_of_contents: TableOfContents) -> Self {
         Self {
             asset_manager: self.asset_manager,
             available_collections: self.available_collections,
-            content_document_basename_by_id: self.content_document_basename_by_id,
-            content_document_by_basename: self.content_document_by_basename,
             content_document_collections_ranked: self.content_document_collections_ranked,
+            content_document_linker: self.content_document_linker,
             front_matter: self.front_matter,
             is_watching: self.is_watching,
             reference: self.reference,
             table_of_contents: Some(table_of_contents),
-        }
-    }
-
-    fn resolve_id(&self, path: &str) -> Result<String, String> {
-        if path.starts_with("#") {
-            if let Some(basename) =
-                self.content_document_basename_by_id
-                    .get(match path.strip_prefix('#') {
-                        Some(id) => id,
-                        None => return Err("Unable to strip prefix from document id".into()),
-                    })
-            {
-                Ok(basename.into())
-            } else {
-                Err(format!("Document with id does not exist: {path}"))
-            }
-        } else {
-            Ok(path.into())
         }
     }
 
@@ -110,18 +70,14 @@ impl ComponentContext {
         }
     }
 
-    fn rhai_front_matter(&mut self) -> FrontMatter {
+    fn rhai_front_matter(&mut self) -> ContentDocumentFrontMatter {
         self.front_matter.clone()
     }
 
     fn rhai_is_current_page(&mut self, other: String) -> Result<bool, Box<EvalAltResult>> {
-        let basename = self.resolve_id(&other)?;
+        let basename = self.content_document_linker.resolve_id(&other)?;
 
-        if self.content_document_by_basename.contains_key(&basename) {
-            Ok(self.reference.basename() == basename)
-        } else {
-            Err(format!("Document does not exist: {basename}").into())
-        }
+        Ok(self.reference.basename() == basename)
     }
 
     fn rhai_is_watching(&mut self) -> bool {
@@ -129,7 +85,7 @@ impl ComponentContext {
     }
 
     fn rhai_link_to(&mut self, path: &str) -> Result<String, Box<EvalAltResult>> {
-        Ok(self.link_to(path)?)
+        Ok(self.content_document_linker.link_to(path)?)
     }
 
     fn rhai_primary_collection(
@@ -175,10 +131,10 @@ impl ComponentContext {
     }
 }
 
-impl CustomType for ComponentContext {
+impl CustomType for ContentDocumentComponentContext {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("ComponentContext")
+            .with_name("ContentDocumentComponentContext")
             .with_get("assets", Self::get_assets)
             .with_get("front_matter", Self::rhai_front_matter)
             .with_get("is_watching", Self::rhai_is_watching)

@@ -5,8 +5,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use tokio::task::spawn_blocking;
 
+use crate::content_document_front_matter::ContentDocumentFrontMatter;
 use crate::content_document_reference::ContentDocumentReference;
-use crate::front_matter::FrontMatter;
 use crate::holder::Holder;
 use crate::mcp::jsonrpc::content_block::ContentBlock;
 use crate::mcp::jsonrpc::content_block::resource_link::ResourceLink;
@@ -67,7 +67,7 @@ impl ToolResponder<Self> for SearchTool {
                         .iter()
                         .map(|SearchIndexFoundDocument {
                             content_document_reference: content_document_reference @ ContentDocumentReference {
-                                front_matter: FrontMatter {
+                                front_matter: ContentDocumentFrontMatter {
                                     description,
                                     title,
                                     ..
@@ -79,7 +79,7 @@ impl ToolResponder<Self> for SearchTool {
                             mime_type: Some("text/markdown".to_string()),
                             name: title.to_string(),
                             title: Some(title.to_string()),
-                            uri: self.mcp_resource_provider_content_documents.resource_uri(&content_document_reference.basename()),
+                            uri: self.mcp_resource_provider_content_documents.resource_uri(&content_document_reference.basename().to_string()),
                         }))
                         .collect()
                     ,

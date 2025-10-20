@@ -11,6 +11,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
+use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::watch::service::Service;
 use crate::filesystem::storage::Storage;
@@ -43,15 +44,15 @@ impl ProjectBuilder {
         };
         let base_path = format!("http://{}/", self.addr);
 
-        match build_project(
-            AssetPathRenderer {
+        match build_project(BuildProjectParams {
+            asset_path_renderer: AssetPathRenderer {
                 base_path: base_path.clone(),
             },
-            base_path,
-            true,
+            generated_page_base_path: base_path,
+            is_watching: true,
             rhai_template_renderer,
-            self.source_filesystem.clone(),
-        )
+            source_filesystem: self.source_filesystem.clone(),
+        })
         .await
         {
             Ok(build_project_result_stub) => {

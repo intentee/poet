@@ -5,11 +5,12 @@ use esbuild_metafile::EsbuildMetaFile;
 use rayon::prelude::*;
 
 use crate::build_project::build_project_result::BuildProjectResult;
+use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_source::ContentDocumentSource;
 use crate::filesystem::memory::Memory;
 
 pub struct BuildProjectResultStub {
-    pub content_document_sources: Arc<BTreeMap<String, ContentDocumentSource>>,
+    pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,
     pub memory_filesystem: Arc<Memory>,
 }

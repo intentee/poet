@@ -11,6 +11,7 @@ use super::value_parser::validate_is_directory;
 use super::value_parser::validate_is_directory_or_create;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
+use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::cmd::builds_project::BuildsProject;
 use crate::compile_shortcodes::compile_shortcodes;
@@ -46,15 +47,15 @@ impl Handler for Generate {
             esbuild_metafile,
             memory_filesystem,
             ..
-        } = build_project(
-            AssetPathRenderer {
+        } = build_project(BuildProjectParams {
+            asset_path_renderer: AssetPathRenderer {
                 base_path: self.public_path.clone(),
             },
-            self.public_path.clone(),
-            false,
+            generated_page_base_path: self.public_path.clone(),
+            is_watching: false,
             rhai_template_renderer,
             source_filesystem,
-        )
+        })
         .await?;
 
         let storage = Storage {

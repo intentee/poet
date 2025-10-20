@@ -7,6 +7,7 @@ pub mod meta;
 pub mod notification;
 pub mod request;
 pub mod response;
+pub mod role;
 pub mod serde_defaults;
 pub mod server_to_client_notification;
 pub mod server_to_client_response;

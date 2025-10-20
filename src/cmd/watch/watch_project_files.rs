@@ -18,6 +18,7 @@ use tokio::sync::Notify;
 pub struct WatchProjectHandle {
     pub debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
     pub on_content_file_changed: Arc<Notify>,
+    pub on_prompt_file_changed: Arc<Notify>,
     pub on_shortcode_file_changed: Arc<Notify>,
 }
 
@@ -42,14 +43,18 @@ fn is_temp_file(path: &Path) -> bool {
 pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHandle> {
     let content_directory = source_directory.join("content");
     let esbuild_metafile_path = source_directory.join("esbuild-meta.json").canonicalize()?;
+    let prompts_directory = source_directory.join("prompts");
     let shortcodes_directory = source_directory.join("shortcodes");
 
     let on_content_file_changed = Arc::new(Notify::new());
+    let on_prompt_file_changed = Arc::new(Notify::new());
     let on_shortcode_file_changed = Arc::new(Notify::new());
 
     let content_directory_clone = content_directory.clone();
     let on_shortcode_file_changed_clone = on_shortcode_file_changed.clone();
     let on_content_file_changed_clone = on_content_file_changed.clone();
+    let on_prompt_file_changed_clone = on_prompt_file_changed.clone();
+    let prompts_directory_clone = prompts_directory.clone();
     let shortcodes_directory_clone = shortcodes_directory.clone();
 
     let mut debouncer = new_debouncer(
@@ -71,6 +76,14 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
                                     info!("Shortcode file change detected: {:?}", path.display());
 
                                     on_shortcode_file_changed_clone.notify_waiters();
+
+                                    return;
+                                }
+
+                                if is_inside_directory(&prompts_directory_clone, path) {
+                                    info!("Prompt file change detected: {:?}", path.display());
+
+                                    on_prompt_file_changed_clone.notify_waiters();
 
                                     return;
                                 }
@@ -99,12 +112,14 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
     )?;
 
     debouncer.watch(content_directory, RecursiveMode::Recursive)?;
+    debouncer.watch(prompts_directory, RecursiveMode::Recursive)?;
     debouncer.watch(shortcodes_directory, RecursiveMode::Recursive)?;
     debouncer.watch(source_directory.clone(), RecursiveMode::NonRecursive)?;
 
     Ok(WatchProjectHandle {
         debouncer,
         on_content_file_changed,
+        on_prompt_file_changed,
         on_shortcode_file_changed,
     })
 }

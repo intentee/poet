@@ -1,3 +1,4 @@
+pub mod build_project_params;
 pub mod build_project_result;
 pub mod build_project_result_holder;
 pub mod build_project_result_stub;
@@ -24,26 +25,27 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
-use crate::asset_path_renderer::AssetPathRenderer;
+use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_error_collection::ContentDocumentErrorCollection;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
 use crate::build_timer::BuildTimer;
-use crate::component_context::ComponentContext;
 use crate::content_document::ContentDocument;
+use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_collection::ContentDocumentCollection;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
+use crate::content_document_component_context::ContentDocumentComponentContext;
+use crate::content_document_front_matter::ContentDocumentFrontMatter;
 use crate::content_document_in_collection::ContentDocumentInCollection;
+use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_source::ContentDocumentSource;
-use crate::eval_mdast::eval_mdast;
+use crate::eval_content_document_mdast::eval_content_document_mdast;
 use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
 use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
-use crate::filesystem::storage::Storage;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::string_to_mdast::string_to_mdast;
 
 fn render_document<'render>(
@@ -60,21 +62,19 @@ fn render_document<'render>(
                         generated_page_base_path: _,
                     },
             },
-        content_document_basename_by_id,
-        content_document_by_basename,
         content_document_collections_ranked,
+        content_document_linker,
         esbuild_metafile,
         is_watching,
         rhai_template_renderer,
         syntax_set,
     }: ContentDocumentRenderingContext<'render>,
 ) -> Result<String> {
-    let component_context = ComponentContext {
+    let component_context = ContentDocumentComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
         available_collections,
-        content_document_basename_by_id,
-        content_document_by_basename,
         content_document_collections_ranked,
+        content_document_linker,
         front_matter: front_matter.clone(),
         is_watching,
         reference: reference.clone(),
@@ -90,7 +90,7 @@ fn render_document<'render>(
 
     let component_context_with_toc = component_context.with_table_of_contents(table_of_contents);
 
-    let layout_content = eval_mdast(
+    let layout_content = eval_content_document_mdast(
         mdast,
         &component_context_with_toc,
         rhai_template_renderer,
@@ -106,11 +106,13 @@ fn render_document<'render>(
 }
 
 pub async fn build_project(
-    asset_path_renderer: AssetPathRenderer,
-    generated_page_base_path: String,
-    is_watching: bool,
-    rhai_template_renderer: RhaiTemplateRenderer,
-    source_filesystem: Arc<Storage>,
+    BuildProjectParams {
+        asset_path_renderer,
+        generated_page_base_path,
+        is_watching,
+        rhai_template_renderer,
+        source_filesystem,
+    }: BuildProjectParams,
 ) -> Result<BuildProjectResultStub> {
     info!("Processing content files...");
 
@@ -133,29 +135,33 @@ pub async fn build_project(
         }
     }
     .into();
-    let files = source_filesystem.read_project_files().await?;
     let memory_filesystem = Arc::new(Memory::default());
     let syntax_set = SyntaxSet::load_defaults_newlines();
 
-    let mut content_document_basename_by_id: HashMap<String, String> = HashMap::new();
-    let mut content_document_by_basename: HashMap<String, ContentDocumentReference> =
+    let mut content_document_basename_by_id: HashMap<String, ContentDocumentBasename> =
         HashMap::new();
+    let mut content_document_by_basename: HashMap<
+        ContentDocumentBasename,
+        ContentDocumentReference,
+    > = HashMap::new();
     let mut content_document_collections: HashMap<String, ContentDocumentCollection> =
         HashMap::new();
     let mut content_document_collections_ranked: HashMap<String, ContentDocumentCollectionRanked> =
         HashMap::new();
     let mut content_document_list: Vec<ContentDocument> = Vec::new();
-    let mut content_document_sources: BTreeMap<String, ContentDocumentSource> = Default::default();
+    let mut content_document_sources: BTreeMap<ContentDocumentBasename, ContentDocumentSource> =
+        Default::default();
 
-    for file in files {
+    for file in source_filesystem.read_project_files().await? {
         if file.kind.is_content() {
             let mdast = string_to_mdast(&file.contents)?;
-            let front_matter = find_front_matter_in_mdast(&mdast)?.ok_or_else(|| {
-                anyhow!("No front matter found in file: {:?}", file.relative_path)
-            })?;
+            let front_matter: ContentDocumentFrontMatter = find_front_matter_in_mdast(&mdast)?
+                .ok_or_else(|| {
+                    anyhow!("No front matter found in file: {:?}", file.relative_path)
+                })?;
 
             let basename_path = file.get_stem_path_relative_to(&PathBuf::from("content"));
-            let basename = basename_path.display().to_string();
+            let basename: ContentDocumentBasename = basename_path.clone().into();
             let content_document_reference = ContentDocumentReference {
                 basename_path,
                 front_matter: front_matter.clone(),
@@ -294,11 +300,13 @@ pub async fn build_project(
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,
-                content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
                 content_document,
-                content_document_by_basename: content_document_by_basename_arc.clone(),
                 content_document_collections_ranked: content_document_collections_ranked_arc
                     .clone(),
+                content_document_linker: ContentDocumentLinker {
+                    content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
+                    content_document_by_basename: content_document_by_basename_arc.clone(),
+                },
                 rhai_template_renderer: &rhai_template_renderer,
                 syntax_set: &syntax_set,
             }) {

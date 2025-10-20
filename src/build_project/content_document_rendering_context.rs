@@ -8,16 +8,15 @@ use syntect::parsing::SyntaxSet;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::content_document::ContentDocument;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
-use crate::content_document_reference::ContentDocumentReference;
+use crate::content_document_linker::ContentDocumentLinker;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub struct ContentDocumentRenderingContext<'render> {
     pub asset_path_renderer: AssetPathRenderer,
     pub available_collections: Arc<HashSet<String>>,
     pub content_document: &'render ContentDocument,
-    pub content_document_basename_by_id: Arc<HashMap<String, String>>,
-    pub content_document_by_basename: Arc<HashMap<String, ContentDocumentReference>>,
     pub content_document_collections_ranked: Arc<HashMap<String, ContentDocumentCollectionRanked>>,
+    pub content_document_linker: ContentDocumentLinker,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,
     pub is_watching: bool,
     pub rhai_template_renderer: &'render RhaiTemplateRenderer,

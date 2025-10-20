@@ -10,6 +10,7 @@ use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::schema::Value as _;
 
+use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_source::ContentDocumentSource;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::search_index_fields::SearchIndexFields;
@@ -17,7 +18,7 @@ use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;
 
 pub struct SearchIndexReader {
-    pub content_document_sources: Arc<BTreeMap<String, ContentDocumentSource>>,
+    pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     pub fields: Arc<SearchIndexFields>,
     pub index: Index,
     pub index_reader: IndexReader,
@@ -50,15 +51,17 @@ impl SearchIndexReader {
         for (_score, doc_address) in results {
             let tantivy_document: TantivyDocument = searcher.doc::<TantivyDocument>(doc_address)?;
 
-            let basename: &str = tantivy_document
+            let basename: ContentDocumentBasename = tantivy_document
                 .get_first(self.fields.basename)
                 .ok_or_else(|| anyhow!("Document does not have a stored basename"))?
                 .as_str()
-                .ok_or_else(|| anyhow!("Unable to convert Tantivy Value to string slice"))?;
+                .ok_or_else(|| anyhow!("Unable to convert Tantivy Value to string slice"))?
+                .to_string()
+                .into();
 
             let ContentDocumentSource { reference, .. }: &ContentDocumentSource = self
                 .content_document_sources
-                .get(basename)
+                .get(&basename)
                 .ok_or_else(|| anyhow!("There is no document with basename: '{basename}'"))?;
 
             ret.push(SearchIndexFoundDocument {

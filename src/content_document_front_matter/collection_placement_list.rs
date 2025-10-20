@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::front_matter::collection_placement::CollectionPlacement;
+use crate::content_document_front_matter::collection_placement::CollectionPlacement;
 
 #[derive(Clone, Default, Debug, Deserialize, Hash, Serialize)]
 #[serde(transparent)]

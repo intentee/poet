@@ -9,7 +9,7 @@ use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::front_matter::collection_placement_list::CollectionPlacementList;
+use crate::content_document_front_matter::collection_placement_list::CollectionPlacementList;
 
 fn default_render() -> bool {
     true
@@ -24,7 +24,7 @@ fn default_render() -> bool {
 
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct FrontMatter {
+pub struct ContentDocumentFrontMatter {
     pub description: String,
     #[serde(default)]
     pub id: Option<String>,
@@ -44,7 +44,7 @@ pub struct FrontMatter {
     pub title: String,
 }
 
-impl FrontMatter {
+impl ContentDocumentFrontMatter {
     #[cfg(test)]
     pub fn mock(name: &str) -> Self {
         Self {
@@ -61,7 +61,7 @@ impl FrontMatter {
     }
 }
 
-impl FrontMatter {
+impl ContentDocumentFrontMatter {
     fn rhai_description(&mut self) -> String {
         self.description.clone()
     }
@@ -79,10 +79,10 @@ impl FrontMatter {
     }
 }
 
-impl CustomType for FrontMatter {
+impl CustomType for ContentDocumentFrontMatter {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
-            .with_name("FrontMatter")
+            .with_name("ContentDocumentFrontMatter")
             .with_get("description", Self::rhai_description)
             .with_get("props", Self::rhai_props)
             .with_get("render", Self::rhai_render)

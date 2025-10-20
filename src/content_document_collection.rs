@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use petgraph::algo::toposort;
 use petgraph::stable_graph::StableDiGraph;
 
+use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_in_collection::ContentDocumentInCollection;
 use crate::content_document_tree_node::ContentDocumentTreeNode;
 
@@ -56,7 +57,7 @@ impl ContentDocumentCollection {
 
     pub fn sort_by_successors(&self) -> Result<LinkedList<ContentDocumentInCollection>> {
         let mut basename_to_node = HashMap::new();
-        let mut successors_graph: StableDiGraph<String, ()> = StableDiGraph::new();
+        let mut successors_graph: StableDiGraph<ContentDocumentBasename, ()> = StableDiGraph::new();
         let mut node_to_document = HashMap::new();
 
         // First pass, register all the documents
@@ -110,14 +111,14 @@ impl ContentDocumentCollection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content_document_front_matter::ContentDocumentFrontMatter;
+    use crate::content_document_front_matter::collection_placement::CollectionPlacement;
     use crate::content_document_reference::ContentDocumentReference;
-    use crate::front_matter::FrontMatter;
-    use crate::front_matter::collection_placement::CollectionPlacement;
 
     fn create_document_reference(name: &str) -> ContentDocumentReference {
         ContentDocumentReference {
             basename_path: name.into(),
-            front_matter: FrontMatter::mock(name),
+            front_matter: ContentDocumentFrontMatter::mock(name),
             generated_page_base_path: "/".to_string(),
         }
     }
@@ -140,7 +141,7 @@ mod tests {
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("3".to_string()),
+                after: Some("3".to_string().into()),
                 name: "my_collection".to_string(),
                 parent: None,
             },
@@ -149,7 +150,7 @@ mod tests {
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("3".to_string()),
+                after: Some("3".to_string().into()),
                 name: "my_collection".to_string(),
                 parent: None,
             },
@@ -158,7 +159,7 @@ mod tests {
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("1".to_string()),
+                after: Some("1".to_string().into()),
                 name: "my_collection".to_string(),
                 parent: None,
             },
@@ -167,7 +168,7 @@ mod tests {
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("2".to_string()),
+                after: Some("2".to_string().into()),
                 name: "my_collection".to_string(),
                 parent: None,
             },
@@ -203,25 +204,25 @@ mod tests {
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("3".to_string()),
+                after: Some("3".to_string().into()),
                 name: "my_collection".to_string(),
-                parent: Some("3".to_string()),
+                parent: Some("3".to_string().into()),
             },
             reference: create_document_reference("5"),
         });
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("3".to_string()),
+                after: Some("3".to_string().into()),
                 name: "my_collection".to_string(),
-                parent: Some("3".to_string()),
+                parent: Some("3".to_string().into()),
             },
             reference: create_document_reference("4"),
         });
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("1".to_string()),
+                after: Some("1".to_string().into()),
                 name: "my_collection".to_string(),
                 parent: None,
             },
@@ -230,9 +231,9 @@ mod tests {
 
         collection.documents.push(ContentDocumentInCollection {
             collection_placement: CollectionPlacement {
-                after: Some("2".to_string()),
+                after: Some("2".to_string().into()),
                 name: "my_collection".to_string(),
-                parent: Some("1".to_string()),
+                parent: Some("1".to_string().into()),
             },
             reference: create_document_reference("3"),
         });

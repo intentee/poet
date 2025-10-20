@@ -25,6 +25,7 @@ use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::watch::service::http_server::HttpServer;
 use crate::cmd::watch::service::project_builder::ProjectBuilder;
+use crate::cmd::watch::service::prompt_builder::PromptBuilder;
 use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::cmd::watch::service_manager::ServiceManager;
@@ -64,6 +65,7 @@ impl Handler for Watch {
         let WatchProjectHandle {
             debouncer: _debouncer,
             on_content_file_changed,
+            on_prompt_file_changed,
             on_shortcode_file_changed,
         } = watch_project_files(self.source_directory.clone())?;
 
@@ -105,6 +107,12 @@ impl Handler for Watch {
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             session_manager,
+            source_filesystem: source_filesystem.clone(),
+        }));
+
+        service_manager.register_service(Arc::new(PromptBuilder {
+            ctrlc_notifier: ctrlc_notifier.clone(),
+            on_prompt_file_changed,
             source_filesystem: source_filesystem.clone(),
         }));
 

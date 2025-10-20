@@ -36,26 +36,26 @@ use syntect::html::ClassedHTMLGenerator;
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
-use crate::component_context::ComponentContext;
 use crate::escape_html::escape_html;
 use crate::escape_html_attribute::escape_html_attribute;
 use crate::is_external_link::is_external_link;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::parse_markdown_metadata_line::metadata_line_item::MetadataLineItem;
 use crate::parse_markdown_metadata_line::parse_markdown_metadata_line;
+use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
-pub fn eval_children(
+pub fn eval_content_document_children(
     children: &Vec<Node>,
-    component_context: &ComponentContext,
+    component_context: &PromptDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
 ) -> Result<String> {
     let mut content = String::new();
 
     for child in children {
-        content.push_str(&eval_mdast(
+        content.push_str(&eval_prompt_document_mdast(
             child,
             component_context,
             rhai_template_renderer,
@@ -66,9 +66,9 @@ pub fn eval_children(
     Ok(content)
 }
 
-pub fn eval_mdast(
+pub fn eval_prompt_document_mdast(
     mdast: &Node,
-    component_context: &ComponentContext,
+    component_context: &PromptDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
 ) -> Result<String> {
@@ -77,7 +77,7 @@ pub fn eval_mdast(
     match mdast {
         Node::Blockquote(Blockquote { children, .. }) => {
             result.push_str("<blockquote>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -158,7 +158,7 @@ pub fn eval_mdast(
         }
         Node::Delete(Delete { children, .. }) => {
             result.push_str("<del>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -168,7 +168,7 @@ pub fn eval_mdast(
         }
         Node::Emphasis(Emphasis { children, .. }) => {
             result.push_str("<em>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -202,7 +202,7 @@ pub fn eval_mdast(
                 tag,
                 escape_html_attribute(&mdast_children_to_heading_id(children)?)
             ));
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -253,7 +253,7 @@ pub fn eval_mdast(
             let link = if is_external_link(url) {
                 url.clone()
             } else {
-                match component_context.link_to(url) {
+                match component_context.content_document_linker.link_to(url) {
                     Ok(link) => link,
                     Err(err) => return Err(anyhow!(err)),
                 }
@@ -266,7 +266,7 @@ pub fn eval_mdast(
             }
 
             result.push('>');
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -286,7 +286,7 @@ pub fn eval_mdast(
                 result.push_str("<ul>");
             }
 
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -301,7 +301,7 @@ pub fn eval_mdast(
         }
         Node::ListItem(ListItem { children, .. }) => {
             result.push_str("<li>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -377,7 +377,7 @@ pub fn eval_mdast(
                 return Err(anyhow!("Void element cannot have children"));
             }
 
-            let evaluated_children = eval_children(
+            let evaluated_children = eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -418,7 +418,7 @@ pub fn eval_mdast(
         }
         Node::Paragraph(Paragraph { children, .. }) => {
             result.push_str("<p>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -427,7 +427,7 @@ pub fn eval_mdast(
             result.push_str("</p>");
         }
         Node::Root(Root { children, .. }) => {
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -436,7 +436,7 @@ pub fn eval_mdast(
         }
         Node::Strong(Strong { children, .. }) => {
             result.push_str("<strong>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -446,7 +446,7 @@ pub fn eval_mdast(
         }
         Node::Table(Table { children, .. }) => {
             result.push_str("<table>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -456,7 +456,7 @@ pub fn eval_mdast(
         }
         Node::TableCell(TableCell { children, .. }) => {
             result.push_str("<td>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -466,7 +466,7 @@ pub fn eval_mdast(
         }
         Node::TableRow(TableRow { children, .. }) => {
             result.push_str("<tr>");
-            result.push_str(&eval_children(
+            result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,

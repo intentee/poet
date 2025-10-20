@@ -8,6 +8,7 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::content_document_basename::ContentDocumentBasename;
 use crate::holder::Holder as _;
 use crate::mcp::resource::Resource;
 use crate::mcp::resource_content::ResourceContent;
@@ -49,22 +50,23 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
             .values()
             .skip(offset)
             .take(limit)
-            .map(|markdown_document_source| {
-                let basename = markdown_document_source.reference.basename();
+            .map(|content_document_source| {
+                let basename_string: String =
+                    content_document_source.reference.basename().to_string();
 
                 Resource {
-                    description: markdown_document_source
+                    description: content_document_source
                         .reference
                         .front_matter
                         .description
                         .to_owned(),
-                    title: markdown_document_source
+                    title: content_document_source
                         .reference
                         .front_matter
                         .title
                         .to_owned(),
-                    uri: self.resource_uri(&basename),
-                    name: basename,
+                    uri: self.resource_uri(&basename_string),
+                    name: basename_string,
                 }
             })
             .collect())
@@ -76,20 +78,17 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
             path, uri_string, ..
         }: ResourceReference,
     ) -> Result<Option<ResourceContentParts>> {
+        let basename: ContentDocumentBasename = path.into();
         let build_project_result = self.0.must_get_build_project_result().await?;
 
-        match build_project_result.content_document_sources.get(&path) {
-            Some(markdown_document_source) => Ok(Some(ResourceContentParts {
+        match build_project_result.content_document_sources.get(&basename) {
+            Some(content_document_source) => Ok(Some(ResourceContentParts {
                 parts: vec![ResourceContent::Text(TextResourceContent {
                     mime_type: self.mime_type(),
-                    text: markdown_document_source.file_entry.contents.clone(),
+                    text: content_document_source.file_entry.contents.clone(),
                     uri: uri_string.clone(),
                 })],
-                title: markdown_document_source
-                    .reference
-                    .front_matter
-                    .title
-                    .clone(),
+                title: content_document_source.reference.front_matter.title.clone(),
                 uri: uri_string.clone(),
             })),
             None => Ok(None),
@@ -114,8 +113,8 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
                     _ = cancellation_token.cancelled() => break,
                     _ = build_update_notifier.notified() => {
                         if let Some(build_project_result) = build_project_result_holder.get().await {
-                            for markdown_document_source in build_project_result.changed_since_last_build {
-                                let reference_uri = this.resource_uri(&markdown_document_source.relative_path);
+                            for content_document_source in build_project_result.changed_since_last_build {
+                                let reference_uri = this.resource_uri(&content_document_source.relative_path);
 
                                 if reference_uri == resource_reference.uri_string {
                                     resource_update_notifier_clone.notify_waiters();

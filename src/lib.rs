@@ -26,6 +26,7 @@ mod esbuild_metafile_holder;
 mod escape_html;
 mod escape_html_attribute;
 mod eval_content_document_mdast;
+mod eval_mdx_element;
 mod eval_prompt_document_mdast;
 mod filesystem;
 mod find_front_matter_in_mdast;

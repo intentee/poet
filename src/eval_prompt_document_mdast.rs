@@ -1,14 +1,10 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use log::warn;
-use markdown::mdast::AttributeContent;
-use markdown::mdast::AttributeValue;
-use markdown::mdast::AttributeValueExpression;
 use markdown::mdast::Blockquote;
 use markdown::mdast::Code;
 use markdown::mdast::Delete;
 use markdown::mdast::Emphasis;
-use markdown::mdast::FootnoteReference;
 use markdown::mdast::Heading;
 use markdown::mdast::Html;
 use markdown::mdast::Image;
@@ -17,7 +13,6 @@ use markdown::mdast::Link;
 use markdown::mdast::List;
 use markdown::mdast::ListItem;
 use markdown::mdast::MdxFlowExpression;
-use markdown::mdast::MdxJsxAttribute;
 use markdown::mdast::MdxJsxFlowElement;
 use markdown::mdast::MdxJsxTextElement;
 use markdown::mdast::MdxTextExpression;
@@ -30,15 +25,21 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
-use rhai::Dynamic;
 
 use crate::escape_html::escape_html;
 use crate::escape_html_attribute::escape_html_attribute;
+use crate::eval_mdx_element::eval_mdx_element;
 use crate::is_external_link::is_external_link;
-use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
-use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
+
+fn into_blockquote(input: String) -> String {
+    input
+        .lines()
+        .map(|line| format!("> {line}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
 
 pub fn eval_prompt_document_children(
     children: &Vec<Node>,
@@ -58,6 +59,8 @@ pub fn eval_prompt_document_children(
     Ok(content)
 }
 
+/// Converts Markdown syntax into tidied up Markdown with resolved image paths,
+/// references, and such
 pub fn eval_prompt_document_mdast(
     mdast: &Node,
     component_context: &PromptDocumentComponentContext,
@@ -67,77 +70,56 @@ pub fn eval_prompt_document_mdast(
 
     match mdast {
         Node::Blockquote(Blockquote { children, .. }) => {
-            result.push_str("<blockquote>");
-            result.push_str(&eval_prompt_document_children(
+            result.push_str(&into_blockquote(eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
-            )?);
-            result.push_str("</blockquote>");
+            )?));
         }
         Node::Break(_) => {
-            result.push_str("<br>");
+            result.push_str("  \n");
         }
-        Node::Code(Code {
-            meta, lang, value, ..
-        }) => {
-            result.push_str("<pre class=\"code\"><code>");
+        Node::Code(Code { lang, value, .. }) => {
+            result.push_str(&format!("```{}\n", lang.clone().unwrap_or("".to_string())));
             result.push_str(&escape_html(value));
-            result.push_str("</code></pre>");
+            result.push_str("\n```");
         }
         Node::Definition(node) => {
             warn!("Definitions are not supported: {node:?}");
         }
         Node::Delete(Delete { children, .. }) => {
-            result.push_str("<del>");
+            result.push_str("~~");
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</del>");
+            result.push_str("~~");
         }
         Node::Emphasis(Emphasis { children, .. }) => {
-            result.push_str("<em>");
+            result.push('*');
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</em>");
+            result.push('*');
         }
         Node::FootnoteDefinition(node) => {
             warn!("Footnote definitions are not supported: {node:?}");
         }
-        Node::FootnoteReference(FootnoteReference {
-            identifier, label, ..
-        }) => {
-            result.push_str(&format!(
-                "<a href=\"#footnote-{}\" role=\"doc-noteref\">{}</a>",
-                identifier,
-                if let Some(label) = label {
-                    label
-                } else {
-                    identifier
-                },
-            ));
+        Node::FootnoteReference(node) => {
+            warn!("Footnote references are not supported: {node:?}");
         }
         Node::Heading(Heading {
             children, depth, ..
         }) => {
-            let tag = format!("h{}", depth);
-
-            result.push_str(&format!(
-                "<{} id=\"{}\">",
-                tag,
-                escape_html_attribute(&mdast_children_to_heading_id(children)?)
-            ));
+            result.push_str(&("#".repeat(*depth as usize)));
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str(&format!("</{}>", tag));
         }
         Node::Html(Html { value, .. }) => {
             result.push_str(value);
@@ -145,7 +127,7 @@ pub fn eval_prompt_document_mdast(
         Node::Image(Image {
             alt, url, title, ..
         }) => {
-            result.push_str(&format!("<img alt=\"{}\" ", escape_html_attribute(alt)));
+            result.push_str(&format!("![{}](", escape_html_attribute(alt)));
 
             let src = if is_external_link(url) {
                 url
@@ -156,19 +138,19 @@ pub fn eval_prompt_document_mdast(
                 }
             };
 
-            result.push_str(&format!("src=\"{}\"", escape_html_attribute(src)));
+            result.push_str(&escape_html_attribute(src));
 
             if let Some(title) = title {
-                result.push_str(&format!(" title=\"{}\"", escape_html_attribute(title)));
+                result.push_str(&format!(" \"{}\"", escape_html_attribute(title)));
             }
 
-            result.push('>');
+            result.push(')');
         }
         Node::ImageReference(node) => {
             warn!("Image references are not supported: {node:?}");
         }
         Node::InlineCode(InlineCode { value, .. }) => {
-            result.push_str(&format!("<code>{}</code>", escape_html_attribute(value)));
+            result.push_str(&format!("`{}`", escape_html_attribute(value)));
         }
         Node::InlineMath(node) => {
             warn!("Inline math expressions are not supported: {node:?}");
@@ -179,6 +161,11 @@ pub fn eval_prompt_document_mdast(
             url,
             ..
         }) => {
+            result.push_str(&format!(
+                "[{}]",
+                eval_prompt_document_children(children, component_context, rhai_template_renderer,)?
+            ));
+
             let link = if is_external_link(url) {
                 url.clone()
             } else {
@@ -188,31 +175,19 @@ pub fn eval_prompt_document_mdast(
                 }
             };
 
-            result.push_str(&format!("<a href=\"{link}\""));
+            result.push_str(&format!("({link}"));
 
             if let Some(title) = title {
-                result.push_str(&format!(" title=\"{}\"", title));
+                result.push_str(&format!(" \"{}\"", title));
             }
 
-            result.push('>');
-            result.push_str(&eval_prompt_document_children(
-                children,
-                component_context,
-                rhai_template_renderer,
-            )?);
-            result.push_str("</a>");
+            result.push(')');
         }
         Node::LinkReference(node) => {
             warn!("Link references are not supported: {node:?}");
         }
-        Node::List(List {
-            children, ordered, ..
-        }) => {
-            if *ordered {
-                result.push_str("<ol>");
-            } else {
-                result.push_str("<ul>");
-            }
+        Node::List(List { children, .. }) => {
+            result.push('\n');
 
             result.push_str(&eval_prompt_document_children(
                 children,
@@ -220,20 +195,15 @@ pub fn eval_prompt_document_mdast(
                 rhai_template_renderer,
             )?);
 
-            if *ordered {
-                result.push_str("</ol>");
-            } else {
-                result.push_str("</ul>");
-            }
+            result.push('\n');
         }
         Node::ListItem(ListItem { children, .. }) => {
-            result.push_str("<li>");
+            result.push_str("- ");
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</li>");
         }
         Node::Math(node) => {
             warn!("Math expressions are not supported: {node:?}");
@@ -261,91 +231,23 @@ pub fn eval_prompt_document_mdast(
             name,
             ..
         }) => {
-            let tag_name = TagName {
-                name: name
-                    .clone()
-                    .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
-            };
-
-            let props = {
-                let mut props = rhai::Map::new();
-
-                for attribute in attributes {
-                    match attribute {
-                        AttributeContent::Expression(_) => {
-                            return Err(anyhow!(
-                                "Attribute expressions in Markdown are not supported"
-                            ));
-                        }
-                        AttributeContent::Property(MdxJsxAttribute { name, value }) => {
-                            props.insert(
-                                name.into(),
-                                match value {
-                                    Some(value) => match value {
-                                        AttributeValue::Literal(literal) => literal.into(),
-                                        AttributeValue::Expression(AttributeValueExpression {
-                                            value,
-                                            ..
-                                        }) => rhai_template_renderer
-                                            .render_expression(component_context.clone(), value)?,
-                                    },
-                                    None => true.into(),
-                                },
-                            );
-                        }
-                    }
-                }
-
-                props
-            };
-
-            if tag_name.is_void_element() && !children.is_empty() {
-                return Err(anyhow!("Void element cannot have children"));
-            }
-
-            let evaluated_children =
-                eval_prompt_document_children(children, component_context, rhai_template_renderer)?;
-
-            if tag_name.is_component() {
-                result.push_str(&rhai_template_renderer.render(
-                    &tag_name.name,
-                    component_context.clone(),
-                    Dynamic::from_map(props),
-                    Dynamic::from(evaluated_children),
-                )?);
-            } else {
-                result.push_str(&format!("<{} ", tag_name.name));
-
-                for (name, value) in props {
-                    if value.is_bool() {
-                        result.push_str(&format!("{name} "));
-                    } else {
-                        result.push_str(&format!(
-                            "{name}=\"{}\" ",
-                            escape_html_attribute(&value.to_string())
-                        ));
-                    }
-                }
-
-                result.push('>');
-
-                if !children.is_empty() {
-                    result.push_str(&evaluated_children);
-                }
-
-                if !children.is_empty() || !tag_name.is_void_element() {
-                    result.push_str(&format!("</{}>", tag_name.name));
-                }
-            }
+            result.push_str(&eval_mdx_element(
+                attributes,
+                children,
+                component_context,
+                eval_prompt_document_children(children, component_context, rhai_template_renderer)?,
+                name,
+                rhai_template_renderer,
+            )?);
         }
         Node::Paragraph(Paragraph { children, .. }) => {
-            result.push_str("<p>");
+            result.push('\n');
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</p>");
+            result.push('\n');
         }
         Node::Root(Root { children, .. }) => {
             result.push_str(&eval_prompt_document_children(
@@ -355,46 +257,42 @@ pub fn eval_prompt_document_mdast(
             )?);
         }
         Node::Strong(Strong { children, .. }) => {
-            result.push_str("<strong>");
+            result.push_str("**");
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</strong>");
+            result.push_str("**");
         }
         Node::Table(Table { children, .. }) => {
-            result.push_str("<table>");
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</table>");
         }
         Node::TableCell(TableCell { children, .. }) => {
-            result.push_str("<td>");
+            result.push_str("| ");
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</td>");
         }
         Node::TableRow(TableRow { children, .. }) => {
-            result.push_str("<tr>");
             result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
             )?);
-            result.push_str("</tr>");
+            result.push_str(" |");
         }
         Node::Text(Text { value, .. }) => {
             result.push_str(value);
         }
         Node::ThematicBreak(ThematicBreak { .. }) => {
-            result.push_str("<hr>");
+            result.push_str("---");
         }
         Node::Toml(_) => {
             // ignore frontmatter during this pass
@@ -405,4 +303,17 @@ pub fn eval_prompt_document_mdast(
     }
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_blockquotes() {
+        assert_eq!(
+            into_blockquote("foo\nbar\nbaz".to_string()),
+            "> foo\n> bar\n> baz".to_string()
+        );
+    }
 }

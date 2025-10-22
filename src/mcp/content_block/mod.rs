@@ -9,7 +9,7 @@ use crate::mcp::content_block::embedded_resource::EmbeddedResource;
 use crate::mcp::content_block::resource_link::ResourceLink;
 use crate::mcp::content_block::text_content::TextContent;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub enum ContentBlock {
     #[serde(rename = "resource")]
@@ -18,4 +18,10 @@ pub enum ContentBlock {
     ResourceLink(ResourceLink),
     #[serde(rename = "text")]
     TextContent(TextContent),
+}
+
+impl From<&str> for ContentBlock {
+    fn from(value: &str) -> Self {
+        ContentBlock::TextContent(value.into())
+    }
 }

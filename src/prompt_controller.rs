@@ -97,9 +97,10 @@ mod tests {
     use super::*;
     use crate::build_prompt_controller::build_prompt_controller;
     use crate::build_prompt_controller_params::BuildPromptControllerParams;
-    use crate::filesystem::file_entry::FileEntry;
     use crate::filesystem::file_entry_stub::FileEntryStub;
     use crate::mcp::jsonrpc::JSONRPC_VERSION;
+    use crate::mcp::jsonrpc::role::Role;
+    use crate::mcp::prompt_message::PromptMessage;
     use crate::rhai_template_factory::RhaiTemplateFactory;
 
     #[tokio::test]
@@ -169,6 +170,24 @@ mod tests {
             Some("test prompt description".to_string())
         );
         assert_eq!(response.messages.len(), 3);
+
+        let message_0: &PromptMessage = response.messages.first().unwrap();
+
+        assert_eq!(message_0.role, Role::User);
+        assert_eq!(
+            message_0.content,
+            "This is what I am trying to do: ride a horse".into()
+        );
+
+        let message_1: &PromptMessage = response.messages.get(1).unwrap();
+
+        assert_eq!(message_1.role, Role::Assistant);
+        assert_eq!(message_1.content, "wow".into());
+
+        let message_2: &PromptMessage = response.messages.get(2).unwrap();
+
+        assert_eq!(message_2.role, Role::User);
+        assert_eq!(message_2.content, "yeah".into());
 
         Ok(())
     }

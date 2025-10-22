@@ -1,9 +1,6 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use log::warn;
-use markdown::mdast::AttributeContent;
-use markdown::mdast::AttributeValue;
-use markdown::mdast::AttributeValueExpression;
 use markdown::mdast::Blockquote;
 use markdown::mdast::Code;
 use markdown::mdast::Delete;
@@ -17,7 +14,6 @@ use markdown::mdast::Link;
 use markdown::mdast::List;
 use markdown::mdast::ListItem;
 use markdown::mdast::MdxFlowExpression;
-use markdown::mdast::MdxJsxAttribute;
 use markdown::mdast::MdxJsxFlowElement;
 use markdown::mdast::MdxJsxTextElement;
 use markdown::mdast::MdxTextExpression;
@@ -30,7 +26,6 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
-use rhai::Dynamic;
 use syntect::html::ClassStyle;
 use syntect::html::ClassedHTMLGenerator;
 use syntect::parsing::SyntaxSet;
@@ -39,11 +34,11 @@ use syntect::util::LinesWithEndings;
 use crate::content_document_component_context::ContentDocumentComponentContext;
 use crate::escape_html::escape_html;
 use crate::escape_html_attribute::escape_html_attribute;
+use crate::eval_mdx_element::eval_mdx_element;
 use crate::is_external_link::is_external_link;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::parse_markdown_metadata_line::metadata_line_item::MetadataLineItem;
 use crate::parse_markdown_metadata_line::parse_markdown_metadata_line;
-use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub fn eval_content_document_children(
@@ -335,86 +330,19 @@ pub fn eval_content_document_mdast(
             name,
             ..
         }) => {
-            let tag_name = TagName {
-                name: name
-                    .clone()
-                    .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
-            };
-
-            let props = {
-                let mut props = rhai::Map::new();
-
-                for attribute in attributes {
-                    match attribute {
-                        AttributeContent::Expression(_) => {
-                            return Err(anyhow!(
-                                "Attribute expressions in Markdown are not supported"
-                            ));
-                        }
-                        AttributeContent::Property(MdxJsxAttribute { name, value }) => {
-                            props.insert(
-                                name.into(),
-                                match value {
-                                    Some(value) => match value {
-                                        AttributeValue::Literal(literal) => literal.into(),
-                                        AttributeValue::Expression(AttributeValueExpression {
-                                            value,
-                                            ..
-                                        }) => rhai_template_renderer
-                                            .render_expression(component_context.clone(), value)?,
-                                    },
-                                    None => true.into(),
-                                },
-                            );
-                        }
-                    }
-                }
-
-                props
-            };
-
-            if tag_name.is_void_element() && !children.is_empty() {
-                return Err(anyhow!("Void element cannot have children"));
-            }
-
-            let evaluated_children = eval_content_document_children(
+            result.push_str(&eval_mdx_element(
+                attributes,
                 children,
                 component_context,
+                eval_content_document_children(
+                    children,
+                    component_context,
+                    rhai_template_renderer,
+                    syntax_set,
+                )?,
+                name,
                 rhai_template_renderer,
-                syntax_set,
-            )?;
-
-            if tag_name.is_component() {
-                result.push_str(&rhai_template_renderer.render(
-                    &tag_name.name,
-                    component_context.clone(),
-                    Dynamic::from_map(props),
-                    Dynamic::from(evaluated_children),
-                )?);
-            } else {
-                result.push_str(&format!("<{} ", tag_name.name));
-
-                for (name, value) in props {
-                    if value.is_bool() {
-                        result.push_str(&format!("{name} "));
-                    } else {
-                        result.push_str(&format!(
-                            "{name}=\"{}\" ",
-                            escape_html_attribute(&value.to_string())
-                        ));
-                    }
-                }
-
-                result.push('>');
-
-                if !children.is_empty() {
-                    result.push_str(&evaluated_children);
-                }
-
-                if !children.is_empty() || !tag_name.is_void_element() {
-                    result.push_str(&format!("</{}>", tag_name.name));
-                }
-            }
+            )?);
         }
         Node::Paragraph(Paragraph { children, .. }) => {
             result.push_str("<p>");

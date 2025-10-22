@@ -13,3 +13,9 @@ impl From<&str> for TextContent {
         }
     }
 }
+
+impl From<String> for TextContent {
+    fn from(text: String) -> Self {
+        Self { text }
+    }
+}

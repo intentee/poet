@@ -29,9 +29,9 @@ use markdown::mdast::ThematicBreak;
 use crate::escape_html::escape_html;
 use crate::escape_html_attribute::escape_html_attribute;
 use crate::eval_mdx_element::eval_mdx_element;
+use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;
+use crate::eval_prompt_document_mdast_state::EvalPromptDocumentMdastState;
 use crate::is_external_link::is_external_link;
-use crate::prompt_document_component_context::PromptDocumentComponentContext;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 fn into_blockquote(input: String) -> String {
     input
@@ -43,17 +43,19 @@ fn into_blockquote(input: String) -> String {
 
 pub fn eval_prompt_document_children(
     children: &Vec<Node>,
-    component_context: &PromptDocumentComponentContext,
-    rhai_template_renderer: &RhaiTemplateRenderer,
+    params: EvalPromptDocumentMdastParams,
+    state: &mut EvalPromptDocumentMdastState,
 ) -> Result<String> {
     let mut content = String::new();
+    let mut is_first_child = true;
 
     for child in children {
         content.push_str(&eval_prompt_document_mdast(
-            child,
-            component_context,
-            rhai_template_renderer,
+            params.child(child, is_first_child),
+            state,
         )?);
+
+        is_first_child = false;
     }
 
     Ok(content)
@@ -62,9 +64,15 @@ pub fn eval_prompt_document_children(
 /// Converts Markdown syntax into tidied up Markdown with resolved image paths,
 /// references, and such
 pub fn eval_prompt_document_mdast(
-    mdast: &Node,
-    component_context: &PromptDocumentComponentContext,
-    rhai_template_renderer: &RhaiTemplateRenderer,
+    params @ EvalPromptDocumentMdastParams {
+        mdast,
+        component_context,
+        is_directly_in_root,
+        is_first_child,
+        is_in_top_paragraph,
+        rhai_template_renderer,
+    }: EvalPromptDocumentMdastParams,
+    state: &mut EvalPromptDocumentMdastState,
 ) -> Result<String> {
     let mut result = String::new();
 
@@ -72,8 +80,8 @@ pub fn eval_prompt_document_mdast(
         Node::Blockquote(Blockquote { children, .. }) => {
             result.push_str(&into_blockquote(eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?));
         }
         Node::Break(_) => {
@@ -91,8 +99,8 @@ pub fn eval_prompt_document_mdast(
             result.push_str("~~");
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
             result.push_str("~~");
         }
@@ -100,8 +108,8 @@ pub fn eval_prompt_document_mdast(
             result.push('*');
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
             result.push('*');
         }
@@ -117,8 +125,8 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&("#".repeat(*depth as usize)));
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
         }
         Node::Html(Html { value, .. }) => {
@@ -163,7 +171,7 @@ pub fn eval_prompt_document_mdast(
         }) => {
             result.push_str(&format!(
                 "[{}]",
-                eval_prompt_document_children(children, component_context, rhai_template_renderer,)?
+                eval_prompt_document_children(children, params.regular_element(), state)?
             ));
 
             let link = if is_external_link(url) {
@@ -191,8 +199,8 @@ pub fn eval_prompt_document_mdast(
 
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
 
             result.push('\n');
@@ -201,8 +209,8 @@ pub fn eval_prompt_document_mdast(
             result.push_str("- ");
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
         }
         Node::Math(node) => {
@@ -235,7 +243,7 @@ pub fn eval_prompt_document_mdast(
                 attributes,
                 children,
                 component_context,
-                eval_prompt_document_children(children, component_context, rhai_template_renderer)?,
+                eval_prompt_document_children(children, params.regular_element(), state)?,
                 name,
                 rhai_template_renderer,
             )?);
@@ -244,47 +252,52 @@ pub fn eval_prompt_document_mdast(
             result.push('\n');
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.paragraph(),
+                state,
             )?);
             result.push('\n');
         }
         Node::Root(Root { children, .. }) => {
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.directly_in_root(),
+                state,
             )?);
+
+            state.flush()?;
         }
         Node::Strong(Strong { children, .. }) => {
-            result.push_str("**");
-            result.push_str(&eval_prompt_document_children(
-                children,
-                component_context,
-                rhai_template_renderer,
-            )?);
-            result.push_str("**");
+            let potential_role_name: &str =
+                &eval_prompt_document_children(children, params.regular_element(), state)?;
+
+            if is_first_child && is_in_top_paragraph {
+                state.switch_role_to(potential_role_name.try_into()?)?;
+            } else {
+                result.push_str("**");
+                result.push_str(potential_role_name);
+                result.push_str("**");
+            }
         }
         Node::Table(Table { children, .. }) => {
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
         }
         Node::TableCell(TableCell { children, .. }) => {
             result.push_str("| ");
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
         }
         Node::TableRow(TableRow { children, .. }) => {
             result.push_str(&eval_prompt_document_children(
                 children,
-                component_context,
-                rhai_template_renderer,
+                params.regular_element(),
+                state,
             )?);
             result.push_str(" |");
         }
@@ -300,6 +313,10 @@ pub fn eval_prompt_document_mdast(
         Node::Yaml(node) => {
             warn!("YAML front-matter is not supported, use TOML instead: {node:?}");
         }
+    }
+
+    if is_directly_in_root {
+        state.append_to_message(result.clone())?;
     }
 
     Ok(result)

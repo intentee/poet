@@ -28,6 +28,8 @@ mod escape_html_attribute;
 mod eval_content_document_mdast;
 mod eval_mdx_element;
 mod eval_prompt_document_mdast;
+mod eval_prompt_document_mdast_params;
+mod eval_prompt_document_mdast_state;
 mod filesystem;
 mod find_front_matter_in_mdast;
 mod find_table_of_contents_in_mdast;

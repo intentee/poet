@@ -25,3 +25,9 @@ impl From<&str> for ContentBlock {
         ContentBlock::TextContent(value.into())
     }
 }
+
+impl From<String> for ContentBlock {
+    fn from(value: String) -> Self {
+        ContentBlock::TextContent(value.into())
+    }
+}

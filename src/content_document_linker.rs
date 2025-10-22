@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_reference::ContentDocumentReference;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ContentDocumentLinker {
     pub content_document_basename_by_id: Arc<HashMap<String, ContentDocumentBasename>>,
     pub content_document_by_basename:

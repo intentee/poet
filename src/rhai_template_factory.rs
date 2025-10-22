@@ -42,7 +42,7 @@ impl RhaiTemplateFactory {
     pub fn new(base_directory: PathBuf, shortcodes_subdirectory: PathBuf) -> Self {
         Self {
             base_directory,
-            component_registry: Arc::new(ComponentRegistry::default()),
+            component_registry: Default::default(),
             shortcodes_subdirectory,
         }
     }

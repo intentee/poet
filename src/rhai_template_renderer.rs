@@ -62,7 +62,7 @@ impl RhaiTemplateRenderer {
         scope.push("context", context);
 
         self.expression_engine
-            .eval_expression_with_scope(&mut scope, expression)
+            .eval_with_scope(&mut scope, expression)
             .context(format!("Expression failed: '{expression}'"))
     }
 }

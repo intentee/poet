@@ -406,8 +406,3 @@ pub fn eval_prompt_document_mdast(
 
     Ok(result)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-}

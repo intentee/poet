@@ -8,10 +8,10 @@ required = true
 title = "Your objective"
 +++
 
-**user**: This is what I am trying to achieve with the project: {arguments.objective.input}
+**user**: This is what I am trying to achieve with the project: {context.arguments.objective.input}
 
 {
-    let results = search(arguments.objective.input);
+    let results = search(context.arguments.objective.input);
 
     if !results.is_empty() {
         add_text("I think those documents can be helpful");

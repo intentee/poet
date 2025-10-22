@@ -86,3 +86,90 @@ impl PromptController {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+
+    use indoc::indoc;
+
+    use super::*;
+    use crate::build_prompt_controller::build_prompt_controller;
+    use crate::build_prompt_controller_params::BuildPromptControllerParams;
+    use crate::filesystem::file_entry::FileEntry;
+    use crate::filesystem::file_entry_stub::FileEntryStub;
+    use crate::mcp::jsonrpc::JSONRPC_VERSION;
+    use crate::rhai_template_factory::RhaiTemplateFactory;
+
+    #[tokio::test]
+    async fn test_convert_to_prompt_messages() -> Result<()> {
+        let name: String = "help-me-finish-task".to_string();
+        let contents: String = indoc! {r#"
+        +++
+        description = "test prompt description"
+        title = "Help me with finishing the task"
+
+        [arguments.objective]
+        description = "Describe what you are trying to do"
+        required = true
+        title = "Your objective"
+        +++
+
+        **user**: This is what I am trying to do: {context.arguments.objective.input}
+
+        **assistant**: wow
+
+        **user**: yeah
+        "#}
+        .to_string();
+
+        let rhai_template_factory = RhaiTemplateFactory::new(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            PathBuf::from("shortcodes"),
+        );
+
+        let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
+
+        let prompt_controller = build_prompt_controller(BuildPromptControllerParams {
+            asset_path_renderer: AssetPathRenderer {
+                base_path: "https://example.com".to_string(),
+            },
+            content_document_linker: Default::default(),
+            esbuild_metafile: Default::default(),
+            file: FileEntryStub {
+                contents,
+                relative_path: PathBuf::from("prompts/help-me-finish-task.md"),
+            }
+            .try_into()?,
+            name: name.clone(),
+            rhai_template_renderer,
+        })?;
+
+        let response = prompt_controller
+            .respond_to(PromptsGet {
+                id: "1".into(),
+                jsonrpc: JSONRPC_VERSION.to_string(),
+                params: PromptsGetParams {
+                    arguments: {
+                        let mut arguments: HashMap<String, String> = Default::default();
+
+                        arguments.insert("objective".to_string(), "ride a horse".to_string());
+
+                        arguments
+                    },
+                    meta: None,
+                    name,
+                },
+            })
+            .await?;
+
+        assert_eq!(
+            response.description,
+            Some("test prompt description".to_string())
+        );
+        assert_eq!(response.messages.len(), 3);
+
+        Ok(())
+    }
+}

@@ -16,6 +16,7 @@ use crate::cmd::watch::service::Service;
 use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;
+use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 pub struct PromptControllerCollectionBuilder {
@@ -24,6 +25,7 @@ pub struct PromptControllerCollectionBuilder {
     pub ctrlc_notifier: CancellationToken,
     pub esbuild_metafile_holder: EsbuildMetaFileHolder,
     pub on_prompt_file_changed: Arc<Notify>,
+    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
     pub source_filesystem: Arc<Storage>,
 }
@@ -75,7 +77,11 @@ impl PromptControllerCollectionBuilder {
         })
         .await
         {
-            Ok(build_prompt_controllers_result) => {}
+            Ok(prompt_controller_collection) => {
+                self.prompt_controller_collection_holder
+                    .set(Some(Arc::new(prompt_controller_collection)))
+                    .await;
+            }
             Err(err) => error!("Failed to build prompts: {err}"),
         }
     }

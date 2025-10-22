@@ -27,8 +27,10 @@ use crate::mcp::mcp_responder_handler::McpResponderHandler;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
+use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 
 pub struct McpHttpService {
+    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub server_info: Implementation,
     pub session_manager: SessionManager,
@@ -43,6 +45,7 @@ impl Service<ServiceRequest> for McpHttpService {
     always_ready!();
 
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
+        let prompt_controller_collection_holder = self.prompt_controller_collection_holder.clone();
         let req_method = req.method().clone();
         let resource_list_aggregate = self.resource_list_aggregate.clone();
         let server_info = self.server_info.clone();
@@ -62,6 +65,7 @@ impl Service<ServiceRequest> for McpHttpService {
                 Method::GET => McpResponderHandler(RespondToGet {}).call((ctx,)).await?,
                 Method::POST => {
                     McpResponderHandler(RespondToPost {
+                        prompt_controller_collection_holder,
                         resource_list_aggregate,
                         server_info,
                         session_manager,

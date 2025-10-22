@@ -2,6 +2,7 @@ pub mod initialize_handler;
 pub mod initialized_handler;
 pub mod logging_set_level_handler;
 pub mod ping_handler;
+pub mod prompts_get_handler;
 pub mod prompts_list_handler;
 pub mod resources_list_handler;
 pub mod resources_read_handler;

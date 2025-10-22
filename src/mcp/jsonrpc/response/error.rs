@@ -4,13 +4,13 @@ use serde::Serialize;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
 use crate::mcp::jsonrpc::id::Id;
 
+const ERROR_INTERNAL_ERROR: i32 = -32603;
+const ERROR_INVALID_PARAMS: i32 = -32602;
 const ERROR_INVALID_REQUEST: i32 = -32600;
 const ERROR_PARSE_ERROR: i32 = -32700;
 const ERROR_RESOURCE_NOT_FOUND: i32 = -32002;
 
 // pub const ERROR_METHOD_NOT_FOUND: i32 = -32601;
-// pub const ERROR_INVALID_PARAMS: i32 = -32602;
-// pub const ERROR_INTERNAL_ERROR: i32 = -32603;
 // pub const ERROR_SERVER_ERROR_RANGE_MIN: i32 = -32099;
 // pub const ERROR_SERVER_ERROR_RANGE_MAX: i32 = -32000;
 
@@ -34,6 +34,12 @@ pub enum Error {
         jsonrpc: String,
         message: String,
     },
+    RequestInternal {
+        code: i32,
+        id: Id,
+        jsonrpc: String,
+        message: String,
+    },
     ResourceNotFound {
         code: i32,
         data: ResourceNotFound,
@@ -51,19 +57,37 @@ pub enum Error {
 }
 
 impl Error {
+    pub fn invalid_prompt_name(id: Id, name: String) -> Self {
+        Self::RequestInternal {
+            code: ERROR_INVALID_PARAMS,
+            id,
+            jsonrpc: JSONRPC_VERSION.to_string(),
+            message: format!("Invalid prompt name: {name}"),
+        }
+    }
+
     pub fn invalid_request(message: String) -> Self {
         Self::GenericMessage {
             code: ERROR_INVALID_REQUEST,
-            message,
             jsonrpc: JSONRPC_VERSION.to_string(),
+            message,
         }
     }
 
     pub fn parse(message: String) -> Self {
         Self::GenericMessage {
             code: ERROR_PARSE_ERROR,
-            message,
             jsonrpc: JSONRPC_VERSION.to_string(),
+            message,
+        }
+    }
+
+    pub fn request_internal(id: Id, message: String) -> Self {
+        Self::RequestInternal {
+            code: ERROR_INTERNAL_ERROR,
+            id,
+            jsonrpc: JSONRPC_VERSION.to_string(),
+            message,
         }
     }
 

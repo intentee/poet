@@ -36,6 +36,7 @@ use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
+use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 use crate::search_tool::SearchTool;
@@ -82,6 +83,8 @@ impl Handler for Watch {
         let esbuild_metafile_holder: EsbuildMetaFileHolder = Default::default();
         let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
             McpResourceProviderContentDocuments(build_project_result_holder.clone());
+        let prompt_controller_collection_holder: PromptControllerCollectionHolder =
+            Default::default();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
         let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
@@ -112,6 +115,7 @@ impl Handler for Watch {
             assets_directory: self.assets_directory(),
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
+            prompt_controller_collection_holder: prompt_controller_collection_holder.clone(),
             resource_list_aggregate: Arc::new(resource_list_providers.into()),
             session_manager: session_manager.clone(),
             tool_registry: Arc::new(tool_registry),
@@ -135,6 +139,7 @@ impl Handler for Watch {
             ctrlc_notifier: ctrlc_notifier.clone(),
             esbuild_metafile_holder,
             on_prompt_file_changed,
+            prompt_controller_collection_holder,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             source_filesystem: source_filesystem.clone(),
         }));
@@ -142,7 +147,6 @@ impl Handler for Watch {
         service_manager.register_service(Arc::new(SearchIndexBuilder {
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
-            mcp_resource_provider_content_documents,
             search_index_reader_holder,
         }));
 

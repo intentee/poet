@@ -15,9 +15,11 @@ use crate::mcp::mcp_http_service::McpHttpService;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
+use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 
 pub struct McpHttpServiceFactory {
     pub mount_path: String,
+    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub server_info: Implementation,
     pub session_manager: SessionManager,
@@ -33,6 +35,7 @@ impl ServiceFactory<ServiceRequest> for McpHttpServiceFactory {
     type Service = McpHttpService;
 
     fn new_service(&self, _: Self::Config) -> Self::Future {
+        let prompt_controller_collection_holder = self.prompt_controller_collection_holder.clone();
         let resource_list_aggregate = self.resource_list_aggregate.clone();
         let server_info = self.server_info.clone();
         let session_manager = self.session_manager.clone();
@@ -40,6 +43,7 @@ impl ServiceFactory<ServiceRequest> for McpHttpServiceFactory {
 
         Box::pin(async move {
             Ok(McpHttpService {
+                prompt_controller_collection_holder,
                 resource_list_aggregate,
                 server_info,
                 session_manager,

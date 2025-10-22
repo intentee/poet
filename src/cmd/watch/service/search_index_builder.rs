@@ -10,14 +10,12 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::watch::service::Service;
 use crate::holder::Holder as _;
-use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 use crate::search_index::SearchIndex;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 pub struct SearchIndexBuilder {
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
-    pub mcp_resource_provider_content_documents: McpResourceProviderContentDocuments,
     pub search_index_reader_holder: SearchIndexReaderHolder,
 }
 

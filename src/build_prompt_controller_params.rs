@@ -12,5 +12,6 @@ pub struct BuildPromptControllerParams {
     pub content_document_linker: ContentDocumentLinker,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,
     pub file: FileEntry,
+    pub name: String,
     pub rhai_template_renderer: RhaiTemplateRenderer,
 }

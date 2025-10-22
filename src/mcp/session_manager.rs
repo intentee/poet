@@ -8,9 +8,6 @@ use tokio::sync::mpsc::error::SendError;
 use uuid::Uuid;
 
 use crate::mcp::MCP_HEADER_SESSION;
-use crate::mcp::jsonrpc::JSONRPC_VERSION;
-use crate::mcp::jsonrpc::notification::resources_updated::ResourcesUpdated;
-use crate::mcp::jsonrpc::notification::resources_updated::ResourcesUpdatedParams;
 use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
 use crate::mcp::session::Session;
 use crate::mcp::session_storage::SessionStorage;
@@ -34,31 +31,6 @@ impl SessionManager {
             let session = entry.value();
 
             session.notify(notification.clone()).await?;
-        }
-
-        Ok(())
-    }
-
-    pub async fn broadcast_resource_updated(
-        &self,
-        resource_uri: &str,
-    ) -> Result<(), SendError<ServerToClientNotification>> {
-        for entry in &self.session_storage.sessions {
-            let session = entry.value();
-
-            if session.is_subscribed_to_resource(resource_uri) {
-                println!("subscribed to: {resource_uri}");
-                session
-                    .notify(ServerToClientNotification::ResourcesUpdated(
-                        ResourcesUpdated {
-                            jsonrpc: JSONRPC_VERSION.to_string(),
-                            params: ResourcesUpdatedParams {
-                                uri: resource_uri.to_string(),
-                            },
-                        },
-                    ))
-                    .await?;
-            }
         }
 
         Ok(())

@@ -21,6 +21,7 @@ use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
+use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";
 
@@ -29,6 +30,7 @@ pub struct HttpServer {
     pub assets_directory: PathBuf,
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
+    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub session_manager: SessionManager,
     pub tool_registry: Arc<ToolRegistry>,
@@ -56,6 +58,8 @@ impl Service for HttpServer {
             });
             let assets_directory = self.assets_directory.clone();
             let ctrlc_notifier = self.ctrlc_notifier.clone();
+            let prompt_controller_collection_holder =
+                self.prompt_controller_collection_holder.clone();
             let resource_list_aggregate = self.resource_list_aggregate.clone();
             let session_manager = self.session_manager.clone();
             let tool_registry = self.tool_registry.clone();
@@ -75,6 +79,8 @@ impl Service for HttpServer {
                     )
                     .service(McpHttpServiceFactory {
                         mount_path: "/mcp/streamable".to_string(),
+                        prompt_controller_collection_holder: prompt_controller_collection_holder
+                            .clone(),
                         resource_list_aggregate: resource_list_aggregate.clone(),
                         server_info: server_info.clone(),
                         session_manager: session_manager.clone(),

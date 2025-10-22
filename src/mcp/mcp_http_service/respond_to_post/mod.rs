@@ -19,6 +19,7 @@ use crate::mcp::mcp_http_service::respond_to_post::handler::initialize_handler::
 use crate::mcp::mcp_http_service::respond_to_post::handler::initialized_handler::InitializedHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::logging_set_level_handler::LoggingSetLevelHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::ping_handler::PingHandler;
+use crate::mcp::mcp_http_service::respond_to_post::handler::prompts_get_handler::PromptsGetHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::prompts_list_handler::PromptsListHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_list_handler::ResourcesListHandler;
 use crate::mcp::mcp_http_service::respond_to_post::handler::resources_read_handler::ResourcesReadHandler;
@@ -32,9 +33,11 @@ use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
+use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 
 #[derive(Clone)]
 pub struct RespondToPost {
+    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub server_info: Implementation,
     pub session_manager: SessionManager,
@@ -109,10 +112,23 @@ impl McpResponder for RespondToPost {
                     .await
             }
             ClientToServerMessage::Ping(request) => PingHandler {}.handle(request, ()).await,
+            ClientToServerMessage::PromptsGet(request) => {
+                let session = self.assert_session(&session)?;
+
+                PromptsGetHandler {
+                    prompt_controller_collection_holder: self.prompt_controller_collection_holder,
+                }
+                .handle(request, session)
+                .await
+            }
             ClientToServerMessage::PromptsList(request) => {
                 let session = self.assert_session(&session)?;
 
-                PromptsListHandler {}.handle(request, session).await
+                PromptsListHandler {
+                    prompt_controller_collection_holder: self.prompt_controller_collection_holder,
+                }
+                .handle(request, session)
+                .await
             }
             ClientToServerMessage::ResourcesList(request) => {
                 let session = self.assert_session(&session)?;

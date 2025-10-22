@@ -13,6 +13,7 @@ pub fn build_prompt_controller(
         content_document_linker,
         esbuild_metafile,
         file,
+        name,
         rhai_template_renderer,
     }: BuildPromptControllerParams,
 ) -> Result<PromptController> {
@@ -25,6 +26,7 @@ pub fn build_prompt_controller(
         content_document_linker,
         esbuild_metafile,
         front_matter,
+        name,
         mdast,
         rhai_template_renderer,
     })

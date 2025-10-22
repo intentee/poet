@@ -40,6 +40,8 @@ mod mdast_children_to_heading_id;
 mod mdast_to_tantivy_document;
 mod parse_markdown_metadata_line;
 mod prompt_controller;
+mod prompt_controller_collection;
+mod prompt_controller_collection_holder;
 mod prompt_document_component_context;
 mod prompt_document_context;
 mod prompt_document_front_matter;

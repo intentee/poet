@@ -20,6 +20,8 @@ mod content_document_linker;
 mod content_document_reference;
 mod content_document_source;
 mod content_document_tree_node;
+mod document_error;
+mod document_error_collection;
 mod esbuild_metafile_holder;
 mod escape_html;
 mod escape_html_attribute;

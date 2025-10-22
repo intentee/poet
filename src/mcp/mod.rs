@@ -1,4 +1,5 @@
 pub mod accepts_all;
+pub mod content_block;
 pub mod jsonrpc;
 pub mod list_resources_cursor;
 pub mod log_level;
@@ -8,6 +9,7 @@ pub mod mcp_responder;
 pub mod mcp_responder_context;
 pub mod mcp_responder_handler;
 pub mod prompt;
+pub mod prompt_message;
 pub mod resource;
 pub mod resource_content;
 pub mod resource_content_parts;

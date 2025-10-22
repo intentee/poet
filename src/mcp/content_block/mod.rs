@@ -5,9 +5,9 @@ pub mod text_content;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::mcp::jsonrpc::content_block::embedded_resource::EmbeddedResource;
-use crate::mcp::jsonrpc::content_block::resource_link::ResourceLink;
-use crate::mcp::jsonrpc::content_block::text_content::TextContent;
+use crate::mcp::content_block::embedded_resource::EmbeddedResource;
+use crate::mcp::content_block::resource_link::ResourceLink;
+use crate::mcp::content_block::text_content::TextContent;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]

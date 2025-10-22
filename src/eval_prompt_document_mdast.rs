@@ -40,7 +40,7 @@ use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::rhai_components::tag_name::TagName;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
-pub fn eval_content_document_children(
+pub fn eval_prompt_document_children(
     children: &Vec<Node>,
     component_context: &PromptDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
@@ -68,7 +68,7 @@ pub fn eval_prompt_document_mdast(
     match mdast {
         Node::Blockquote(Blockquote { children, .. }) => {
             result.push_str("<blockquote>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -90,7 +90,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::Delete(Delete { children, .. }) => {
             result.push_str("<del>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -99,7 +99,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::Emphasis(Emphasis { children, .. }) => {
             result.push_str("<em>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -132,7 +132,7 @@ pub fn eval_prompt_document_mdast(
                 tag,
                 escape_html_attribute(&mdast_children_to_heading_id(children)?)
             ));
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -195,7 +195,7 @@ pub fn eval_prompt_document_mdast(
             }
 
             result.push('>');
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -214,7 +214,7 @@ pub fn eval_prompt_document_mdast(
                 result.push_str("<ul>");
             }
 
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -228,7 +228,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::ListItem(ListItem { children, .. }) => {
             result.push_str("<li>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -303,11 +303,8 @@ pub fn eval_prompt_document_mdast(
                 return Err(anyhow!("Void element cannot have children"));
             }
 
-            let evaluated_children = eval_content_document_children(
-                children,
-                component_context,
-                rhai_template_renderer,
-            )?;
+            let evaluated_children =
+                eval_prompt_document_children(children, component_context, rhai_template_renderer)?;
 
             if tag_name.is_component() {
                 result.push_str(&rhai_template_renderer.render(
@@ -343,7 +340,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::Paragraph(Paragraph { children, .. }) => {
             result.push_str("<p>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -351,7 +348,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str("</p>");
         }
         Node::Root(Root { children, .. }) => {
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -359,7 +356,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::Strong(Strong { children, .. }) => {
             result.push_str("<strong>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -368,7 +365,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::Table(Table { children, .. }) => {
             result.push_str("<table>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -377,7 +374,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::TableCell(TableCell { children, .. }) => {
             result.push_str("<td>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -386,7 +383,7 @@ pub fn eval_prompt_document_mdast(
         }
         Node::TableRow(TableRow { children, .. }) => {
             result.push_str("<tr>");
-            result.push_str(&eval_content_document_children(
+            result.push_str(&eval_prompt_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
@@ -408,4 +405,9 @@ pub fn eval_prompt_document_mdast(
     }
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 }

@@ -2,8 +2,6 @@ pub mod build_project_params;
 pub mod build_project_result;
 pub mod build_project_result_holder;
 pub mod build_project_result_stub;
-mod content_document_error;
-mod content_document_error_collection;
 mod content_document_rendering_context;
 
 use std::collections::BTreeMap;
@@ -24,7 +22,6 @@ use syntect::parsing::SyntaxSet;
 use crate::asset_manager::AssetManager;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
-use crate::build_project::content_document_error_collection::ContentDocumentErrorCollection;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
 use crate::build_timer::BuildTimer;
 use crate::content_document::ContentDocument;
@@ -37,6 +34,7 @@ use crate::content_document_in_collection::ContentDocumentInCollection;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_source::ContentDocumentSource;
+use crate::document_error_collection::DocumentErrorCollection;
 use crate::eval_content_document_mdast::eval_content_document_mdast;
 use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
@@ -114,7 +112,7 @@ pub async fn build_project(
     info!("Processing content files...");
 
     let _build_timer = BuildTimer::new();
-    let error_collection: ContentDocumentErrorCollection = Default::default();
+    let error_collection: DocumentErrorCollection = Default::default();
     let memory_filesystem = Arc::new(Memory::default());
     let syntax_set = SyntaxSet::load_defaults_newlines();
 
@@ -151,7 +149,7 @@ pub async fn build_project(
             if let Some(id) = &front_matter.id {
                 if content_document_basename_by_id.contains_key(id) {
                     error_collection.register_error(
-                        content_document_reference.clone(),
+                        content_document_reference.basename().to_string(),
                         anyhow!("Duplicate document id: #{id} in '{basename}'"),
                     );
                 }
@@ -194,7 +192,7 @@ pub async fn build_project(
                 .any(|placement| placement.name == *primary_collection)
         {
             error_collection.register_error(
-                reference.clone(),
+                reference.basename().to_string(),
                 anyhow!(
                     "Document does belong to the collection it claims to be it's primary collection"
                 ),
@@ -206,7 +204,7 @@ pub async fn build_project(
                 && !content_document_by_basename.contains_key(after)
             {
                 error_collection.register_error(
-                    reference.clone(),
+                    reference.basename().to_string(),
                     anyhow!("Succeeding document does not exist: '{after}'"),
                 );
             }
@@ -215,7 +213,7 @@ pub async fn build_project(
                 && !content_document_by_basename.contains_key(parent)
             {
                 error_collection.register_error(
-                    reference.clone(),
+                    reference.basename().to_string(),
                     anyhow!("Parent document does not exist: '{parent}'"),
                 );
             }
@@ -297,8 +295,10 @@ pub async fn build_project(
                             if let Err(err) = memory_filesystem
                                 .set_file_contents_sync(&relative_path, &processed_file)
                             {
-                                error_collection
-                                    .register_error(content_document.reference.clone(), err);
+                                error_collection.register_error(
+                                    content_document.reference.basename().to_string(),
+                                    err,
+                                );
                             } else {
                                 content_document_reference_collection_dashmap.insert(
                                     relative_path.display().to_string(),
@@ -307,14 +307,15 @@ pub async fn build_project(
                             }
                         }
                         Err(err) => {
-                            error_collection
-                                .register_error(content_document.reference.clone(), anyhow!(err));
+                            error_collection.register_error(
+                                content_document.reference.basename().to_string(),
+                                anyhow!(err),
+                            );
                         }
                     }
                 }
-                Err(err) => {
-                    error_collection.register_error(content_document.reference.clone(), err)
-                }
+                Err(err) => error_collection
+                    .register_error(content_document.reference.basename().to_string(), err),
             }
         });
 

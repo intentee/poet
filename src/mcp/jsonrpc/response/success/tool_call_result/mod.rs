@@ -12,8 +12,8 @@ use serde::ser;
 use serde_json::Map;
 use serde_json::Value;
 
-use crate::mcp::jsonrpc::content_block::ContentBlock;
-use crate::mcp::jsonrpc::content_block::text_content::TextContent;
+use crate::mcp::content_block::ContentBlock;
+use crate::mcp::content_block::text_content::TextContent;
 use crate::mcp::jsonrpc::response::success::tool_call_result::failure::Failure;
 use crate::mcp::jsonrpc::response::success::tool_call_result::success::Success;
 use crate::mcp::tool_call_error_message::ToolCallErrorMesage;

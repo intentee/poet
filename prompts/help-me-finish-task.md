@@ -1,5 +1,5 @@
 +++
-description = ""
+description = "Explain how to (..)"
 title = "Help me with finishing the task"
 
 [arguments.objective]

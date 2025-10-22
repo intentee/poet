@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::mcp::jsonrpc::content_block::ContentBlock;
+use crate::mcp::content_block::ContentBlock;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Failure {

@@ -16,6 +16,8 @@ use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_tree_node::ContentDocumentTreeNode;
 use crate::filesystem::file_entry::FileEntry;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
+use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
+use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
 use crate::rhai_components::component_meta_module::ComponentMetaModule;
 use crate::rhai_components::component_reference::ComponentReference;
 use crate::rhai_components::component_registry::ComponentRegistry;
@@ -73,6 +75,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
             self.base_directory.join(&self.shortcodes_subdirectory),
         ));
 
+        engine.build_type::<ArgumentWithInput>();
         engine.build_type::<AssetManager>();
         engine.build_type::<ContentDocumentCollectionRanked>();
         engine.build_type::<ContentDocumentComponentContext>();
@@ -83,6 +86,7 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
         engine.build_type::<FileEntry>();
         engine.build_type::<Heading>();
         engine.build_type::<PromptDocumentComponentContext>();
+        engine.build_type::<PromptDocumentFrontMatter>();
         engine.build_type::<TableOfContents>();
         engine.register_fn("clsx", clsx);
         engine.register_fn("error", error);

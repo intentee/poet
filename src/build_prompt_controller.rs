@@ -1,15 +1,13 @@
 use anyhow::Result;
 use anyhow::anyhow;
 
-use crate::asset_manager::AssetManager;
 use crate::build_prompt_controller_params::BuildPromptControllerParams;
-use crate::eval_prompt_document_mdast::eval_prompt_document_mdast;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
-use crate::prompt_document_component_context::PromptDocumentComponentContext;
+use crate::prompt_controller::PromptController;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::string_to_mdast::string_to_mdast;
 
-pub async fn build_prompt_controller(
+pub fn build_prompt_controller(
     BuildPromptControllerParams {
         asset_path_renderer,
         content_document_linker,
@@ -17,23 +15,17 @@ pub async fn build_prompt_controller(
         file,
         rhai_template_renderer,
     }: BuildPromptControllerParams,
-) -> Result<()> {
+) -> Result<PromptController> {
     let mdast = string_to_mdast(&file.contents)?;
     let front_matter: PromptDocumentFrontMatter = find_front_matter_in_mdast(&mdast)?
         .ok_or_else(|| anyhow!("No front matter found in file: {:?}", file.relative_path))?;
 
-    eval_prompt_document_mdast(
-        &mdast,
-        &PromptDocumentComponentContext {
-            asset_manager: AssetManager::from_esbuild_metafile(
-                esbuild_metafile,
-                asset_path_renderer,
-            ),
-            content_document_linker,
-            front_matter,
-        },
-        &rhai_template_renderer,
-    )?;
-
-    Ok(())
+    Ok(PromptController {
+        asset_path_renderer,
+        content_document_linker,
+        esbuild_metafile,
+        front_matter,
+        mdast,
+        rhai_template_renderer,
+    })
 }

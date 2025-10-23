@@ -103,6 +103,7 @@ impl Service for ProjectBuilder {
             self.do_build_project().await;
 
             tokio::select! {
+                _ = self.esbuild_metafile_holder.update_notifier.notified() => continue,
                 _ = self.on_content_file_changed.notified() => continue,
                 _ = self.rhai_template_renderer_holder.update_notifier.notified() => continue,
                 _ = self.ctrlc_notifier.cancelled() => break,

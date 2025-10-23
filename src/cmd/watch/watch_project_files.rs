@@ -1,3 +1,4 @@
+use std::fs::create_dir_all;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -43,7 +44,7 @@ fn is_temp_file(path: &Path) -> bool {
 
 pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHandle> {
     let content_directory = source_directory.join("content");
-    let esbuild_metafile_path = source_directory.join("esbuild-meta.json").canonicalize()?;
+    let esbuild_metafile_path = source_directory.join("esbuild-meta.json");
     let prompts_directory = source_directory.join("prompts");
     let shortcodes_directory = source_directory.join("shortcodes");
 
@@ -120,9 +121,15 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
         },
     )?;
 
+    create_dir_all(&content_directory)?;
     debouncer.watch(content_directory, RecursiveMode::Recursive)?;
+
+    create_dir_all(&prompts_directory)?;
     debouncer.watch(prompts_directory, RecursiveMode::Recursive)?;
+
+    create_dir_all(&shortcodes_directory)?;
     debouncer.watch(shortcodes_directory, RecursiveMode::Recursive)?;
+
     debouncer.watch(source_directory.clone(), RecursiveMode::NonRecursive)?;
 
     Ok(WatchProjectHandle {

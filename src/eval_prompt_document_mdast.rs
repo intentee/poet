@@ -41,6 +41,19 @@ fn into_blockquote(input: String) -> String {
         .join("\n")
 }
 
+fn trim_chunk(chunk: String) -> Result<String> {
+    if chunk.is_empty() {
+        return Ok(chunk);
+    }
+
+    Ok(chunk
+        .trim()
+        .strip_prefix(':')
+        .ok_or_else(|| anyhow!("Unable to strip chunk prefix from '{chunk}'"))?
+        .trim_start()
+        .to_string())
+}
+
 pub fn eval_prompt_document_children(
     children: &Vec<Node>,
     params: EvalPromptDocumentMdastParams,
@@ -332,7 +345,7 @@ pub fn eval_prompt_document_mdast(
     }
 
     if is_directly_in_root {
-        prompt_document_component_context.append_to_message(result.clone())?;
+        prompt_document_component_context.append_to_message(trim_chunk(result.clone())?)?;
     }
 
     Ok(result)
@@ -348,5 +361,27 @@ mod test {
             into_blockquote("foo\nbar\nbaz".to_string()),
             "> foo\n> bar\n> baz".to_string()
         );
+    }
+
+    #[test]
+    fn test_chunk_trim() -> Result<()> {
+        assert_eq!(
+            trim_chunk(
+                r#"
+                : foo bar
+            "#
+                .to_string()
+            )?,
+            "foo bar".to_string(),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_chunk_trim_empty() -> Result<()> {
+        assert_eq!(trim_chunk("".to_string())?, "".to_string(),);
+
+        Ok(())
     }
 }

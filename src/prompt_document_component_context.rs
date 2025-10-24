@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::mem::take;
+use std::sync::Arc;
+use std::sync::RwLock;
 
 use anyhow::Result;
 use anyhow::anyhow;
@@ -15,15 +18,6 @@ use crate::mcp::prompt_message::PromptMessage;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
 
-fn trim_chunk(chunk: String) -> Result<String> {
-    Ok(chunk
-        .trim()
-        .strip_prefix(':')
-        .ok_or_else(|| anyhow!("Unable to strip chunk prefix"))?
-        .trim_start()
-        .to_string())
-}
-
 #[derive(Clone)]
 pub struct PromptDocumentComponentContext {
     pub arguments: HashMap<String, ArgumentWithInput>,
@@ -32,33 +26,39 @@ pub struct PromptDocumentComponentContext {
     pub current_role: Option<Role>,
     pub front_matter: PromptDocumentFrontMatter,
     pub prompt_messages: Vec<PromptMessage>,
-    pub unprocessed_message_chunk: String,
+    pub unprocessed_message_chunk: Arc<RwLock<String>>,
 }
 
 impl PromptDocumentComponentContext {
     pub fn append_to_message(&mut self, chunk: String) -> Result<()> {
-        if chunk.is_empty() {
-            return Ok(());
+        if !chunk.is_empty() {
+            let mut unprocessed_message_chunk = self
+                .unprocessed_message_chunk
+                .write()
+                .expect("Unprocessed message lock is poisoned");
+
+            unprocessed_message_chunk.push_str(&chunk);
         }
-
-        let trimmed_chunk = trim_chunk(chunk)?;
-
-        self.unprocessed_message_chunk.push_str(&trimmed_chunk);
 
         Ok(())
     }
 
     pub fn flush(&mut self) -> Result<()> {
+        let unprocessed_message_chunk = take(
+            &mut *self
+                .unprocessed_message_chunk
+                .write()
+                .expect("Unprocessed message lock is poisoned"),
+        );
+
         if let Some(role) = self.current_role.take() {
             self.prompt_messages.push(PromptMessage {
-                content: self.unprocessed_message_chunk.clone().into(),
+                content: unprocessed_message_chunk.into(),
                 role,
             });
 
-            self.unprocessed_message_chunk = "".to_string();
-
             Ok(())
-        } else if self.unprocessed_message_chunk.is_empty() {
+        } else if unprocessed_message_chunk.is_empty() {
             Ok(())
         } else {
             Err(anyhow!("Tried to flush messages, but there is no role set"))
@@ -137,25 +137,5 @@ impl CustomType for PromptDocumentComponentContext {
             .with_fn("append_to_message", Self::rhai_append_to_message)
             .with_fn("link_to", Self::rhai_link_to)
             .with_fn("switch_role_to", Self::rhai_switch_role_to);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_chunk_trim() -> Result<()> {
-        assert_eq!(
-            trim_chunk(
-                r#"
-                : foo bar
-            "#
-                .to_string()
-            )?,
-            "foo bar".to_string(),
-        );
-
-        Ok(())
     }
 }

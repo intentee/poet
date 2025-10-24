@@ -72,6 +72,17 @@ impl PromptDocumentComponentContext {
         Ok(())
     }
 
+    fn rhai_append_to_message(&mut self, chunk: String) -> Result<(), Box<EvalAltResult>> {
+        if let Err(err) = self.append_to_message(chunk) {
+            Err(Box::new(EvalAltResult::ErrorSystem(
+                "Unable to append chunk".to_string(),
+                err.into(),
+            )))
+        } else {
+            Ok(())
+        }
+    }
+
     fn rhai_get_arguments(&mut self) -> Map {
         self.arguments
             .clone()
@@ -91,6 +102,29 @@ impl PromptDocumentComponentContext {
     fn rhai_link_to(&mut self, path: &str) -> Result<String, Box<EvalAltResult>> {
         Ok(self.content_document_linker.link_to(path)?)
     }
+
+    fn rhai_switch_role_to(&mut self, role_string: String) -> Result<(), Box<EvalAltResult>> {
+        let role: Role = match role_string.clone().try_into() {
+            Ok(role) => role,
+            Err(err) => {
+                return Err(Box::new(EvalAltResult::ErrorSystem(
+                    format!(
+                        "Unknown role name: '{role_string} (you can only use 'assistant' or 'user')"
+                    ),
+                    err.into(),
+                )));
+            }
+        };
+
+        if let Err(err) = self.switch_role_to(role) {
+            Err(Box::new(EvalAltResult::ErrorSystem(
+                "Unable to switch to role".to_string(),
+                err.into(),
+            )))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl CustomType for PromptDocumentComponentContext {
@@ -100,7 +134,9 @@ impl CustomType for PromptDocumentComponentContext {
             .with_get("arguments", Self::rhai_get_arguments)
             .with_get("assets", Self::rhai_get_assets)
             .with_get("front_matter", Self::rhai_get_front_matter)
-            .with_fn("link_to", Self::rhai_link_to);
+            .with_fn("append_to_message", Self::rhai_append_to_message)
+            .with_fn("link_to", Self::rhai_link_to)
+            .with_fn("switch_role_to", Self::rhai_switch_role_to);
     }
 }
 

@@ -10,6 +10,8 @@ title = "Your objective"
 
 **user**: This is what I am trying to do: {context.arguments.objective.input}
 
-**assistant**: wow
+**assistant**:
+
+{context.append_to_message("wow")}
 
 **user**: yeah

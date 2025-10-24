@@ -22,3 +22,11 @@ impl TryFrom<&str> for Role {
         }
     }
 }
+
+impl TryFrom<String> for Role {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        value.as_str().try_into()
+    }
+}

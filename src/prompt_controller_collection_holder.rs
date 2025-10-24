@@ -5,7 +5,7 @@ use tokio::sync::Notify;
 use tokio::sync::RwLock;
 
 use crate::holder::Holder;
-use crate::prompt_controller_collection::PromptControllerCollection;
+use crate::mcp::prompt_controller_collection::PromptControllerCollection;
 
 #[derive(Clone, Default)]
 pub struct PromptControllerCollectionHolder {

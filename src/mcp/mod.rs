@@ -9,6 +9,8 @@ pub mod mcp_responder;
 pub mod mcp_responder_context;
 pub mod mcp_responder_handler;
 pub mod prompt;
+pub mod prompt_controller;
+pub mod prompt_controller_collection;
 pub mod prompt_message;
 pub mod resource;
 pub mod resource_content;

@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use dashmap::DashMap;
 
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::mcp::prompt::Prompt;
-use crate::prompt_controller::PromptController;
+use crate::mcp::prompt_controller::PromptController;
 
 #[derive(Default)]
-pub struct PromptControllerCollection(pub BTreeMap<String, PromptController>);
+pub struct PromptControllerCollection(pub BTreeMap<String, Arc<dyn PromptController>>);
 
 impl PromptControllerCollection {
     pub fn list_mcp_prompts(
@@ -18,13 +19,13 @@ impl PromptControllerCollection {
             .iter()
             .skip(offset)
             .take(per_page)
-            .map(|(_, prompt_controller)| prompt_controller.get_mcp_prompt())
+            .map(|(_, prompt_document_controller)| prompt_document_controller.get_mcp_prompt())
             .collect()
     }
 }
 
-impl From<DashMap<String, PromptController>> for PromptControllerCollection {
-    fn from(prompt_controller_dashmap: DashMap<String, PromptController>) -> Self {
+impl From<DashMap<String, Arc<dyn PromptController>>> for PromptControllerCollection {
+    fn from(prompt_controller_dashmap: DashMap<String, Arc<dyn PromptController>>) -> Self {
         Self(prompt_controller_dashmap.into_iter().collect())
     }
 }

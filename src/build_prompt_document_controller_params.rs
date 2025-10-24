@@ -7,7 +7,7 @@ use crate::content_document_linker::ContentDocumentLinker;
 use crate::filesystem::file_entry::FileEntry;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
-pub struct BuildPromptControllerParams {
+pub struct BuildPromptDocumentControllerParams {
     pub asset_path_renderer: AssetPathRenderer,
     pub content_document_linker: ContentDocumentLinker,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,

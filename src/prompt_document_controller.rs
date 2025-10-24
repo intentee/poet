@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use async_trait::async_trait;
 use esbuild_metafile::EsbuildMetaFile;
 use markdown::mdast::Node;
 
@@ -15,12 +16,13 @@ use crate::mcp::jsonrpc::request::prompts_get::PromptsGetParams;
 use crate::mcp::jsonrpc::response::success::prompts_get_result::PromptsGetResult;
 use crate::mcp::prompt::Prompt;
 use crate::mcp::prompt::PromptArgument;
+use crate::mcp::prompt_controller::PromptController;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument::Argument;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
-pub struct PromptController {
+pub struct PromptDocumentController {
     pub asset_path_renderer: AssetPathRenderer,
     pub content_document_linker: ContentDocumentLinker,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,
@@ -30,8 +32,9 @@ pub struct PromptController {
     pub rhai_template_renderer: RhaiTemplateRenderer,
 }
 
-impl PromptController {
-    pub fn get_mcp_prompt(&self) -> Prompt {
+#[async_trait]
+impl PromptController for PromptDocumentController {
+    fn get_mcp_prompt(&self) -> Prompt {
         Prompt {
             arguments: self
                 .front_matter
@@ -60,7 +63,7 @@ impl PromptController {
         }
     }
 
-    pub async fn respond_to(
+    async fn respond_to(
         &self,
         PromptsGet {
             params: PromptsGetParams { arguments, .. },
@@ -105,8 +108,8 @@ mod tests {
     use indoc::indoc;
 
     use super::*;
-    use crate::build_prompt_controller::build_prompt_controller;
-    use crate::build_prompt_controller_params::BuildPromptControllerParams;
+    use crate::build_prompt_document_controller::build_prompt_document_controller;
+    use crate::build_prompt_document_controller_params::BuildPromptDocumentControllerParams;
     use crate::filesystem::file_entry_stub::FileEntryStub;
     use crate::mcp::jsonrpc::JSONRPC_VERSION;
     use crate::mcp::jsonrpc::role::Role;
@@ -142,20 +145,21 @@ mod tests {
 
         let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
 
-        let prompt_controller = build_prompt_controller(BuildPromptControllerParams {
-            asset_path_renderer: AssetPathRenderer {
-                base_path: "https://example.com".to_string(),
-            },
-            content_document_linker: Default::default(),
-            esbuild_metafile: Default::default(),
-            file: FileEntryStub {
-                contents,
-                relative_path: PathBuf::from("prompts/help-me-finish-task.md"),
-            }
-            .try_into()?,
-            name: name.clone(),
-            rhai_template_renderer,
-        })?;
+        let prompt_controller =
+            build_prompt_document_controller(BuildPromptDocumentControllerParams {
+                asset_path_renderer: AssetPathRenderer {
+                    base_path: "https://example.com".to_string(),
+                },
+                content_document_linker: Default::default(),
+                esbuild_metafile: Default::default(),
+                file: FileEntryStub {
+                    contents,
+                    relative_path: PathBuf::from("prompts/help-me-finish-task.md"),
+                }
+                .try_into()?,
+                name: name.clone(),
+                rhai_template_renderer,
+            })?;
 
         let response = prompt_controller
             .respond_to(PromptsGet {

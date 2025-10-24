@@ -9,7 +9,7 @@ use crate::mcp::content_block::embedded_resource::EmbeddedResource;
 use crate::mcp::content_block::resource_link::ResourceLink;
 use crate::mcp::content_block::text_content::TextContent;
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub enum ContentBlock {
     #[serde(rename = "resource")]

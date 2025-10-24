@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BlobResourceContent {
     pub blob: String,
@@ -10,7 +10,7 @@ pub struct BlobResourceContent {
     pub uri: String,
 }
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TextResourceContent {
     #[serde(rename = "mimeType")]
@@ -19,7 +19,7 @@ pub struct TextResourceContent {
     pub uri: String,
 }
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, untagged)]
 pub enum ResourceContent {
     Blob(BlobResourceContent),

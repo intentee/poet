@@ -3,7 +3,7 @@ use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ArgumentWithInput {
     pub description: String,

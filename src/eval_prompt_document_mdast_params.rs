@@ -1,12 +1,10 @@
 use markdown::mdast::Node;
 
-use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 #[derive(Clone)]
 pub struct EvalPromptDocumentMdastParams<'eval> {
     pub mdast: &'eval Node,
-    pub component_context: &'eval PromptDocumentComponentContext,
     pub is_directly_in_root: bool,
     pub is_first_child: bool,
     pub is_in_top_paragraph: bool,
@@ -17,7 +15,6 @@ impl<'eval> EvalPromptDocumentMdastParams<'eval> {
     pub fn child(&self, node: &'eval Node, is_first_child: bool) -> Self {
         Self {
             mdast: node,
-            component_context: self.component_context,
             is_directly_in_root: self.is_directly_in_root,
             is_first_child,
             is_in_top_paragraph: self.is_in_top_paragraph,
@@ -28,7 +25,6 @@ impl<'eval> EvalPromptDocumentMdastParams<'eval> {
     pub fn directly_in_root(self) -> Self {
         Self {
             mdast: self.mdast,
-            component_context: self.component_context,
             is_directly_in_root: true,
             is_first_child: self.is_first_child,
             is_in_top_paragraph: false,
@@ -39,7 +35,6 @@ impl<'eval> EvalPromptDocumentMdastParams<'eval> {
     pub fn paragraph(self) -> Self {
         Self {
             mdast: self.mdast,
-            component_context: self.component_context,
             is_directly_in_root: false,
             is_first_child: self.is_first_child,
             is_in_top_paragraph: self.is_directly_in_root,
@@ -50,7 +45,6 @@ impl<'eval> EvalPromptDocumentMdastParams<'eval> {
     pub fn regular_element(self) -> Self {
         Self {
             mdast: self.mdast,
-            component_context: self.component_context,
             is_directly_in_root: false,
             is_first_child: false,
             is_in_top_paragraph: false,

@@ -30,8 +30,8 @@ use crate::escape_html::escape_html;
 use crate::escape_html_attribute::escape_html_attribute;
 use crate::eval_mdx_element::eval_mdx_element;
 use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;
-use crate::eval_prompt_document_mdast_state::EvalPromptDocumentMdastState;
 use crate::is_external_link::is_external_link;
+use crate::prompt_document_component_context::PromptDocumentComponentContext;
 
 fn into_blockquote(input: String) -> String {
     input
@@ -44,7 +44,7 @@ fn into_blockquote(input: String) -> String {
 pub fn eval_prompt_document_children(
     children: &Vec<Node>,
     params: EvalPromptDocumentMdastParams,
-    state: &mut EvalPromptDocumentMdastState,
+    prompt_document_component_context: &mut PromptDocumentComponentContext,
 ) -> Result<String> {
     let mut content = String::new();
     let mut is_first_child = true;
@@ -52,7 +52,7 @@ pub fn eval_prompt_document_children(
     for child in children {
         content.push_str(&eval_prompt_document_mdast(
             params.child(child, is_first_child),
-            state,
+            prompt_document_component_context,
         )?);
 
         is_first_child = false;
@@ -66,13 +66,12 @@ pub fn eval_prompt_document_children(
 pub fn eval_prompt_document_mdast(
     params @ EvalPromptDocumentMdastParams {
         mdast,
-        component_context,
         is_directly_in_root,
         is_first_child,
         is_in_top_paragraph,
         rhai_template_renderer,
     }: EvalPromptDocumentMdastParams,
-    state: &mut EvalPromptDocumentMdastState,
+    prompt_document_component_context: &mut PromptDocumentComponentContext,
 ) -> Result<String> {
     let mut result = String::new();
 
@@ -81,7 +80,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&into_blockquote(eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?));
         }
         Node::Break(_) => {
@@ -100,7 +99,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
             result.push_str("~~");
         }
@@ -109,7 +108,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
             result.push('*');
         }
@@ -126,7 +125,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
         }
         Node::Html(Html { value, .. }) => {
@@ -140,7 +139,7 @@ pub fn eval_prompt_document_mdast(
             let src = if is_external_link(url) {
                 url
             } else {
-                &match component_context.asset_manager.file(url) {
+                &match prompt_document_component_context.asset_manager.file(url) {
                     Ok(src) => src,
                     Err(err) => return Err(anyhow!(err)),
                 }
@@ -171,13 +170,20 @@ pub fn eval_prompt_document_mdast(
         }) => {
             result.push_str(&format!(
                 "[{}]",
-                eval_prompt_document_children(children, params.regular_element(), state)?
+                eval_prompt_document_children(
+                    children,
+                    params.regular_element(),
+                    prompt_document_component_context
+                )?
             ));
 
             let link = if is_external_link(url) {
                 url.clone()
             } else {
-                match component_context.content_document_linker.link_to(url) {
+                match prompt_document_component_context
+                    .content_document_linker
+                    .link_to(url)
+                {
                     Ok(link) => link,
                     Err(err) => return Err(anyhow!(err)),
                 }
@@ -200,7 +206,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
 
             result.push('\n');
@@ -210,7 +216,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
         }
         Node::Math(node) => {
@@ -223,7 +229,7 @@ pub fn eval_prompt_document_mdast(
         | Node::MdxTextExpression(MdxTextExpression { value, .. }) => {
             result.push_str(
                 &rhai_template_renderer
-                    .render_expression(component_context.clone(), value)?
+                    .render_expression(prompt_document_component_context.clone(), value)?
                     .to_string(),
             );
         }
@@ -239,11 +245,17 @@ pub fn eval_prompt_document_mdast(
             name,
             ..
         }) => {
+            let evaluated_children = eval_prompt_document_children(
+                children,
+                params.regular_element(),
+                prompt_document_component_context,
+            )?;
+
             result.push_str(&eval_mdx_element(
                 attributes,
                 children,
-                component_context,
-                eval_prompt_document_children(children, params.regular_element(), state)?,
+                prompt_document_component_context,
+                evaluated_children,
                 name,
                 rhai_template_renderer,
             )?);
@@ -253,7 +265,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.paragraph(),
-                state,
+                prompt_document_component_context,
             )?);
             result.push('\n');
         }
@@ -261,17 +273,21 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.directly_in_root(),
-                state,
+                prompt_document_component_context,
             )?);
 
-            state.flush()?;
+            prompt_document_component_context.flush()?;
         }
         Node::Strong(Strong { children, .. }) => {
-            let potential_role_name: &str =
-                &eval_prompt_document_children(children, params.regular_element(), state)?;
+            let potential_role_name: &str = &eval_prompt_document_children(
+                children,
+                params.regular_element(),
+                prompt_document_component_context,
+            )?;
 
             if is_first_child && is_in_top_paragraph {
-                state.switch_role_to(potential_role_name.try_into()?)?;
+                prompt_document_component_context
+                    .switch_role_to(potential_role_name.try_into()?)?;
             } else {
                 result.push_str("**");
                 result.push_str(potential_role_name);
@@ -282,7 +298,7 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
         }
         Node::TableCell(TableCell { children, .. }) => {
@@ -290,14 +306,14 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
         }
         Node::TableRow(TableRow { children, .. }) => {
             result.push_str(&eval_prompt_document_children(
                 children,
                 params.regular_element(),
-                state,
+                prompt_document_component_context,
             )?);
             result.push_str(" |");
         }
@@ -316,7 +332,7 @@ pub fn eval_prompt_document_mdast(
     }
 
     if is_directly_in_root {
-        state.append_to_message(result.clone())?;
+        prompt_document_component_context.append_to_message(result.clone())?;
     }
 
     Ok(result)

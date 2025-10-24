@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Role {
     #[serde(rename = "assistant")]
     Assistant,

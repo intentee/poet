@@ -10,7 +10,6 @@ use crate::asset_path_renderer::AssetPathRenderer;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::eval_prompt_document_mdast::eval_prompt_document_mdast;
 use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;
-use crate::eval_prompt_document_mdast_state::EvalPromptDocumentMdastState;
 use crate::mcp::jsonrpc::request::prompts_get::PromptsGet;
 use crate::mcp::jsonrpc::request::prompts_get::PromptsGetParams;
 use crate::mcp::jsonrpc::response::success::prompts_get_result::PromptsGetResult;
@@ -70,31 +69,33 @@ impl PromptController for PromptDocumentController {
             ..
         }: PromptsGet,
     ) -> Result<PromptsGetResult> {
-        let mut eval_prompt_document_mdast_state: EvalPromptDocumentMdastState = Default::default();
+        let mut prompt_document_component_context = PromptDocumentComponentContext {
+            arguments: self.front_matter.map_arguments(arguments)?,
+            asset_manager: AssetManager::from_esbuild_metafile(
+                self.esbuild_metafile.clone(),
+                self.asset_path_renderer.clone(),
+            ),
+            content_document_linker: self.content_document_linker.clone(),
+            current_role: Default::default(),
+            front_matter: self.front_matter.clone(),
+            prompt_messages: Default::default(),
+            unprocessed_message_chunk: Default::default(),
+        };
 
         eval_prompt_document_mdast(
             EvalPromptDocumentMdastParams {
                 mdast: &self.mdast,
-                component_context: &PromptDocumentComponentContext {
-                    arguments: self.front_matter.map_arguments(arguments)?,
-                    asset_manager: AssetManager::from_esbuild_metafile(
-                        self.esbuild_metafile.clone(),
-                        self.asset_path_renderer.clone(),
-                    ),
-                    content_document_linker: self.content_document_linker.clone(),
-                    front_matter: self.front_matter.clone(),
-                },
                 is_directly_in_root: false,
                 is_first_child: false,
                 is_in_top_paragraph: false,
                 rhai_template_renderer: &self.rhai_template_renderer,
             },
-            &mut eval_prompt_document_mdast_state,
+            &mut prompt_document_component_context,
         )?;
 
         Ok(PromptsGetResult {
             description: Some(self.front_matter.description.clone()),
-            messages: eval_prompt_document_mdast_state.prompt_messages,
+            messages: prompt_document_component_context.prompt_messages,
             meta: None,
         })
     }

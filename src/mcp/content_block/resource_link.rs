@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ResourceLink {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,

@@ -13,9 +13,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
-            artifact_name: poet-bin-linux-libc2.35-amd64
-
           - os: ubuntu-latest
             artifact_name: poet-bin-linux-libc2.39-amd64
 

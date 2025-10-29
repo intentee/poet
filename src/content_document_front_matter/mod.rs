@@ -15,13 +15,6 @@ fn default_render() -> bool {
     true
 }
 
-// #[derive(Debug, Deserialize, Serialize)]
-// pub struct Excerpt {
-//     #[serde(rename = "type")]
-//     pub excerpt_type: String,
-//     pub content: String,
-// }
-
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentDocumentFrontMatter {
@@ -29,11 +22,8 @@ pub struct ContentDocumentFrontMatter {
     #[serde(default)]
     pub id: Option<String>,
     pub layout: String,
-    // pub references: Vec<String>,
-    // pub truth_source_for: Vec<String>,
     #[serde(default, rename = "collection")]
     pub collections: CollectionPlacementList,
-    // pub excerpts: Vec<Excerpt>,
     #[serde(default, with = "crate::flexible_datetime")]
     pub last_updated_at: Option<DateTime<Utc>>,
     pub primary_collection: Option<String>,

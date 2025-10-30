@@ -1,4 +1,5 @@
 use std::env::consts::ARCH;
+use std::os::unix::fs::PermissionsExt as _;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -106,7 +107,17 @@ impl Handler for AppDir {
         info!("Creating AppDir-specific metafiles...");
 
         fs::create_dir_all(&app_dir_path).await?;
-        fs::write(app_dir_path.join("AppRun"), APP_RUN).await?;
+
+        let apprun_path = app_dir_path.join("AppRun");
+
+        fs::write(&apprun_path, APP_RUN).await?;
+
+        let mut perms = fs::metadata(&apprun_path).await?.permissions();
+
+        perms.set_mode(0o755);
+
+        fs::set_permissions(&apprun_path, perms).await?;
+
         fs::write(
             app_dir_path.join(format!("{name_lowercase}.desktop")),
             self.render_desktop_file()?,

@@ -11,7 +11,6 @@ use actix_web::HttpServer;
 use actix_web::web::Data;
 use anyhow::Result;
 use indoc::formatdoc;
-use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
@@ -57,16 +56,10 @@ pub struct Serve {
     app_dir: PathBuf,
 
     #[arg(long)]
-    public_path: String,
-}
+    app_name: String,
 
-impl Serve {
-    fn app_dir_name_stem(&self) -> Result<String> {
-        self.app_dir
-            .file_stem()
-            .ok_or_else(|| anyhow!("Unable to get AppDir name stem"))
-            .map(|os_str| os_str.to_string_lossy().to_string())
-    }
+    #[arg(long)]
+    public_path: String,
 }
 
 impl BuildsProject for Serve {
@@ -78,7 +71,6 @@ impl BuildsProject for Serve {
 #[async_trait(?Send)]
 impl Handler for Serve {
     async fn handle(&self) -> Result<()> {
-        let app_name = self.app_dir_name_stem()?;
         let asset_path_renderer = AssetPathRenderer {
             base_path: self.public_path.clone(),
         };
@@ -88,7 +80,7 @@ impl Handler for Serve {
             &source_filesystem
                 .read_file_contents_string(&PathBuf::from(format!(
                     "{}.desktop",
-                    app_name.to_lowercase()
+                    self.app_name.to_lowercase()
                 )))
                 .await?,
         )?;

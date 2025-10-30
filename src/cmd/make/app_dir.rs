@@ -6,6 +6,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
+use indoc::formatdoc;
 use log::info;
 use tokio::fs;
 
@@ -19,17 +20,6 @@ use crate::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_to;
 use crate::filesystem::Filesystem;
 use crate::filesystem::storage::Storage;
 use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
-
-const APP_RUN: &str = r#"#!/usr/bin/env sh
-
-if [ -z "$1" ]; then
-    echo "Error: Address argument is required" >&2
-    echo "Usage: $0 <address>" >&2
-
-    exit 1
-fi
-
-exec $APPDIR/poet serve $APPDIR --addr "$1""#;
 
 const ICON: &str = r#"<svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="10" height="10" fill="black"/>
@@ -56,6 +46,50 @@ pub struct AppDir {
 impl AppDir {
     fn app_dir_path(&self) -> PathBuf {
         self.output_directory.join(format!("{}.AppDir", self.name))
+    }
+
+    fn render_app_run_file(&self) -> Result<String> {
+        Ok(formatdoc! {
+            r#"
+                #!/usr/bin/env sh
+
+                ADDR=""
+                PUBLIC_PATH=""
+
+                while [ $# -gt 0 ]; do
+                    case $1 in
+                        --addr)
+                            ADDR="$2"
+                            shift 2
+                            ;;
+                        --public-path)
+                            PUBLIC_PATH="$2"
+                            shift 2
+                            ;;
+                        *)
+                            echo "Unknown argument: $1"
+                            echo "Usage: $0 --addr ADDRESS --public-path PATH"
+                            exit 1
+                            ;;
+                    esac
+                done
+
+                if [ -z "$ADDR" ]; then
+                    echo "Error: --addr is required"
+                    echo "Usage: $0 --addr ADDRESS --public-path PATH"
+                    exit 1
+                fi
+
+                if [ -z "$PUBLIC_PATH" ]; then
+                    echo "Error: --public-path is required"
+                    echo "Usage: $0 --addr ADDRESS --public-path PATH"
+                    exit 1
+                fi
+
+                exec $APPDIR/poet serve $APPDIR --addr "$ADDR" --app-name "{name}" --public-path "$PUBLIC_PATH"
+            "#,
+            name = self.name,
+        })
     }
 
     fn render_desktop_file(&self) -> Result<String> {
@@ -110,7 +144,7 @@ impl Handler for AppDir {
 
         let apprun_path = app_dir_path.join("AppRun");
 
-        fs::write(&apprun_path, APP_RUN).await?;
+        fs::write(&apprun_path, self.render_app_run_file()?).await?;
 
         let mut perms = fs::metadata(&apprun_path).await?.permissions();
 

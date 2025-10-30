@@ -5,7 +5,7 @@ use anyhow::Result;
 use log::error;
 use tokio::task::JoinSet;
 
-use crate::cmd::watch::service::Service;
+use crate::cmd::service::Service;
 
 #[derive(Default)]
 pub struct ServiceManager {

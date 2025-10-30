@@ -4,24 +4,23 @@ use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
-use tokio::fs;
 
-use super::Handler;
-use super::value_parser::validate_is_directory;
-use super::value_parser::validate_is_directory_or_create;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::cmd::builds_project::BuildsProject;
+use crate::cmd::handler::Handler;
+use crate::cmd::value_parser::validate_is_directory;
+use crate::cmd::value_parser::validate_is_directory_or_create;
 use crate::compile_shortcodes::compile_shortcodes;
+use crate::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_to;
 use crate::filesystem::Filesystem;
 use crate::filesystem::storage::Storage;
-use crate::filesystem::storage::create_parent_directories::create_parent_directories;
 use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 
 #[derive(Parser)]
-pub struct Generate {
+pub struct StaticPages {
     #[arg(long, value_parser = validate_is_directory_or_create)]
     output_directory: PathBuf,
 
@@ -32,14 +31,14 @@ pub struct Generate {
     source_directory: PathBuf,
 }
 
-impl BuildsProject for Generate {
+impl BuildsProject for StaticPages {
     fn source_directory(&self) -> PathBuf {
         self.source_directory.clone()
     }
 }
 
 #[async_trait(?Send)]
-impl Handler for Generate {
+impl Handler for StaticPages {
     async fn handle(&self) -> Result<()> {
         let source_filesystem = self.source_filesystem();
         let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
@@ -66,17 +65,11 @@ impl Handler for Generate {
 
         info!("Saving generated files in output directory...");
 
-        storage.copy_from(memory_filesystem).await?;
+        storage.copy_project_files_from(memory_filesystem).await?;
 
         info!("Copying assets into output directory...");
 
-        for asset_path in esbuild_metafile.get_output_paths().iter() {
-            let target_path = self.output_directory.join(asset_path);
-
-            create_parent_directories(&target_path).await?;
-
-            fs::copy(asset_path, target_path).await?;
-        }
+        copy_esbuild_metafile_assets_to(esbuild_metafile, &self.output_directory).await?;
 
         Ok(())
     }

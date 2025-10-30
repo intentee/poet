@@ -12,7 +12,7 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
-use crate::cmd::watch::service::Service;
+use crate::cmd::service::Service;
 use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;

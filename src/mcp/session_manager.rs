@@ -17,7 +17,7 @@ fn generate_session_id() -> String {
     format!("poet-{}", Uuid::new_v4())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct SessionManager {
     pub session_storage: Arc<SessionStorage>,
 }

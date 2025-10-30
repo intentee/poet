@@ -14,13 +14,12 @@ pub async fn compile_shortcodes(source_filesystem: Arc<Storage>) -> Result<RhaiT
     info!("Compiling shortcodes...");
 
     let _build_timer = BuildTimer::new();
-    let files = source_filesystem.read_project_files().await?;
     let rhai_template_factory = RhaiTemplateFactory::new(
         source_filesystem.base_directory.clone(),
         PathBuf::from("shortcodes"),
     );
 
-    for file in &files {
+    for file in &source_filesystem.read_project_files().await? {
         if file.kind.is_shortcode() {
             rhai_template_factory.register_component_file(file.clone());
         }

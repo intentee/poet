@@ -42,6 +42,7 @@ impl BuildProjectResultStub {
             changed_since_last_build,
             content_document_linker: self.content_document_linker,
             content_document_sources: self.content_document_sources,
+            esbuild_metafile: self.esbuild_metafile,
             memory_filesystem: self.memory_filesystem,
         }
     }

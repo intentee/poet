@@ -12,7 +12,7 @@ use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
-use crate::cmd::watch::service::Service;
+use crate::cmd::service::Service;
 use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;

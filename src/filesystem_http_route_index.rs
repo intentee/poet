@@ -42,7 +42,6 @@ impl FilesystemHttpRouteIndex {
             self.routes.insert(filename_stripped, file.clone());
         } else if filename == "index.html" {
             self.routes.insert("".to_string(), file.clone());
-            self.routes.insert("/".to_string(), file.clone());
             self.routes.insert("index.html".to_string(), file.clone());
         } else {
             return Err(anyhow!("Unexpected filename: '{filename}'"));

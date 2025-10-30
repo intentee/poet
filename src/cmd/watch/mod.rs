@@ -1,6 +1,5 @@
 mod app_data;
 mod http_route;
-mod respond_with_generated_page_holder;
 mod service;
 mod watch_project_files;
 
@@ -91,9 +90,7 @@ impl Handler for Watch {
         let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
             vec![Arc::new(mcp_resource_provider_content_documents.clone())];
         let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
-        let session_manager = SessionManager {
-            session_storage: Arc::new(Default::default()),
-        };
+        let session_manager: SessionManager = Default::default();
         let mut tool_registry: ToolRegistry = Default::default();
 
         tool_registry.register_owned(SearchTool {

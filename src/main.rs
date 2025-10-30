@@ -1,8 +1,10 @@
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
-use poet::cmd::Handler as _;
-use poet::cmd::generate::Generate;
+use poet::cmd::handler::Handler;
+use poet::cmd::make::app_dir::AppDir;
+use poet::cmd::make::static_pages::StaticPages;
+use poet::cmd::serve::Serve;
 use poet::cmd::watch::Watch;
 
 #[derive(Parser)]
@@ -14,9 +16,35 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generates static pages, prepares MCP resources list
-    Generate(Generate),
+    /// Produce various output formats based on your content files
+    Make {
+        #[command(subcommand)]
+        command: Make,
+    },
+    /// Serves the application, starts MCP server from AppDir (run `poet make app-dir` first)
+    Serve(Serve),
+    /// Starts Poet in watch mode, and built-in MCP server
     Watch(Watch),
+}
+
+#[derive(Subcommand)]
+enum Make {
+    /// Generates AppDir (packageable with AppImageKit)
+    AppDir(AppDir),
+    /// Generates static pages
+    StaticPages(StaticPages),
+}
+
+fn get_handler() -> Option<Box<dyn Handler>> {
+    match Cli::parse().command {
+        Some(Commands::Make { command }) => match command {
+            Make::AppDir(handler) => Some(Box::new(handler)),
+            Make::StaticPages(handler) => Some(Box::new(handler)),
+        },
+        Some(Commands::Serve(handler)) => Some(Box::new(handler)),
+        Some(Commands::Watch(handler)) => Some(Box::new(handler)),
+        None => None,
+    }
 }
 
 #[actix_web::main]
@@ -25,9 +53,9 @@ async fn main() -> Result<()> {
         .filter_module("tantivy", log::LevelFilter::Warn)
         .init();
 
-    match Cli::parse().command {
-        Some(Commands::Generate(handler)) => Ok(handler.handle().await?),
-        Some(Commands::Watch(handler)) => Ok(handler.handle().await?),
-        None => Ok(()),
+    if let Some(handler) = get_handler() {
+        handler.handle().await
+    } else {
+        Ok(())
     }
 }

@@ -1,9 +1,7 @@
 mod app_data;
 mod http_route;
-mod resolve_generated_page;
-mod respond_with_generated_page;
+mod respond_with_generated_page_holder;
 mod service;
-mod service_manager;
 mod watch_project_files;
 
 use std::net::SocketAddr;
@@ -18,20 +16,22 @@ use tokio_util::sync::CancellationToken;
 
 use self::watch_project_files::WatchProjectHandle;
 use self::watch_project_files::watch_project_files;
-use super::Handler;
-use super::value_parser::parse_socket_addr;
-use super::value_parser::validate_is_directory;
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
+use crate::cmd::handler::Handler;
+use crate::cmd::service_manager::ServiceManager;
+use crate::cmd::value_parser::parse_socket_addr;
+use crate::cmd::value_parser::validate_is_directory;
 use crate::cmd::watch::service::esbuild_metafile_reader::EsbuildMetaFileReader;
+use crate::cmd::watch::service::filesystem_http_route_index_builder::FilesystemHttpRouteIndexBuilder;
 use crate::cmd::watch::service::http_server::HttpServer;
 use crate::cmd::watch::service::project_builder::ProjectBuilder;
 use crate::cmd::watch::service::prompt_controller_collection_builder::PromptControllerCollectionBuilder;
 use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
-use crate::cmd::watch::service_manager::ServiceManager;
 use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
+use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
@@ -81,6 +81,7 @@ impl Handler for Watch {
         };
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
         let esbuild_metafile_holder: EsbuildMetaFileHolder = Default::default();
+        let filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder = Default::default();
         let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
             McpResourceProviderContentDocuments(build_project_result_holder.clone());
         let prompt_controller_collection_holder: PromptControllerCollectionHolder =
@@ -110,11 +111,17 @@ impl Handler for Watch {
             source_filesystem: source_filesystem.clone(),
         }));
 
+        service_manager.register_service(Arc::new(FilesystemHttpRouteIndexBuilder {
+            build_project_result_holder: build_project_result_holder.clone(),
+            ctrlc_notifier: ctrlc_notifier.clone(),
+            filesystem_http_route_index_holder: filesystem_http_route_index_holder.clone(),
+        }));
+
         service_manager.register_service(Arc::new(HttpServer {
             addr: self.addr,
             assets_directory: self.assets_directory(),
-            build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
+            filesystem_http_route_index_holder,
             prompt_controller_collection_holder: prompt_controller_collection_holder.clone(),
             resource_list_aggregate: Arc::new(resource_list_providers.into()),
             session_manager: session_manager.clone(),

@@ -1,0 +1,125 @@
+use std::env::consts::ARCH;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use anyhow::Result;
+use async_trait::async_trait;
+use clap::Parser;
+use log::info;
+use tokio::fs;
+
+use crate::app_dir_desktop_entry::AppDirDesktopEntry;
+use crate::assert_valid_desktop_entry_string::assert_valid_desktop_entry_string;
+use crate::cmd::builds_project::BuildsProject;
+use crate::cmd::handler::Handler;
+use crate::cmd::value_parser::validate_is_directory;
+use crate::cmd::value_parser::validate_is_directory_or_create;
+use crate::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_to;
+use crate::filesystem::Filesystem;
+use crate::filesystem::storage::Storage;
+use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
+
+const APP_RUN: &str = r#"#!/usr/bin/env sh
+
+if [ -z "$1" ]; then
+    echo "Error: Address argument is required" >&2
+    echo "Usage: $0 <address>" >&2
+
+    exit 1
+fi
+
+exec $APPDIR/poet serve $APPDIR --addr "$1""#;
+
+const ICON: &str = r#"<svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="10" height="10" fill="black"/>
+</svg>"#;
+
+#[derive(Parser)]
+pub struct AppDir {
+    #[arg(long)]
+    name: String,
+
+    #[arg(long, value_parser = validate_is_directory_or_create)]
+    output_directory: PathBuf,
+
+    #[arg(value_parser = validate_is_directory)]
+    source_directory: PathBuf,
+
+    #[arg(long)]
+    title: String,
+
+    #[arg(long)]
+    version: String,
+}
+
+impl AppDir {
+    fn app_dir_path(&self) -> PathBuf {
+        self.output_directory.join(format!("{}.AppDir", self.name))
+    }
+
+    fn render_desktop_file(&self) -> Result<String> {
+        Ok(AppDirDesktopEntry {
+            name: assert_valid_desktop_entry_string(&self.name)?,
+            poet_version: env!("CARGO_PKG_VERSION").to_string(),
+            site_version: assert_valid_desktop_entry_string(&self.version)?,
+            title: assert_valid_desktop_entry_string(&self.title)?,
+        }
+        .to_string())
+    }
+}
+
+impl BuildsProject for AppDir {
+    fn source_directory(&self) -> PathBuf {
+        self.source_directory.clone()
+    }
+}
+
+#[async_trait(?Send)]
+impl Handler for AppDir {
+    async fn handle(&self) -> Result<()> {
+        let app_dir_path = self.app_dir_path();
+        let source_filesystem = self.source_filesystem();
+        let name_lowercase = self.name.to_lowercase();
+
+        let app_dir_filesystem = Arc::new(Storage {
+            base_directory: app_dir_path.clone(),
+        });
+
+        info!("Copying project files to AppDir...");
+
+        app_dir_filesystem
+            .copy_project_files_from(source_filesystem.clone())
+            .await?;
+        app_dir_filesystem
+            .copy_file_from(
+                source_filesystem.clone(),
+                &PathBuf::from("esbuild-meta.json"),
+            )
+            .await?;
+
+        info!("Copying assets to AppDir...");
+
+        let esbuild_metafile = read_esbuild_metafile_or_default(source_filesystem.clone()).await?;
+
+        copy_esbuild_metafile_assets_to(esbuild_metafile, &app_dir_path).await?;
+
+        info!("Creating AppDir-specific metafiles...");
+
+        fs::create_dir_all(&app_dir_path).await?;
+        fs::write(app_dir_path.join("AppRun"), APP_RUN).await?;
+        fs::write(
+            app_dir_path.join(format!("{name_lowercase}.desktop")),
+            self.render_desktop_file()?,
+        )
+        .await?;
+        fs::write(app_dir_path.join(format!("{name_lowercase}.svg")), ICON).await?;
+
+        info!(
+            "AppDir is ready. You can now run `ARCH={} appimagetool {}` to finish the process (you need to have AppImageKit installed)",
+            ARCH,
+            app_dir_path.display()
+        );
+
+        Ok(())
+    }
+}

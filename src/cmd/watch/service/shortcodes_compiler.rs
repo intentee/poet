@@ -6,7 +6,7 @@ use log::error;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
-use crate::cmd::watch::service::Service;
+use crate::cmd::service::Service;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;

@@ -1,12 +1,10 @@
 mod builds_project;
-pub mod generate;
+pub mod handler;
+pub mod make;
+pub mod serve;
+mod service;
+mod service_manager;
 mod value_parser;
 pub mod watch;
 
-use anyhow::Result;
-use async_trait::async_trait;
-
-#[async_trait(?Send)]
-pub trait Handler {
-    async fn handle(&self) -> Result<()>;
-}
+const STATIC_FILES_PUBLIC_PATH: &str = "assets";

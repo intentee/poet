@@ -9,21 +9,20 @@ use tokio_util::sync::CancellationToken;
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::service::Service;
+use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
+use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
 use crate::holder::Holder as _;
-use crate::search_index::SearchIndex;
-use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
-pub struct SearchIndexBuilder {
+pub struct FilesystemHttpRouteIndexBuilder {
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
-    pub search_index_reader_holder: SearchIndexReaderHolder,
+    pub filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder,
 }
 
-impl SearchIndexBuilder {
-    async fn do_build_search_index(&self) {
+impl FilesystemHttpRouteIndexBuilder {
+    async fn do_build_filesystem_htto_route_index(&self) {
         let BuildProjectResult {
-            content_document_sources,
-            ..
+            memory_filesystem, ..
         } = match self.build_project_result_holder.get().await {
             Some(build_project_result) => build_project_result,
             None => {
@@ -33,24 +32,26 @@ impl SearchIndexBuilder {
             }
         };
 
-        match SearchIndex::create_in_memory(content_document_sources).index() {
-            Err(err) => {
-                error!("Unable to index markdown document sources: {err:#?}");
-            }
-            Ok(search_index_reader) => {
-                self.search_index_reader_holder
-                    .set(Some(Arc::new(search_index_reader)))
-                    .await;
-            }
-        }
+        self.filesystem_http_route_index_holder
+            .set(Some(Arc::new(
+                match FilesystemHttpRouteIndex::from_filesystem(memory_filesystem).await {
+                    Ok(filesystem_http_route_index) => filesystem_http_route_index,
+                    Err(err) => {
+                        error!("Unable to build filesysetm http route index: {err:#?}");
+
+                        return;
+                    }
+                },
+            )))
+            .await;
     }
 }
 
 #[async_trait]
-impl Service for SearchIndexBuilder {
+impl Service for FilesystemHttpRouteIndexBuilder {
     async fn run(&self) -> Result<()> {
         loop {
-            self.do_build_search_index().await;
+            self.do_build_filesystem_htto_route_index().await;
 
             tokio::select! {
                 _ = self.build_project_result_holder.update_notifier.notified() => continue,

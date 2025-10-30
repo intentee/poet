@@ -9,6 +9,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
+use anyhow::anyhow;
 use async_trait::async_trait;
 
 use self::file_entry::FileEntry;
@@ -24,7 +25,22 @@ pub trait Filesystem: Send + Sync {
 
     fn set_file_contents_sync(&self, path: &Path, contents: &str) -> Result<()>;
 
-    async fn copy_from<TFilesystem: Filesystem>(&self, other: Arc<TFilesystem>) -> Result<()> {
+    async fn copy_file_from<TFilesystem: Filesystem>(
+        &self,
+        other: Arc<TFilesystem>,
+        path: &Path,
+    ) -> Result<()> {
+        let other_file_contents = other.read_file_contents_string(path).await?;
+
+        self.set_file_contents(path, &other_file_contents).await?;
+
+        Ok(())
+    }
+
+    async fn copy_project_files_from<TFilesystem: Filesystem>(
+        &self,
+        other: Arc<TFilesystem>,
+    ) -> Result<()> {
         for FileEntry {
             contents,
             relative_path,
@@ -35,6 +51,18 @@ pub trait Filesystem: Send + Sync {
         }
 
         Ok(())
+    }
+
+    async fn read_file_contents_string(&self, path: &Path) -> Result<String> {
+        match self.read_file_contents(path).await? {
+            ReadFileContentsResult::Directory => {
+                return Err(anyhow!("File is a directory: '{}'", path.display()));
+            }
+            ReadFileContentsResult::Found { contents } => Ok(contents),
+            ReadFileContentsResult::NotFound => {
+                return Err(anyhow!("File not found: '{}'", path.display()));
+            }
+        }
     }
 }
 

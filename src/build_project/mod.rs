@@ -109,6 +109,10 @@ pub async fn build_project(
         source_filesystem,
     }: BuildProjectParams,
 ) -> Result<BuildProjectResultStub> {
+    info!(
+        "Building project in {}...",
+        source_filesystem.base_directory.display()
+    );
     info!("Processing content files...");
 
     let _build_timer = BuildTimer::new();

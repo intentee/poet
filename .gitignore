@@ -1,3 +1,5 @@
+/*.AppDir
+/*.AppImage
 /assets
 /esbuild-meta.json
 /node_modules

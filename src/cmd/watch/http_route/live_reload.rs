@@ -1,5 +1,3 @@
-use std::path::Path as StdPath;
-
 use actix_web::Error;
 use actix_web::HttpRequest;
 use actix_web::Responder;
@@ -15,10 +13,8 @@ use log::debug;
 use log::error;
 use log::warn;
 
-use crate::build_project::build_project_result::BuildProjectResult;
 use crate::cmd::watch::app_data::AppData;
-use crate::cmd::watch::resolve_generated_page::resolve_generated_page;
-use crate::filesystem::file_entry_stub::FileEntryStub;
+use crate::filesystem::file_entry::FileEntry;
 use crate::holder::Holder as _;
 
 pub fn register(cfg: &mut web::ServiceConfig) {
@@ -36,32 +32,24 @@ async fn respond(
 
     rt::spawn(async move {
         let path_string = path.into_inner();
-        let std_path = StdPath::new(&path_string);
 
         loop {
-            match app_data.build_project_result_holder.get().await {
-                Some(BuildProjectResult {
-                    memory_filesystem, ..
-                }) => match resolve_generated_page(memory_filesystem, std_path, true).await {
-                    Ok(Some(FileEntryStub {
-                        contents,
-                        relative_path: _,
-                    })) => {
-                        if let Err(err) = session.text(contents).await {
-                            debug!("Unable to send live reload notification: {err}");
+            match app_data.filesystem_http_route_index_holder.get().await {
+                Some(filesystem_http_route_index) => {
+                    match filesystem_http_route_index.get_file_entry_for_path(&path_string) {
+                        Some(FileEntry { contents, .. }) => {
+                            if let Err(err) = session.text(contents).await {
+                                debug!("Unable to send live reload notification: {err}");
 
+                                return;
+                            }
+                        }
+                        None => {
+                            warn!("Unable to get file info for live reload: {path_string}");
                             return;
                         }
                     }
-                    Ok(None) => {
-                        warn!("Unable to get file info for live reload: {path_string}");
-                        return;
-                    }
-                    Err(err) => {
-                        error!("Unable to resolve generated file path: {err}");
-                        return;
-                    }
-                },
+                }
                 None => {
                     warn!("Server is still starting up, or there are no successful builds yet")
                 }
@@ -84,7 +72,7 @@ async fn respond(
                         }
                     }
                 },
-                _ = app_data.build_project_result_holder.update_notifier.notified() => {}
+                _ = app_data.filesystem_http_route_index_holder.update_notifier.notified() => {}
             }
         }
     });

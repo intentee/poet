@@ -12,10 +12,11 @@ use log::error;
 use tokio::fs::create_dir_all;
 use tokio_util::sync::CancellationToken;
 
-use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::cmd::STATIC_FILES_PUBLIC_PATH;
+use crate::cmd::service::Service;
 use crate::cmd::watch::app_data::AppData;
 use crate::cmd::watch::http_route;
-use crate::cmd::watch::service::Service;
+use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
 use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use crate::mcp::resource_list_aggregate::ResourceListAggregate;
@@ -23,13 +24,11 @@ use crate::mcp::session_manager::SessionManager;
 use crate::mcp::tool_registry::ToolRegistry;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 
-const STATIC_FILES_PUBLIC_PATH: &str = "assets";
-
 pub struct HttpServer {
     pub addr: SocketAddr,
     pub assets_directory: PathBuf,
-    pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
+    pub filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder,
     pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
     pub resource_list_aggregate: Arc<ResourceListAggregate>,
     pub session_manager: SessionManager,
@@ -54,7 +53,7 @@ impl Service for HttpServer {
             }
 
             let app_data = Data::new(AppData {
-                build_project_result_holder: self.build_project_result_holder.clone(),
+                filesystem_http_route_index_holder: self.filesystem_http_route_index_holder.clone(),
             });
             let assets_directory = self.assets_directory.clone();
             let ctrlc_notifier = self.ctrlc_notifier.clone();

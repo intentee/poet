@@ -20,6 +20,8 @@ fn default_render() -> bool {
 pub struct ContentDocumentFrontMatter {
     pub description: String,
     #[serde(default)]
+    pub feed: bool,
+    #[serde(default)]
     pub id: Option<String>,
     pub layout: String,
     #[serde(default, rename = "collection")]
@@ -38,6 +40,7 @@ impl ContentDocumentFrontMatter {
     #[cfg(test)]
     pub fn mock(name: &str) -> Self {
         Self {
+            feed: false,
             description: "".to_string(),
             id: None,
             last_updated_at: None,
@@ -54,6 +57,10 @@ impl ContentDocumentFrontMatter {
 impl ContentDocumentFrontMatter {
     fn rhai_description(&mut self) -> String {
         self.description.clone()
+    }
+
+    fn rhai_feed(&mut self) -> bool {
+        self.feed.clone()
     }
 
     fn rhai_props(&mut self) -> Map {
@@ -74,6 +81,8 @@ impl CustomType for ContentDocumentFrontMatter {
         builder
             .with_name("ContentDocumentFrontMatter")
             .with_get("description", Self::rhai_description)
+            .with_get("feed", Self::rhai_feed)
+
             .with_get("props", Self::rhai_props)
             .with_get("render", Self::rhai_render)
             .with_get("title", Self::rhai_title);

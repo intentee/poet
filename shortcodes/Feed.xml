@@ -1,0 +1,42 @@
+fn render_feed(context, node, level, nested) {
+  component {
+    <item>
+        <title>{node.reference.front_matter.title }</title>
+        <pubDate>{node.reference.front_matter.date}</pubDate>
+        <author>{node.reference.front_matter.author}</author>
+        <link>{context.link_to(node.reference.basename)}</link>
+        <guid>{context.link_to(node.reference.basename)}</guid>
+        <description xml:base={context.link_to(node.reference.basename)}>{node.reference.front_matter.description}</description>
+    </item>
+  }
+}
+
+fn template(context, props, content) {
+  let menu_hierarchy = context.primary_collection.hierarchy;
+
+  component {
+    <?xml version="1.0" encoding="UTF-8"?>
+    <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+        <channel>
+          <title>{{ context.front_matter.title }}</title>
+          <link>
+            {%- if section -%}
+              {{ section.permalink | escape_xml | safe }}
+            {%- else -%}
+              {{ config.base_url | escape_xml | safe }}
+            {%- endif -%}
+          </link>
+          <description>{{ config.description }}</description>
+          <generator>Zola</generator>
+          <language>{{ lang }}</language>
+          <atom:link href="{{ feed_url | safe }}" rel="self" type="application/rss+xml"/>
+          {% if last_updated is defined %}<lastBuildDate>{{ last_updated | date(format="%a, %d %b %Y %H:%M:%S %z") }}</lastBuildDate>{% endif %}
+
+          {render_hierarchy(
+            menu_hierarchy,
+            render_menu.curry(context)
+          )}
+        </channel>
+    </rss>
+  }
+}

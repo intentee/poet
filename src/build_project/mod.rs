@@ -35,6 +35,7 @@ use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_source::ContentDocumentSource;
 use crate::document_error_collection::DocumentErrorCollection;
+use crate::eval_content_document_feed::eval_content_document_feed;
 use crate::eval_content_document_mdast::eval_content_document_mdast;
 use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
@@ -44,7 +45,7 @@ use crate::string_to_mdast::string_to_mdast;
 
 fn render_document<'render>(
     ContentDocumentRenderingContext {
-        asset_path_renderer,
+        asset_manager,
         available_collections,
         content_document:
             ContentDocument {
@@ -58,14 +59,13 @@ fn render_document<'render>(
             },
         content_document_collections_ranked,
         content_document_linker,
-        esbuild_metafile,
         is_watching,
         rhai_template_renderer,
         syntax_set,
     }: ContentDocumentRenderingContext<'render>,
 ) -> Result<String> {
     let component_context = ContentDocumentComponentContext {
-        asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
+        asset_manager,
         available_collections,
         content_document_collections_ranked,
         content_document_linker,
@@ -198,7 +198,7 @@ pub async fn build_project(
             error_collection.register_error(
                 reference.basename().to_string(),
                 anyhow!(
-                    "Document does belong to the collection it claims to be it's primary collection"
+                    "Document does not belong to the collection it claims to be it's primary collection"
                 ),
             );
         }
@@ -259,12 +259,14 @@ pub async fn build_project(
     let content_document_reference_collection_dashmap: DashMap<String, ContentDocumentReference> =
         Default::default();
     let content_document_basename_by_id_arc = Arc::new(content_document_basename_by_id);
-    let content_document_by_basename_arc = Arc::new(content_document_by_basename);
+    let content_document_by_basename_arc = Arc::new(content_document_by_basename.clone());
     let content_document_collections_ranked_arc = Arc::new(content_document_collections_ranked);
     let content_document_linker = ContentDocumentLinker {
         content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
         content_document_by_basename: content_document_by_basename_arc.clone(),
     };
+    let asset_manager =
+        AssetManager::from_esbuild_metafile(esbuild_metafile.clone(), asset_path_renderer.clone());
 
     content_document_list
         .par_iter()
@@ -282,9 +284,8 @@ pub async fn build_project(
         })
         .for_each(|content_document| {
             match render_document(ContentDocumentRenderingContext {
-                asset_path_renderer: asset_path_renderer.clone(),
+                asset_manager: asset_manager.clone(),
                 available_collections: available_collections_arc.clone(),
-                esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,
                 content_document,
                 content_document_collections_ranked: content_document_collections_ranked_arc
@@ -322,6 +323,29 @@ pub async fn build_project(
                     .register_error(content_document.reference.basename().to_string(), err),
             }
         });
+
+    for (_, document) in &content_document_by_basename {
+        if let Some(feed_name) = &document.front_matter.feed {
+            let mut feed_document_collections: Vec<ContentDocumentReference> = Vec::new();
+
+            content_document_by_basename
+                .iter()
+                .filter(|(feed_basename, _)| {
+                    feed_basename.is_child_from(document.basename().get_collection_name())
+                })
+                .for_each(|(_, reference)| {
+                    feed_document_collections.push(reference.clone());
+                });
+
+            eval_content_document_feed(
+                feed_document_collections,
+                feed_name.clone(),
+                memory_filesystem.clone(),
+                asset_manager.clone(),
+                &error_collection,
+            );
+        }
+    }
 
     if error_collection.is_empty() {
         Ok(BuildProjectResultStub {

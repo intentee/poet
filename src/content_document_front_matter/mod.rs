@@ -18,11 +18,16 @@ fn default_render() -> bool {
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentDocumentFrontMatter {
+    pub author: String,
+    #[serde(default)]
+    pub date: String,
     pub description: String,
     #[serde(default)]
-    pub feed: bool,
+    pub feed: Option<String>,
     #[serde(default)]
     pub id: Option<String>,
+    #[serde(default)]
+    pub image: String,
     pub layout: String,
     #[serde(default, rename = "collection")]
     pub collections: CollectionPlacementList,
@@ -40,9 +45,12 @@ impl ContentDocumentFrontMatter {
     #[cfg(test)]
     pub fn mock(name: &str) -> Self {
         Self {
-            feed: false,
+            author: "".to_string(),
+            date: "".to_string(),
             description: "".to_string(),
+            feed: None,
             id: None,
+            image: "".to_string(),
             last_updated_at: None,
             layout: "SomeLayout".to_string(),
             collections: Default::default(),
@@ -55,12 +63,20 @@ impl ContentDocumentFrontMatter {
 }
 
 impl ContentDocumentFrontMatter {
+    fn rhai_author(&mut self) -> String {
+        self.author.clone()
+    }
+
+    fn rhai_date(&mut self) -> String {
+        self.date.clone()
+    }
+
     fn rhai_description(&mut self) -> String {
         self.description.clone()
     }
 
-    fn rhai_feed(&mut self) -> bool {
-        self.feed.clone()
+    fn rhai_image(&mut self) -> String {
+        self.image.clone()
     }
 
     fn rhai_props(&mut self) -> Map {
@@ -80,9 +96,10 @@ impl CustomType for ContentDocumentFrontMatter {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("ContentDocumentFrontMatter")
+            .with_get("author", Self::rhai_author)
+            .with_get("date", Self::rhai_date)
             .with_get("description", Self::rhai_description)
-            .with_get("feed", Self::rhai_feed)
-
+            .with_get("image", Self::rhai_image)
             .with_get("props", Self::rhai_props)
             .with_get("render", Self::rhai_render)
             .with_get("title", Self::rhai_title);

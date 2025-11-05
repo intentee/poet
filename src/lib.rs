@@ -28,6 +28,7 @@ mod document_error_collection;
 mod esbuild_metafile_holder;
 mod escape_html;
 mod escape_html_attribute;
+mod eval_content_document_feed;
 mod eval_content_document_mdast;
 mod eval_mdx_element;
 mod eval_prompt_document_mdast;

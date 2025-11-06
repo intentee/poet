@@ -337,6 +337,7 @@ pub async fn build_project(
                     feed_document_collections.push(reference.clone());
                 });
 
+            info!("Processing feed files...");
             eval_content_document_feed(
                 parent_document,
                 feed_document_collections,

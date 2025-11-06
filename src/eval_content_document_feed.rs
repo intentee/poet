@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::anyhow;
@@ -6,6 +6,7 @@ use anyhow::{Error, Result};
 use atom_syndication::{Content, Entry, Feed, FixedDateTime, Generator, Link, Person, Text};
 use chrono::Utc;
 use chrono::{DateTime, NaiveDate};
+use log::warn;
 
 use crate::asset_manager::AssetManager;
 use crate::content_document_reference::ContentDocumentReference;
@@ -88,7 +89,7 @@ fn generate_entry(
         .canonical_link()
         .map_err(|err| anyhow!("Error while getting canonical link: {err}"))?;
 
-    let date = get_date(reference.clone().front_matter.date)?;
+    let date = get_date(reference.clone().front_matter.date, &reference.basename_path)?;
 
     let mut links = vec![Link {
         href: link.clone(),
@@ -117,6 +118,10 @@ fn generate_entry(
         ..Default::default()
     });
 
+    if reference.front_matter.author.clone() == "unknown".to_string() {
+        warn!("No author found for document: {:?}", reference.basename_path);
+    }
+
     let authors = vec![Person {
         name: reference.front_matter.author.clone(),
         email: None,
@@ -135,8 +140,9 @@ fn generate_entry(
     })
 }
 
-fn get_date(date: String) -> Result<DateTime<Utc>, Error> {
+fn get_date(date: String, basename_path: &PathBuf) -> Result<DateTime<Utc>, Error> {
     if date.trim().is_empty() {
+        warn!("No date found for document: {:?}", basename_path);
         return Ok(Utc::now());
     }
 

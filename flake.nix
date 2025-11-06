@@ -36,11 +36,12 @@
         ];
       };
 
-      devShells.${system}.default = pkgs.mkShell {
-        buildInputs = [
-          toolchain
-          pkgs.pkg-config
-        ];
-      };
+    devShells.${system}.default = pkgs.mkShell {
+      buildInputs = [
+        toolchain
+        pkgs.pkg-config
+        self.packages.${system}.default
+      ];
+    };
     };
 }

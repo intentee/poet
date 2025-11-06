@@ -15,9 +15,14 @@ fn default_render() -> bool {
     true
 }
 
+fn default_author() -> String {
+    "unknown".to_string()
+}
+
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentDocumentFrontMatter {
+    #[serde(default = "default_author")]
     pub author: String,
     #[serde(default)]
     pub date: String,

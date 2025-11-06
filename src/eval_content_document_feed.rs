@@ -3,14 +3,7 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use anyhow::{Error, Result};
-use atom_syndication::Content;
-use atom_syndication::Entry;
-use atom_syndication::Feed;
-use atom_syndication::FixedDateTime;
-use atom_syndication::Generator;
-use atom_syndication::Link;
-use atom_syndication::Person;
-use atom_syndication::Text;
+use atom_syndication::{Content, Entry, Feed, FixedDateTime, Generator, Link, Person, Text};
 use chrono::Utc;
 use chrono::{DateTime, NaiveDate};
 
@@ -23,30 +16,33 @@ use crate::filesystem::memory::Memory;
 const POET_WEBSITE_URL: &str = "https://poet.intentee.com";
 
 pub fn eval_content_document_feed(
+    parent_document: &ContentDocumentReference,
     document_collection: Vec<ContentDocumentReference>,
     feed_name: String,
     memory_filesystem: Arc<Memory>,
     asset_manager: AssetManager,
     error_collection: &DocumentErrorCollection,
 ) -> () {
-    let entries: Vec<Entry> = document_collection
-        .iter()
-        .filter_map(|reference| Some(generate_entry(reference.clone()).ok()?))
-        .collect();
+    let mut entries: Vec<Entry> = Vec::new();
+    let feed_path = format!(
+        "{}/{}",
+        parent_document.basename().get_collection_name(),
+        feed_name
+    );
 
-    if let Some(reference) = document_collection.first() {
-        let feed = generate_feed(reference.clone(), entries, asset_manager);
+    for document in document_collection {
+        match generate_entry(document.clone(), &asset_manager) {
+            Ok(entry) => entries.push(entry),
+            Err(err) => error_collection.register_error(feed_path.clone(), err),
+        };
+    }
 
-        if let Err(err) = memory_filesystem.set_file_contents_sync(
-            &Path::new(&format!(
-                "{}/{}",
-                reference.basename().get_collection_name(),
-                feed_name
-            )),
-            &feed.to_string(),
-        ) {
-            error_collection.register_error(feed_name, err);
-        }
+    let feed = generate_feed(parent_document.clone(), entries, asset_manager);
+
+    if let Err(err) =
+        memory_filesystem.set_file_contents_sync(&Path::new(&feed_path), &feed.to_string())
+    {
+        error_collection.register_error(feed_name, err);
     }
 }
 
@@ -65,15 +61,17 @@ fn generate_feed(
         version: None,
     };
 
+    let authors = vec![Person {
+        name: reference.front_matter.author.to_string(),
+        email: None,
+        uri: None,
+    }];
+
     Feed {
         title: Text::from(reference.clone().front_matter.title),
         id: reference.basename().get_collection_name(),
         updated: FixedDateTime::from(Utc::now()),
-        authors: vec![Person {
-            name: "Feed Generator".to_string(),
-            email: None,
-            uri: None,
-        }],
+        authors,
         generator: Some(generator),
         icon: Some(image_url.clone()),
         logo: Some(image_url),
@@ -82,27 +80,36 @@ fn generate_feed(
     }
 }
 
-fn generate_entry(reference: ContentDocumentReference) -> Result<Entry, Error> {
+fn generate_entry(
+    reference: ContentDocumentReference,
+    asset_manager: &AssetManager,
+) -> Result<Entry, Error> {
     let link = reference
         .canonical_link()
         .map_err(|err| anyhow!("Error while getting canonical link: {err}"))?;
 
-    let naive_date =
-        NaiveDate::parse_from_str(&reference.front_matter.date, "%d/%m/%Y").map_err(|err| {
-            anyhow!(
-                "Invalid date format '{}': {err}",
-                reference.front_matter.date
-            )
-        })?;
+    let date = get_date(reference.clone().front_matter.date)?;
 
-    let date =
-        DateTime::<Utc>::from_naive_utc_and_offset(naive_date.and_hms_opt(0, 0, 0).unwrap(), Utc);
-
-    let links = vec![Link {
+    let mut links = vec![Link {
         href: link.clone(),
         rel: "alternate".to_string(),
         ..Default::default()
     }];
+
+    if !reference.clone().front_matter.image.trim().is_empty() {
+        let image_url = asset_manager
+            .file(&reference.clone().front_matter.image)
+            .unwrap_or_default();
+
+        let mime_type = mime_guess::from_path(&image_url).first_or_octet_stream();
+
+        links.push(Link {
+            href: image_url,
+            rel: "enclosure".to_string(),
+            mime_type: Some(mime_type.to_string()),
+            ..Default::default()
+        });
+    }
 
     let content = Some(Content {
         value: Some(reference.front_matter.description.clone()),
@@ -126,4 +133,19 @@ fn generate_entry(reference: ContentDocumentReference) -> Result<Entry, Error> {
         links,
         ..Default::default()
     })
+}
+
+fn get_date(date: String) -> Result<DateTime<Utc>, Error> {
+    if date.trim().is_empty() {
+        return Ok(Utc::now());
+    }
+
+    let naive_date = NaiveDate::parse_from_str(&date, "%d/%m/%Y")
+        .map_err(|err| anyhow!("Invalid date format '{}': {err}", date))?;
+
+    let time = naive_date
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| anyhow!("Failed to create timestamp from date '{}'", date))?;
+
+    Ok(DateTime::<Utc>::from_naive_utc_and_offset(time, Utc))
 }

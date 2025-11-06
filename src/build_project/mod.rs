@@ -324,20 +324,21 @@ pub async fn build_project(
             }
         });
 
-    for (_, document) in &content_document_by_basename {
-        if let Some(feed_name) = &document.front_matter.feed {
+    for (_, parent_document) in &content_document_by_basename {
+        if let Some(feed_name) = &parent_document.front_matter.feed {
             let mut feed_document_collections: Vec<ContentDocumentReference> = Vec::new();
 
             content_document_by_basename
                 .iter()
                 .filter(|(feed_basename, _)| {
-                    feed_basename.is_child_from(document.basename().get_collection_name())
+                    feed_basename.is_child_from(parent_document.basename().get_collection_name())
                 })
                 .for_each(|(_, reference)| {
                     feed_document_collections.push(reference.clone());
                 });
 
             eval_content_document_feed(
+                parent_document,
                 feed_document_collections,
                 feed_name.clone(),
                 memory_filesystem.clone(),

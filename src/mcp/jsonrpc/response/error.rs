@@ -10,10 +10,6 @@ const ERROR_INVALID_REQUEST: i32 = -32600;
 const ERROR_PARSE_ERROR: i32 = -32700;
 const ERROR_RESOURCE_NOT_FOUND: i32 = -32002;
 
-// pub const ERROR_METHOD_NOT_FOUND: i32 = -32601;
-// pub const ERROR_SERVER_ERROR_RANGE_MIN: i32 = -32099;
-// pub const ERROR_SERVER_ERROR_RANGE_MAX: i32 = -32000;
-
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourceNotFound {

@@ -31,6 +31,7 @@ pub struct ProjectBuilder {
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
     pub session_manager: SessionManager,
+    pub generate_sitemap: bool,
     pub source_filesystem: Arc<Storage>,
 }
 
@@ -60,6 +61,7 @@ impl ProjectBuilder {
             generated_page_base_path: self.generated_page_base_path.clone(),
             is_watching: true,
             rhai_template_renderer,
+            generate_sitemap: self.generate_sitemap,
             source_filesystem: self.source_filesystem.clone(),
         })
         .await

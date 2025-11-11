@@ -7,7 +7,6 @@ mod content_document_rendering_context;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::env;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -17,7 +16,6 @@ use anyhow::anyhow;
 use dashmap::DashMap;
 use log::debug;
 use log::info;
-use log::warn;
 use rayon::prelude::*;
 use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
@@ -27,7 +25,6 @@ use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
 use crate::build_timer::BuildTimer;
-use crate::configuration::parse_configuration_file;
 use crate::content_document::ContentDocument;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_collection::ContentDocumentCollection;
@@ -44,8 +41,7 @@ use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
-use crate::generate_robot::generate_robots;
-use crate::generate_sitemap::generate_sitemap;
+use crate::generate_sitemap::create_sitemap;
 use crate::string_to_mdast::string_to_mdast;
 
 fn render_document<'render>(
@@ -112,6 +108,7 @@ pub async fn build_project(
         generated_page_base_path,
         is_watching,
         rhai_template_renderer,
+        generate_sitemap,
         source_filesystem,
     }: BuildProjectParams,
 ) -> Result<BuildProjectResultStub> {
@@ -329,53 +326,25 @@ pub async fn build_project(
             }
         });
 
-    let config_path = match env::var("CONFIG_FILE") {
-        Ok(path) => path,
-        Err(_) => "./config.toml".to_string(),
-    };
+    if generate_sitemap {
+        info!("Building sitemap");
 
-    info!("Parsing configuration file");
-
-    match parse_configuration_file(&config_path) {
-        Ok(configuration) => {
-            if configuration.sitemap {
-                info!("Building Sitemap");
-
-                match generate_sitemap(
-                    &asset_path_renderer.base_path,
-                    content_document_by_basename.values(),
-                ) {
-                    Ok(sitemap) => {
-                        if let Err(err) = memory_filesystem
-                            .set_file_contents_sync(&Path::new("sitemap.xml"), &sitemap)
-                        {
-                            error_collection.register_error(config_path.clone(), err);
-                        }
-                    }
-                    Err(err) => {
-                        error_collection.register_error("sitemap.xml".to_string(), err);
-                    }
+        match create_sitemap(
+            &asset_path_renderer.base_path,
+            content_document_by_basename.values(),
+        ) {
+            Ok(sitemap) => {
+                if let Err(err) =
+                    memory_filesystem.set_file_contents_sync(&Path::new("sitemap.xml"), &sitemap)
+                {
+                    error_collection.register_error("sitemap.xml".to_string(), err);
                 }
             }
-
-            if configuration.robots {
-                info!("Building Robots");
-                match generate_robots(asset_path_renderer.base_path) {
-                    Ok(robots) => {
-                        if let Err(err) = memory_filesystem
-                            .set_file_contents_sync(&Path::new("robots.txt"), &robots)
-                        {
-                            error_collection.register_error(config_path, err);
-                        }
-                    }
-                    Err(err) => error_collection.register_error("robots.txt".to_string(), err),
-                };
+            Err(err) => {
+                error_collection.register_error("sitemap.xml".to_string(), err);
             }
         }
-        Err(err) => warn!(
-            "Could not parse configuraton file {config_path}: {err}. Make sure it exists and is a valid TOML document"
-        ),
-    };
+    }
 
     if error_collection.is_empty() {
         Ok(BuildProjectResultStub {

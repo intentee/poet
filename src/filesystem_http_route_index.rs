@@ -29,7 +29,7 @@ impl FilesystemHttpRouteIndex {
         Ok(this)
     }
 
-    pub fn register_file(&self, file: FileEntry) -> Result<()> {
+    fn register_file(&self, file: FileEntry) -> Result<()> {
         let filename = file.relative_path.to_string_lossy().to_string();
 
         if filename.ends_with("/index.html") {
@@ -43,6 +43,8 @@ impl FilesystemHttpRouteIndex {
         } else if filename == "index.html" {
             self.routes.insert("".to_string(), file.clone());
             self.routes.insert("index.html".to_string(), file.clone());
+        } else if filename == "sitemap.xml" {
+            self.routes.insert(filename, file.clone());
         } else {
             return Err(anyhow!("Unexpected filename: '{filename}'"));
         }

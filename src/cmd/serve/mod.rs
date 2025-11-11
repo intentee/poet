@@ -60,6 +60,9 @@ pub struct Serve {
 
     #[arg(long)]
     public_path: String,
+
+    #[arg(long, default_value = "false")]
+    sitemap: bool,
 }
 
 impl BuildsProject for Serve {
@@ -114,6 +117,7 @@ impl Handler for Serve {
             generated_page_base_path: self.public_path.clone(),
             is_watching: false,
             rhai_template_renderer: rhai_template_renderer.clone(),
+            generate_sitemap: self.sitemap,
             source_filesystem: source_filesystem.clone(),
         })
         .await?

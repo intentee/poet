@@ -6,7 +6,7 @@ use sitemap_rs::url_set::UrlSet;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_reference::ContentDocumentReference;
 
-pub fn generate_sitemap(
+pub fn create_sitemap(
     base_url: &String,
     content_document_by_basename: std::collections::hash_map::Values<
         '_,

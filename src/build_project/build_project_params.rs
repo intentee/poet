@@ -12,5 +12,6 @@ pub struct BuildProjectParams {
     pub generated_page_base_path: String,
     pub is_watching: bool,
     pub rhai_template_renderer: RhaiTemplateRenderer,
+    pub generate_sitemap: bool,
     pub source_filesystem: Arc<Storage>,
 }

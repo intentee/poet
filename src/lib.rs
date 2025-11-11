@@ -39,6 +39,7 @@ mod find_front_matter_in_mdast;
 mod find_table_of_contents_in_mdast;
 mod find_text_content_in_mdast;
 mod flexible_datetime;
+mod generate_sitemap;
 mod holder;
 mod is_external_link;
 mod is_valid_desktop_entry_string;

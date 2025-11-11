@@ -2160,6 +2160,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "sitemap-rs",
  "slug",
  "syntect",
  "tantivy",
@@ -2662,6 +2663,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2a4719bff48cee6b39d12c020eeb490953ad2443b7055bd0b21fca26bd8c28b"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "sitemap-rs"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9973bbcfa8fb93f9bee6625b6bfbabcc918f734034d229c18642dd870ac6b2df"
+dependencies = [
+ "chrono",
+ "xml-builder",
 ]
 
 [[package]]
@@ -3617,6 +3628,12 @@ name = "writeable"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea2f10b9bb0928dfb1b42b65e1f9e36f7f54dbdf08457afefb38afcdec4fa2bb"
+
+[[package]]
+name = "xml-builder"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c023e38161c176b6ed516e2c398acd755cd19983661eff519b811c01646e10f"
 
 [[package]]
 name = "yaml-rust"

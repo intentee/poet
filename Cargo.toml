@@ -46,6 +46,7 @@ rhai = { package="poet-rhai", version="0.2.0", features = ["internals", "metadat
 schemars = "1.0.4"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.145"
+sitemap-rs = "0.3.0"
 slug = "0.1.6"
 syntect = "5.2.0"
 tantivy = "0.25.0"

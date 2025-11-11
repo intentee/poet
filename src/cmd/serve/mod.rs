@@ -10,9 +10,9 @@ use actix_web::App;
 use actix_web::HttpServer;
 use actix_web::web::Data;
 use anyhow::Result;
-use indoc::formatdoc;
 use async_trait::async_trait;
 use clap::Parser;
+use indoc::formatdoc;
 use log::info;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
@@ -60,6 +60,9 @@ pub struct Serve {
 
     #[arg(long)]
     public_path: String,
+
+    #[arg(long, default_value = "false")]
+    sitemap: bool,
 }
 
 impl BuildsProject for Serve {
@@ -114,6 +117,7 @@ impl Handler for Serve {
             generated_page_base_path: self.public_path.clone(),
             is_watching: false,
             rhai_template_renderer: rhai_template_renderer.clone(),
+            generate_sitemap: self.sitemap,
             source_filesystem: source_filesystem.clone(),
         })
         .await?

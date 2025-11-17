@@ -67,6 +67,7 @@ fn find_headings_in_mdast(
                     component_context,
                     rhai_template_renderer,
                     syntax_set,
+                    &"".to_string(),
                 )?,
                 depth: *depth as i64,
                 id: mdast_children_to_heading_id(children)?,

@@ -40,6 +40,7 @@ use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
+use crate::render_og_content::render_og_content;
 use crate::string_to_mdast::string_to_mdast;
 
 fn render_document<'render>(
@@ -64,8 +65,10 @@ fn render_document<'render>(
         syntax_set,
     }: ContentDocumentRenderingContext<'render>,
 ) -> Result<String> {
+    let asset_manager = AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer);
+
     let component_context = ContentDocumentComponentContext {
-        asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
+        asset_manager: asset_manager.clone(),
         available_collections,
         content_document_collections_ranked,
         content_document_linker,
@@ -84,11 +87,14 @@ fn render_document<'render>(
 
     let component_context_with_toc = component_context.with_table_of_contents(table_of_contents);
 
+    let og_content = render_og_content(reference.clone(), asset_manager)?;
+
     let layout_content = eval_content_document_mdast(
         mdast,
         &component_context_with_toc,
         rhai_template_renderer,
         syntax_set,
+        &og_content,
     )?;
 
     rhai_template_renderer.render(
@@ -269,7 +275,7 @@ pub async fn build_project(
     content_document_list
         .par_iter()
         .filter(|content_document| {
-            if !content_document.reference.front_matter.render {
+            if !content_document.reference.front_matter.clone().render {
                 debug!(
                     "Document will not be rendered: {}",
                     content_document.reference.basename()

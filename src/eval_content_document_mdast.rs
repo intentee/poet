@@ -46,6 +46,7 @@ pub fn eval_content_document_children(
     component_context: &ContentDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
+    og_content: &String,
 ) -> Result<String> {
     let mut content = String::new();
 
@@ -55,6 +56,7 @@ pub fn eval_content_document_children(
             component_context,
             rhai_template_renderer,
             syntax_set,
+            &og_content,
         )?);
     }
 
@@ -66,6 +68,7 @@ pub fn eval_content_document_mdast(
     component_context: &ContentDocumentComponentContext,
     rhai_template_renderer: &RhaiTemplateRenderer,
     syntax_set: &SyntaxSet,
+    og_content: &String,
 ) -> Result<String> {
     let mut result = String::new();
 
@@ -77,6 +80,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                og_content,
             )?);
             result.push_str("</blockquote>");
         }
@@ -158,6 +162,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                &og_content,
             )?);
             result.push_str("</del>");
         }
@@ -168,6 +173,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                &og_content,
             )?);
             result.push_str("</em>");
         }
@@ -202,6 +208,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                &og_content,
             )?);
             result.push_str(&format!("</{}>", tag));
         }
@@ -266,6 +273,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                &og_content,
             )?);
             result.push_str("</a>");
         }
@@ -286,6 +294,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                &result,
             )?);
 
             if *ordered {
@@ -301,6 +310,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                &og_content,
             )?);
             result.push_str("</li>");
         }
@@ -339,6 +349,7 @@ pub fn eval_content_document_mdast(
                     component_context,
                     rhai_template_renderer,
                     syntax_set,
+                    og_content,
                 )?,
                 name,
                 rhai_template_renderer,
@@ -351,15 +362,18 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                og_content,
             )?);
             result.push_str("</p>");
         }
         Node::Root(Root { children, .. }) => {
+            result.push_str(og_content);
             result.push_str(&eval_content_document_children(
                 children,
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                og_content,
             )?);
         }
         Node::Strong(Strong { children, .. }) => {
@@ -369,6 +383,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                og_content,
             )?);
             result.push_str("</strong>");
         }
@@ -379,6 +394,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                og_content,
             )?);
             result.push_str("</table>");
         }
@@ -389,6 +405,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                og_content,
             )?);
             result.push_str("</td>");
         }
@@ -399,6 +416,7 @@ pub fn eval_content_document_mdast(
                 component_context,
                 rhai_template_renderer,
                 syntax_set,
+                og_content,
             )?);
             result.push_str("</tr>");
         }

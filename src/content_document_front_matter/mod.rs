@@ -34,6 +34,8 @@ pub struct ContentDocumentFrontMatter {
     #[serde(default, rename = "collection")]
     pub collections: CollectionPlacementList,
     // pub excerpts: Vec<Excerpt>,
+    #[serde(default)]
+    pub image: String,
     #[serde(default, with = "crate::flexible_datetime")]
     pub last_updated_at: Option<DateTime<Utc>>,
     pub primary_collection: Option<String>,
@@ -53,6 +55,7 @@ impl ContentDocumentFrontMatter {
             last_updated_at: None,
             layout: "SomeLayout".to_string(),
             collections: Default::default(),
+            image: "".to_string(),
             primary_collection: None,
             props: Default::default(),
             render: true,
@@ -64,6 +67,10 @@ impl ContentDocumentFrontMatter {
 impl ContentDocumentFrontMatter {
     fn rhai_description(&mut self) -> String {
         self.description.clone()
+    }
+
+    fn rhai_image(&mut self) -> String {
+        self.image.clone()
     }
 
     fn rhai_props(&mut self) -> Map {
@@ -84,6 +91,7 @@ impl CustomType for ContentDocumentFrontMatter {
         builder
             .with_name("ContentDocumentFrontMatter")
             .with_get("description", Self::rhai_description)
+            .with_get("image", Self::rhai_image)
             .with_get("props", Self::rhai_props)
             .with_get("render", Self::rhai_render)
             .with_get("title", Self::rhai_title);

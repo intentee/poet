@@ -52,6 +52,7 @@ mod prompt_document_component_context;
 mod prompt_document_controller;
 mod prompt_document_front_matter;
 mod read_esbuild_metafile_or_default;
+mod render_og_content;
 mod rhai_components;
 mod rhai_functions;
 mod rhai_safe_random_affix;

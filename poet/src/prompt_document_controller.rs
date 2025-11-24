@@ -115,7 +115,7 @@ mod tests {
     use crate::mcp::jsonrpc::JSONRPC_VERSION;
     use crate::mcp::jsonrpc::role::Role;
     use crate::mcp::prompt_message::PromptMessage;
-    use crate::rhai_template_factory::RhaiTemplateFactory;
+    use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
 
     #[tokio::test]
     async fn test_convert_to_prompt_messages() -> Result<()> {
@@ -139,7 +139,7 @@ mod tests {
         "#}
         .to_string();
 
-        let rhai_template_factory = RhaiTemplateFactory::new(
+        let rhai_template_factory = RhaiTemplateRendererFactory::new(
             PathBuf::from(env!("CARGO_MANIFEST_DIR")),
             PathBuf::from("shortcodes"),
         );

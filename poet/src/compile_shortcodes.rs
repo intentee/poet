@@ -8,13 +8,13 @@ use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::build_timer::BuildTimer;
 use crate::filesystem::Filesystem as _;
 use crate::filesystem::storage::Storage;
-use crate::rhai_template_factory::RhaiTemplateFactory;
+use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
 
 pub async fn compile_shortcodes(source_filesystem: Arc<Storage>) -> Result<RhaiTemplateRenderer> {
     info!("Compiling shortcodes...");
 
     let _build_timer = BuildTimer::new();
-    let rhai_template_factory = RhaiTemplateFactory::new(
+    let rhai_template_factory = RhaiTemplateRendererFactory::new(
         source_filesystem.base_directory.clone(),
         PathBuf::from("shortcodes"),
     );

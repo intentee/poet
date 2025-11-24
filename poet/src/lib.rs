@@ -51,7 +51,7 @@ mod prompt_document_controller;
 mod prompt_document_front_matter;
 mod read_esbuild_metafile_or_default;
 mod rhai_functions;
-mod rhai_template_factory;
+mod rhai_template_renderer_factory;
 mod rhai_template_renderer_holder;
 mod search_index;
 mod search_index_fields;

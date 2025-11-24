@@ -8,10 +8,10 @@ use rhai::Position;
 use rhai::module_resolvers::FileModuleResolver;
 use rhai_components::component_syntax::component_meta_module::ComponentMetaModule;
 use rhai_components::component_syntax::component_reference::ComponentReference;
+use rhai_components::component_syntax::component_reference_stub::ComponentReferenceStub;
 use rhai_components::component_syntax::component_registry::ComponentRegistry;
 use rhai_components::component_syntax::evaluator_factory::EvaluatorFactory;
 use rhai_components::component_syntax::parse_component::parse_component;
-use rhai_components::rhai_safe_random_affix::rhai_safe_random_affix;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::asset_manager::AssetManager;
@@ -32,13 +32,13 @@ use crate::rhai_functions::render_hierarchy;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
-pub struct RhaiTemplateFactory {
+pub struct RhaiTemplateRendererFactory {
     base_directory: PathBuf,
     component_registry: Arc<ComponentRegistry>,
     shortcodes_subdirectory: PathBuf,
 }
 
-impl RhaiTemplateFactory {
+impl RhaiTemplateRendererFactory {
     pub fn new(base_directory: PathBuf, shortcodes_subdirectory: PathBuf) -> Self {
         Self {
             base_directory,
@@ -50,16 +50,14 @@ impl RhaiTemplateFactory {
     pub fn register_component_file(&self, file_entry: FileEntry) {
         let component_name = file_entry.get_stem_relative_to(&self.shortcodes_subdirectory);
 
-        self.component_registry
-            .register_component(ComponentReference {
-                global_fn_name: format!("{}_{}", component_name, rhai_safe_random_affix()),
-                name: component_name.clone(),
-                path: component_name,
-            });
+        self.component_registry.register_component_from_stub(ComponentReferenceStub {
+            name: component_name.clone(),
+            path: component_name,
+        });
     }
 }
 
-impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
+impl TryInto<RhaiTemplateRenderer> for RhaiTemplateRendererFactory {
     type Error = anyhow::Error;
 
     fn try_into(self) -> Result<RhaiTemplateRenderer, Self::Error> {

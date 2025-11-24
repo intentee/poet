@@ -81,21 +81,17 @@ impl Handler for Watch {
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
         let esbuild_metafile_holder: EsbuildMetaFileHolder = Default::default();
         let filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder = Default::default();
-        let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
-            McpResourceProviderContentDocuments(build_project_result_holder.clone());
-        let prompt_controller_collection_holder: PromptControllerCollectionHolder =
-            Default::default();
+        let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments = McpResourceProviderContentDocuments(build_project_result_holder.clone());
+        let prompt_controller_collection_holder: PromptControllerCollectionHolder = Default::default();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
-        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
-            vec![Arc::new(mcp_resource_provider_content_documents.clone())];
+        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> = vec![Arc::new(mcp_resource_provider_content_documents.clone())];
         let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
         let session_manager: SessionManager = Default::default();
         let mut tool_registry: ToolRegistry = Default::default();
 
         tool_registry.register_owned(SearchTool {
-            mcp_resource_provider_content_documents: mcp_resource_provider_content_documents
-                .clone(),
+            mcp_resource_provider_content_documents: mcp_resource_provider_content_documents.clone(),
             search_index_reader_holder: search_index_reader_holder.clone(),
         });
 

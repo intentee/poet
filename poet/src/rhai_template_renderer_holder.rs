@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use tokio::sync::Notify;
 use tokio::sync::RwLock;
 
 use crate::holder::Holder;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 #[derive(Clone, Default)]
 pub struct RhaiTemplateRendererHolder {

@@ -4,6 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use esbuild_metafile::EsbuildMetaFile;
 use markdown::mdast::Node;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
@@ -19,7 +20,6 @@ use crate::mcp::prompt_controller::PromptController;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument::Argument;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub struct PromptDocumentController {
     pub asset_path_renderer: AssetPathRenderer,

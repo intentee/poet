@@ -2167,13 +2167,13 @@ dependencies = [
  "markdown",
  "mime",
  "mime_guess",
- "nanoid",
  "nom 8.0.0",
  "notify",
  "notify-debouncer-full",
  "petgraph",
  "rayon",
  "rhai",
+ "rhai_components",
  "schemars",
  "serde",
  "serde_json",
@@ -2463,6 +2463,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "rhai_components"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "dashmap",
+ "nanoid",
+ "rhai",
+ "tokio",
 ]
 
 [[package]]

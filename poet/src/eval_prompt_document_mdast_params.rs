@@ -1,6 +1,5 @@
 use markdown::mdast::Node;
-
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 #[derive(Clone)]
 pub struct EvalPromptDocumentMdastParams<'eval> {

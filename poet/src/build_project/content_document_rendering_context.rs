@@ -3,13 +3,13 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use esbuild_metafile::EsbuildMetaFile;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::content_document::ContentDocument;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
 use crate::content_document_linker::ContentDocumentLinker;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub struct ContentDocumentRenderingContext<'render> {
     pub asset_path_renderer: AssetPathRenderer,

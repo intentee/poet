@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use esbuild_metafile::EsbuildMetaFile;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::filesystem::file_entry::FileEntry;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub struct BuildPromptDocumentControllerParams {
     pub asset_path_renderer: AssetPathRenderer,

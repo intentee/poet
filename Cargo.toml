@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "poet",
+    "rhai_components",
 ]
 
 [workspace.dependencies]

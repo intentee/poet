@@ -1,0 +1,12 @@
+[package]
+license = "Apache-2.0"
+name = "rhai_components"
+version = "0.3.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+dashmap = { workspace = true }
+nanoid = { workspace = true }
+rhai = { workspace = true }
+tokio = { workspace = true }

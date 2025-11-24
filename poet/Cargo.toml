@@ -35,13 +35,13 @@ log = { workspace = true }
 markdown = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
-nanoid = { workspace = true }
 nom = { workspace = true }
 notify = { workspace = true }
 notify-debouncer-full = { workspace = true }
 petgraph = { workspace = true }
 rayon = { workspace = true }
 rhai = { workspace = true }
+rhai_components = { path = "../rhai_components" }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

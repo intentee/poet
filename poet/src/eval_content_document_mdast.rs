@@ -26,20 +26,20 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
+use rhai_components::escape_html::escape_html;
+use rhai_components::escape_html_attribute::escape_html_attribute;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use syntect::html::ClassStyle;
 use syntect::html::ClassedHTMLGenerator;
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
 use crate::content_document_component_context::ContentDocumentComponentContext;
-use crate::escape_html::escape_html;
-use crate::escape_html_attribute::escape_html_attribute;
 use crate::eval_mdx_element::eval_mdx_element;
 use crate::is_external_link::is_external_link;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::parse_markdown_metadata_line::metadata_line_item::MetadataLineItem;
 use crate::parse_markdown_metadata_line::parse_markdown_metadata_line;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub fn eval_content_document_children(
     children: &Vec<Node>,

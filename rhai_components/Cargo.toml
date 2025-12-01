@@ -2,7 +2,7 @@
 description = "JSX-like syntax extension for Rhai"
 license = "Apache-2.0"
 name = "rhai_components"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 
 [dependencies]

@@ -82,6 +82,18 @@ impl ContentDocumentReference {
         self.basename().to_string()
     }
 
+    fn rhai_basename_last_stem(&mut self) -> Result<String, Box<EvalAltResult>> {
+        let basename_link_stem = self.basename_link_stem()?.to_string();
+        let last_stem: Option<&str> = basename_link_stem.trim_end_matches('/').rsplit('/').next();
+
+        match last_stem {
+            Some(last_stem) => Ok(last_stem.to_string()),
+            None => {
+                Err(format!("Unable to find basename last stem in {basename_link_stem}").into())
+            }
+        }
+    }
+
     fn rhai_canonical_link(&mut self) -> Result<String, Box<EvalAltResult>> {
         Ok(self.canonical_link()?)
     }
@@ -96,6 +108,7 @@ impl CustomType for ContentDocumentReference {
         builder
             .with_name("ContentDocumentReference")
             .with_get("basename", Self::rhai_basename)
+            .with_get("basename_last_stem", Self::rhai_basename_last_stem)
             .with_get("canonical_link", Self::rhai_canonical_link)
             .with_get("front_matter", Self::rhai_front_matter);
     }

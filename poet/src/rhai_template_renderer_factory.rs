@@ -50,10 +50,11 @@ impl RhaiTemplateRendererFactory {
     pub fn register_component_file(&self, file_entry: FileEntry) {
         let component_name = file_entry.get_stem_relative_to(&self.shortcodes_subdirectory);
 
-        self.component_registry.register_component_from_stub(ComponentReferenceStub {
-            name: component_name.clone(),
-            path: component_name,
-        });
+        self.component_registry
+            .register_component_from_stub(ComponentReferenceStub {
+                name: component_name.clone(),
+                path: component_name,
+            });
     }
 }
 

@@ -1,3 +1,4 @@
+use rhai::Array;
 use rhai::CustomType;
 use rhai::Dynamic;
 use rhai::EvalAltResult;
@@ -58,12 +59,20 @@ impl ContentDocumentHierarchy {
 
         Err(format!("Prev page is not used in the hierarchy: '{basename}'").into())
     }
+
+    fn rhai_flat(&mut self) -> Array {
+        self.flat
+            .iter()
+            .map(|content_document_reference| Dynamic::from(content_document_reference.clone()))
+            .collect::<_>()
+    }
 }
 
 impl CustomType for ContentDocumentHierarchy {
     fn build(mut builder: TypeBuilder<Self>) {
         builder
             .with_name("ContentDocumentHierarchy")
+            .with_get("flat", Self::rhai_flat)
             .with_fn("after", Self::rhai_after)
             .with_fn("before", Self::rhai_before);
     }

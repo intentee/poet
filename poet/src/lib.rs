@@ -50,7 +50,7 @@ mod prompt_document_component_context;
 mod prompt_document_controller;
 mod prompt_document_front_matter;
 mod read_esbuild_metafile_or_default;
-mod rhai_functions;
+mod rhai_helpers;
 mod rhai_template_renderer_factory;
 mod rhai_template_renderer_holder;
 mod search_index;

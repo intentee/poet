@@ -7,9 +7,12 @@ use dashmap::DashMap;
 use rhai::CustomType;
 use rhai::Dynamic;
 use rhai::Engine;
+use rhai::Position;
 use rhai::Scope;
 
+use crate::component_syntax::component_meta_module::ComponentMetaModule;
 use crate::component_syntax::component_reference::ComponentReference;
+use crate::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
 #[derive(Clone)]
 pub struct RhaiTemplateRenderer {
@@ -18,14 +21,42 @@ pub struct RhaiTemplateRenderer {
 }
 
 impl RhaiTemplateRenderer {
-    pub fn new(
-        expression_engine: Arc<Engine>,
-        templates: Arc<DashMap<String, ComponentReference>>,
-    ) -> Self {
-        Self {
-            expression_engine,
-            templates,
+    pub fn build(
+        RhaiTemplateRendererParams {
+            component_registry,
+            mut expression_engine,
+        }: RhaiTemplateRendererParams,
+    ) -> Result<Self> {
+        let templates: DashMap<String, ComponentReference> = DashMap::new();
+
+        for entry in &component_registry.components {
+            let component_reference = entry.value();
+
+            let module_resolver = expression_engine.module_resolver();
+            let module = module_resolver.resolve(
+                &expression_engine,
+                None,
+                &component_reference.path,
+                Position::NONE,
+            )?;
+
+            expression_engine.register_static_module(component_reference.name.clone(), module);
+
+            templates.insert(
+                component_reference.name.clone(),
+                component_reference.clone(),
+            );
         }
+
+        let meta_module = ComponentMetaModule::from(component_registry);
+
+        expression_engine
+            .register_global_module(meta_module.into_global_module(&expression_engine)?.into());
+
+        Ok(Self {
+            expression_engine: expression_engine.into(),
+            templates: templates.into(),
+        })
     }
 
     pub fn render<TComponentContext>(

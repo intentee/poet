@@ -41,6 +41,8 @@ pub trait BuildsEngine {
             evaluator_factory.create_component_evaluator(),
         );
 
+        self.prepare_engine(&mut engine)?;
+
         let templates: DashMap<String, ComponentReference> = DashMap::new();
 
         for entry in &self.component_registry().components {
@@ -65,8 +67,6 @@ pub trait BuildsEngine {
         let meta_module = ComponentMetaModule::from(self.component_registry());
 
         engine.register_global_module(meta_module.into_global_module(&engine)?.into());
-
-        self.prepare_engine(&mut engine)?;
 
         Ok(engine)
     }

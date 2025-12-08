@@ -2136,7 +2136,7 @@ dependencies = [
 
 [[package]]
 name = "poet"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "actix",
  "actix-cors",
@@ -2467,7 +2467,7 @@ dependencies = [
 
 [[package]]
 name = "rhai_components"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "dashmap",

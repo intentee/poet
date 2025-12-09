@@ -93,6 +93,17 @@ pub fn eval_tag_stack_node(
                     props
                 };
 
+                let mut context = match eval_context.scope().get("context") {
+                    Some(context) => context.clone(),
+                    None => {
+                        return Err(EvalAltResult::ErrorRuntime(
+                            "'context' variable not found in scope".into(),
+                            rhai::Position::NONE,
+                        )
+                        .into());
+                    }
+                };
+
                 Ok(eval_context
                     .engine()
                     .eval_fn_call::<String>(
@@ -104,7 +115,7 @@ pub fn eval_tag_stack_node(
                                     rhai::Position::NONE,
                                 )
                             })?,
-                        eval_context.this_ptr_mut(),
+                        Some(&mut context),
                         (Dynamic::from_map(props), Dynamic::from(result)),
                     )
                     .map_err(|err| {

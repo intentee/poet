@@ -51,7 +51,7 @@ pub trait BuildsEngine {
             let module = module_resolver.resolve(
                 &engine,
                 None,
-                &component_reference.path,
+                &component_reference.name,
                 Position::NONE,
             )?;
 

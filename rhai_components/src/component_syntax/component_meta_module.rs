@@ -25,8 +25,8 @@ impl ComponentMetaModule {
 
             meta_script.push_str(&format!(
                 r#"
-                    fn {global_fn_name}(context, props, content) {{
-                        {name}::template(context, props, content)
+                    fn {global_fn_name}(props, content) {{
+                        {name}::template(this, props, content)
                     }}
                 "#
             ));

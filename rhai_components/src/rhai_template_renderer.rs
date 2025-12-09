@@ -72,8 +72,8 @@ impl RhaiTemplateRenderer {
         if let Some(component_reference) = self.templates.get(name) {
             Ok(self.expression_engine.eval_fn_call(
                 component_reference.global_fn_name.clone(),
-                None,
-                (context, props, content),
+                Some(&mut Dynamic::from(context)),
+                (props, content),
             )?)
         } else {
             Err(anyhow!("Template '{name}' not found"))

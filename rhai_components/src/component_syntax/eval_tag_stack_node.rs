@@ -95,7 +95,7 @@ pub fn eval_tag_stack_node(
 
                 Ok(eval_context
                     .engine()
-                    .eval_fn_call::<Dynamic>(
+                    .eval_fn_call::<String>(
                         component_registry
                             .get_global_fn_name(&opening_tag.tag_name.name)
                             .map_err(|err| {
@@ -104,29 +104,15 @@ pub fn eval_tag_stack_node(
                                     rhai::Position::NONE,
                                 )
                             })?,
-                        None,
-                        (
-                            match eval_context.scope().get("context") {
-                                Some(context) => context.clone(),
-                                None => {
-                                    return Err(EvalAltResult::ErrorRuntime(
-                                        "'context' variable not found in scope".into(),
-                                        rhai::Position::NONE,
-                                    )
-                                    .into());
-                                }
-                            },
-                            Dynamic::from_map(props),
-                            Dynamic::from(result),
-                        ),
+                        eval_context.this_ptr_mut(),
+                        (Dynamic::from_map(props), Dynamic::from(result)),
                     )
                     .map_err(|err| {
                         EvalAltResult::ErrorRuntime(
                             format!("Failed to call component function: {err}").into(),
                             rhai::Position::NONE,
                         )
-                    })?
-                    .to_string())
+                    })?)
             } else {
                 Ok(result)
             }

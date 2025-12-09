@@ -104,7 +104,7 @@ mod tests {
         engine.set_fail_on_invalid_map_property(true);
         engine.set_max_expr_depths(256, 256);
         engine.set_module_resolver(FileModuleResolver::new_with_path(format!(
-            "{}/src/rhai_components/fixtures",
+            "{}/src/component_syntax/fixtures",
             env!("CARGO_MANIFEST_DIR")
         )));
 

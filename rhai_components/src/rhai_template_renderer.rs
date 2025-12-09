@@ -36,7 +36,7 @@ impl RhaiTemplateRenderer {
             let module = module_resolver.resolve(
                 &expression_engine,
                 None,
-                &component_reference.path,
+                &component_reference.name,
                 Position::NONE,
             )?;
 

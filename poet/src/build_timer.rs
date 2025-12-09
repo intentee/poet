@@ -6,8 +6,8 @@ pub struct BuildTimer {
     started_at: Instant,
 }
 
-impl BuildTimer {
-    pub fn new() -> Self {
+impl Default for BuildTimer {
+    fn default() -> Self {
         Self {
             started_at: Instant::now(),
         }

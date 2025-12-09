@@ -29,7 +29,7 @@ pub async fn build_prompt_document_controller_collection(
 ) -> Result<PromptControllerCollection> {
     info!("Processing prompt files...");
 
-    let _build_timer = BuildTimer::new();
+    let _build_timer = BuildTimer::default();
     let error_collection: DocumentErrorCollection = Default::default();
     let prompt_controller_map: DashMap<String, Arc<dyn PromptController>> = Default::default();
 

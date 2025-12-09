@@ -28,7 +28,7 @@ impl SearchIndex {
     pub fn create_in_memory(
         content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     ) -> Self {
-        let SearchIndexSchema { fields, schema } = SearchIndexSchema::new();
+        let SearchIndexSchema { fields, schema } = SearchIndexSchema::default();
 
         let index = Index::create_in_ram(schema.clone());
 

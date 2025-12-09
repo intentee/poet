@@ -9,8 +9,8 @@ pub struct SearchIndexSchema {
     pub schema: Schema,
 }
 
-impl SearchIndexSchema {
-    pub fn new() -> Self {
+impl Default for SearchIndexSchema {
+    fn default() -> Self {
         let mut schema_builder = Schema::builder();
 
         let basename = schema_builder.add_text_field("basename", STORED | TEXT);

@@ -115,7 +115,7 @@ pub async fn build_project(
     );
     info!("Processing content files...");
 
-    let _build_timer = BuildTimer::new();
+    let _build_timer = BuildTimer::default();
     let error_collection: DocumentErrorCollection = Default::default();
     let memory_filesystem = Arc::new(Memory::default());
     let syntax_set = SyntaxSet::load_defaults_newlines();

@@ -2,9 +2,7 @@ mod attribute;
 mod attribute_value;
 mod combine_output_symbols;
 mod combine_tag_stack;
-pub mod component_meta_module;
 pub mod component_reference;
-pub mod component_reference_stub;
 pub mod component_registry;
 mod eval_tag;
 mod eval_tag_stack_node;
@@ -34,7 +32,6 @@ mod tests {
     use rhai::TypeBuilder;
     use rhai::module_resolvers::FileModuleResolver;
 
-    use super::component_meta_module::ComponentMetaModule;
     use super::component_reference::ComponentReference;
     use super::component_registry::ComponentRegistry;
     use super::evaluator_factory::EvaluatorFactory;
@@ -84,13 +81,11 @@ mod tests {
         let component_registry = Arc::new(ComponentRegistry::default());
 
         component_registry.register_component(ComponentReference {
-            global_fn_name: "LayoutHomepage_123".to_string(),
             name: "LayoutHomepage".to_string(),
             path: "LayoutHomepage".to_string(),
         });
 
         component_registry.register_component(ComponentReference {
-            global_fn_name: "Note_123".to_string(),
             name: "Note".to_string(),
             path: "Note".to_string(),
         });
@@ -117,11 +112,6 @@ mod tests {
 
         engine.build_type::<DummyAssetCollection>();
         engine.build_type::<DummyContext>();
-
-        let meta_module =
-            ComponentMetaModule::from(component_registry.clone()).into_global_module(&engine)?;
-
-        engine.register_global_module(meta_module.into());
 
         let renderer = Func::<(DummyContext, Dynamic, Dynamic), String>::create_from_script(
             engine,

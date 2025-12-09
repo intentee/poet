@@ -5,7 +5,6 @@ use dashmap::DashMap;
 use rhai::Engine;
 use rhai::Position;
 
-use crate::component_syntax::component_meta_module::ComponentMetaModule;
 use crate::component_syntax::component_reference::ComponentReference;
 use crate::component_syntax::component_registry::ComponentRegistry;
 use crate::component_syntax::evaluator_factory::EvaluatorFactory;
@@ -63,10 +62,6 @@ pub trait BuildsEngine {
                 component_reference.clone(),
             );
         }
-
-        let meta_module = ComponentMetaModule::from(self.component_registry());
-
-        engine.register_global_module(meta_module.into_global_module(&engine)?.into());
 
         Ok(engine)
     }

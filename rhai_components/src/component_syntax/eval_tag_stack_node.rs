@@ -11,6 +11,7 @@ use super::component_registry::ComponentRegistry;
 use super::eval_tag::eval_tag;
 use super::expression_collection::ExpressionCollection;
 use super::tag_stack_node::TagStackNode;
+use crate::rhai_call_template_function::rhai_call_template_function;
 
 pub fn eval_tag_stack_node(
     component_registry: Arc<ComponentRegistry>,
@@ -93,7 +94,7 @@ pub fn eval_tag_stack_node(
                     props
                 };
 
-                let mut context = match eval_context.scope().get("context") {
+                let context = match eval_context.scope().get("context") {
                     Some(context) => context.clone(),
                     None => {
                         return Err(EvalAltResult::ErrorRuntime(
@@ -104,26 +105,17 @@ pub fn eval_tag_stack_node(
                     }
                 };
 
-                Ok(eval_context
-                    .engine()
-                    .eval_fn_call::<String>(
-                        component_registry
-                            .get_global_fn_name(&opening_tag.tag_name.name)
-                            .map_err(|err| {
-                                EvalAltResult::ErrorRuntime(
-                                    format!("Component not found: {err}").into(),
-                                    rhai::Position::NONE,
-                                )
-                            })?,
-                        Some(&mut context),
-                        (Dynamic::from_map(props), Dynamic::from(result)),
+                Ok(rhai_call_template_function(
+                    eval_context.engine(),
+                    &opening_tag.tag_name.name,
+                    (context, Dynamic::from_map(props), Dynamic::from(result)),
+                )
+                .map_err(|err| {
+                    EvalAltResult::ErrorRuntime(
+                        format!("Failed to call component function: {err}").into(),
+                        rhai::Position::NONE,
                     )
-                    .map_err(|err| {
-                        EvalAltResult::ErrorRuntime(
-                            format!("Failed to call component function: {err}").into(),
-                            rhai::Position::NONE,
-                        )
-                    })?)
+                })?)
             } else {
                 Ok(result)
             }

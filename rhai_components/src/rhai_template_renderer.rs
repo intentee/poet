@@ -10,8 +10,8 @@ use rhai::Engine;
 use rhai::Position;
 use rhai::Scope;
 
-use crate::component_syntax::component_meta_module::ComponentMetaModule;
 use crate::component_syntax::component_reference::ComponentReference;
+use crate::rhai_call_template_function::rhai_call_template_function;
 use crate::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
 #[derive(Clone)]
@@ -48,11 +48,6 @@ impl RhaiTemplateRenderer {
             );
         }
 
-        let meta_module = ComponentMetaModule::from(component_registry);
-
-        expression_engine
-            .register_global_module(meta_module.into_global_module(&expression_engine)?.into());
-
         Ok(Self {
             expression_engine: expression_engine.into(),
             templates: templates.into(),
@@ -70,11 +65,11 @@ impl RhaiTemplateRenderer {
         TComponentContext: CustomType,
     {
         if let Some(component_reference) = self.templates.get(name) {
-            Ok(self.expression_engine.eval_fn_call(
-                component_reference.global_fn_name.clone(),
-                Some(&mut Dynamic::from(context)),
-                (props, content),
-            )?)
+            rhai_call_template_function(
+                &self.expression_engine,
+                &component_reference.name,
+                (context, props, content),
+            )
         } else {
             Err(anyhow!("Template '{name}' not found"))
         }

@@ -5,7 +5,7 @@ use anyhow::Result;
 use rhai::Engine;
 use rhai::module_resolvers::FileModuleResolver;
 use rhai_components::builds_engine::BuildsEngine;
-use rhai_components::component_syntax::component_reference_stub::ComponentReferenceStub;
+use rhai_components::component_syntax::component_reference::ComponentReference;
 use rhai_components::component_syntax::component_registry::ComponentRegistry;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
@@ -44,7 +44,7 @@ impl RhaiTemplateRendererFactory {
         let component_name = file_entry.get_stem_relative_to(&self.shortcodes_subdirectory);
 
         self.component_registry
-            .register_component_from_stub(ComponentReferenceStub {
+            .register_component(ComponentReference {
                 name: component_name.clone(),
                 path: component_name,
             });

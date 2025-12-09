@@ -94,7 +94,8 @@ pub fn eval_tag_stack_node(
                 };
 
                 Ok(eval_context
-                    .call_fn::<Dynamic>(
+                    .engine()
+                    .eval_fn_call::<Dynamic>(
                         component_registry
                             .get_global_fn_name(&opening_tag.tag_name.name)
                             .map_err(|err| {
@@ -103,6 +104,7 @@ pub fn eval_tag_stack_node(
                                     rhai::Position::NONE,
                                 )
                             })?,
+                        None,
                         (
                             match eval_context.scope().get("context") {
                                 Some(context) => context.clone(),
@@ -115,7 +117,7 @@ pub fn eval_tag_stack_node(
                                 }
                             },
                             Dynamic::from_map(props),
-                            Dynamic::from(result.clone()),
+                            Dynamic::from(result),
                         ),
                     )
                     .map_err(|err| {

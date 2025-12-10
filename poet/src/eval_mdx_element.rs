@@ -11,6 +11,8 @@ use rhai_components::component_syntax::tag_name::TagName;
 use rhai_components::escape_html_attribute::escape_html_attribute;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
 pub fn eval_mdx_element<TComponentContext>(
     attributes: &[AttributeContent],
     children: &[Node],
@@ -26,7 +28,8 @@ where
 
     let tag_name = TagName {
         name: name
-            .clone()
+            .as_ref()
+            .map(|n| SmartString::from(n))
             .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
     };
 

@@ -14,6 +14,8 @@ use super::output_symbol::OutputSymbol;
 use super::tag::Tag;
 use crate::component_syntax::tag_name::TagName;
 
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
 pub fn combine_output_symbols(
     state: &Dynamic,
 ) -> Result<VecDeque<OutputSemanticSymbol>, ParseError> {
@@ -136,7 +138,7 @@ pub fn combine_output_symbols(
                     existing_text.push_str(&text);
                 }
                 _ => {
-                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text.to_string()));
+                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text));
                 }
             },
             OutputCombinedSymbol::TagLeftAngle => match semantic_symbols.back_mut() {
@@ -148,7 +150,7 @@ pub fn combine_output_symbols(
                         is_closing: false,
                         is_self_closing: false,
                         tag_name: TagName {
-                            name: String::new(),
+                            name: SmartString::new_const(),
                         },
                     }));
                 }

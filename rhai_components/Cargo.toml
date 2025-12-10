@@ -10,4 +10,5 @@ anyhow = { workspace = true }
 dashmap = { workspace = true }
 nanoid = { workspace = true }
 rhai = { workspace = true }
+smartstring = { workspace = true }
 tokio = { workspace = true }

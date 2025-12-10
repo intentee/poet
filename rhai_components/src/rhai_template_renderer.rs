@@ -70,6 +70,7 @@ impl RhaiTemplateRenderer {
                 &component_reference.name,
                 (context, props, content),
             )
+            .map(Into::into)
         } else {
             Err(anyhow!("Template '{name}' not found"))
         }

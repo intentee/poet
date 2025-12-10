@@ -1,6 +1,8 @@
 use super::expression_reference::ExpressionReference;
 use super::tag::Tag;
 
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
 #[derive(Clone, Debug, Hash)]
 pub enum TagStackNode {
     BodyExpression(ExpressionReference),
@@ -9,5 +11,5 @@ pub enum TagStackNode {
         is_closed: bool,
         opening_tag: Option<Tag>,
     },
-    Text(String),
+    Text(SmartString),
 }

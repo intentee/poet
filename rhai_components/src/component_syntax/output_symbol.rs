@@ -1,14 +1,16 @@
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
 #[derive(Clone, Debug)]
 pub enum OutputSymbol {
     BodyExpression,
-    Text(String),
+    Text(SmartString),
     TagLeftAnglePlusWhitespace,
-    TagCloseBeforeNamePlusWhitespace(String),
-    TagName(String),
+    TagCloseBeforeNamePlusWhitespace(SmartString),
+    TagName(SmartString),
     TagPadding,
-    TagAttributeName(String),
+    TagAttributeName(SmartString),
     TagAttributeValueExpression,
-    TagAttributeValueString(String),
+    TagAttributeValueString(SmartString),
     TagSelfClose,
     TagRightAngle,
 }

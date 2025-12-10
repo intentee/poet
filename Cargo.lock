@@ -2178,6 +2178,7 @@ dependencies = [
  "serde",
  "serde_json",
  "slug",
+ "smartstring",
  "syntect",
  "tantivy",
  "tempfile",
@@ -2448,7 +2449,6 @@ dependencies = [
  "once_cell",
  "rhai_codegen",
  "serde",
- "serde_json",
  "smallvec",
  "smartstring",
  "thin-vec",
@@ -2473,6 +2473,7 @@ dependencies = [
  "dashmap",
  "nanoid",
  "rhai",
+ "smartstring",
  "tokio",
 ]
 

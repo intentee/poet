@@ -1,9 +1,8 @@
 use super::expression_reference::ExpressionReference;
-
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+use crate::SmartStringLazy;
 
 #[derive(Clone, Debug, Hash)]
 pub enum AttributeValue {
     Expression(ExpressionReference),
-    Text(SmartString),
+    Text(SmartStringLazy),
 }

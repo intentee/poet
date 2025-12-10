@@ -41,7 +41,7 @@ impl EvaluatorFactory {
                 &mut expression_collection,
             )?;
 
-            Ok(Dynamic::from(rendered_tag_stack))
+            Ok(Dynamic::from(rendered_tag_stack.to_string()))
         }
     }
 }

@@ -37,7 +37,7 @@ impl fmt::Display for DocumentErrorCollection {
             .sorted_by(|a, b| Ord::cmp(&a.key(), &b.key()))
         {
             for error in errors.value() {
-                writeln!(formatter, "{error}")?;
+                writeln!(formatter, "{error:#}")?;
             }
         }
 

@@ -1,16 +1,16 @@
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+use crate::SmartStringLazy;
 
 #[derive(Clone, Debug)]
 pub enum OutputSymbol {
     BodyExpression,
-    Text(SmartString),
+    Text(SmartStringLazy),
     TagLeftAnglePlusWhitespace,
-    TagCloseBeforeNamePlusWhitespace(SmartString),
-    TagName(SmartString),
+    TagCloseBeforeNamePlusWhitespace(SmartStringLazy),
+    TagName(SmartStringLazy),
     TagPadding,
-    TagAttributeName(SmartString),
+    TagAttributeName(SmartStringLazy),
     TagAttributeValueExpression,
-    TagAttributeValueString(SmartString),
+    TagAttributeValueString(SmartStringLazy),
     TagSelfClose,
     TagRightAngle,
 }

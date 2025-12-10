@@ -7,11 +7,10 @@ use markdown::mdast::MdxJsxAttribute;
 use markdown::mdast::Node;
 use rhai::CustomType;
 use rhai::Dynamic;
+use rhai_components::SmartStringLazy;
 use rhai_components::component_syntax::tag_name::TagName;
 use rhai_components::escape_html_attribute::escape_html_attribute;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
-
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
 
 pub fn eval_mdx_element<TComponentContext>(
     attributes: &[AttributeContent],
@@ -29,7 +28,7 @@ where
     let tag_name = TagName {
         name: name
             .as_ref()
-            .map(|n| SmartString::from(n))
+            .map(SmartStringLazy::from)
             .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
     };
 

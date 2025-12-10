@@ -1,8 +1,8 @@
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+use crate::SmartStringLazy;
 
 #[derive(Clone, Debug, Hash)]
 pub struct TagName {
-    pub name: SmartString,
+    pub name: SmartStringLazy,
 }
 
 impl TagName {

@@ -12,16 +12,15 @@ use super::component_registry::ComponentRegistry;
 use super::eval_tag::eval_tag;
 use super::expression_collection::ExpressionCollection;
 use super::tag_stack_node::TagStackNode;
+use crate::SmartStringLazy;
 use crate::rhai_call_template_function::rhai_call_template_function;
-
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
 
 pub fn eval_tag_stack_node(
     component_registry: Arc<ComponentRegistry>,
     eval_context: &mut EvalContext,
     current_node: &TagStackNode,
     expression_collection: &mut ExpressionCollection,
-) -> Result<SmartString, Box<EvalAltResult>> {
+) -> Result<SmartStringLazy, Box<EvalAltResult>> {
     match current_node {
         TagStackNode::BodyExpression(expression_reference) => {
             let body_expression_result =
@@ -29,7 +28,7 @@ pub fn eval_tag_stack_node(
 
             if body_expression_result.is_array() {
                 let body_expression_array = body_expression_result.cast::<Array>();
-                let mut combined_ret = SmartString::new_const();
+                let mut combined_ret = SmartStringLazy::new_const();
 
                 for item in body_expression_array {
                     combined_ret.push_str(&item.to_string());
@@ -38,6 +37,7 @@ pub fn eval_tag_stack_node(
                 Ok(combined_ret)
             } else if body_expression_result.is_string() {
                 let body_expression_string = body_expression_result.cast::<ImmutableString>();
+
                 Ok(body_expression_string.into())
             } else {
                 Ok(body_expression_result.to_string().into())
@@ -48,7 +48,7 @@ pub fn eval_tag_stack_node(
             is_closed,
             opening_tag,
         } => {
-            let mut result = SmartString::new_const();
+            let mut result = SmartStringLazy::new_const();
 
             if let Some(opening_tag) = &opening_tag
                 && !opening_tag.tag_name.is_component()
@@ -69,9 +69,7 @@ pub fn eval_tag_stack_node(
                 && *is_closed
                 && !opening_tag.tag_name.is_component()
             {
-                result.push_str("</");
-                result.push_str(&opening_tag.tag_name.name);
-                result.push_str(">");
+                result.push_str(&format!("</{}>", opening_tag.tag_name.name));
 
                 return Ok(result);
             }
@@ -113,7 +111,7 @@ pub fn eval_tag_stack_node(
                 Ok(rhai_call_template_function(
                     eval_context.engine(),
                     &opening_tag.tag_name.name,
-                    (context, Dynamic::from_map(props), Dynamic::from(result)),
+                    (context, Dynamic::from_map(props), Dynamic::from(result.to_string())),
                 )
                 .map_err(|err| {
                     EvalAltResult::ErrorRuntime(

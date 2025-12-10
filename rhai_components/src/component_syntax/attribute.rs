@@ -1,9 +1,8 @@
 use super::attribute_value::AttributeValue;
-
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+use crate::SmartStringLazy;
 
 #[derive(Clone, Debug, Hash)]
 pub struct Attribute {
-    pub name: SmartString,
+    pub name: SmartStringLazy,
     pub value: Option<AttributeValue>,
 }

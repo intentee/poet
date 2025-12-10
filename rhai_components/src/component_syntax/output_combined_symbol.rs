@@ -1,16 +1,15 @@
 use super::attribute_value::AttributeValue;
 use super::expression_reference::ExpressionReference;
-
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+use crate::SmartStringLazy;
 
 #[derive(Debug)]
 pub enum OutputCombinedSymbol {
     BodyExpression(ExpressionReference),
-    Text(SmartString),
+    Text(SmartStringLazy),
     TagLeftAngle,
     TagCloseBeforeName,
-    TagName(SmartString),
-    TagAttributeName(SmartString),
+    TagName(SmartStringLazy),
+    TagAttributeName(SmartStringLazy),
     TagAttributeValue(AttributeValue),
     TagPadding,
     TagSelfClose,

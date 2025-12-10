@@ -12,9 +12,8 @@ use super::output_combined_symbol::OutputCombinedSymbol;
 use super::output_semantic_symbol::OutputSemanticSymbol;
 use super::output_symbol::OutputSymbol;
 use super::tag::Tag;
+use crate::SmartStringLazy;
 use crate::component_syntax::tag_name::TagName;
-
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
 
 pub fn combine_output_symbols(
     state: &Dynamic,
@@ -150,7 +149,7 @@ pub fn combine_output_symbols(
                         is_closing: false,
                         is_self_closing: false,
                         tag_name: TagName {
-                            name: SmartString::new_const(),
+                            name: SmartStringLazy::new_const(),
                         },
                     }));
                 }

@@ -13,6 +13,8 @@ use crate::rhai_helpers::clsx;
 use crate::rhai_helpers::error;
 use crate::rhai_helpers::has;
 
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
 pub trait BuildsEngine {
     fn component_registry(&self) -> Arc<ComponentRegistry>;
 
@@ -42,7 +44,7 @@ pub trait BuildsEngine {
 
         self.prepare_engine(&mut engine)?;
 
-        let templates: DashMap<String, ComponentReference> = DashMap::new();
+        let templates: DashMap<SmartString, ComponentReference> = DashMap::new();
 
         for entry in &self.component_registry().components {
             let component_reference = entry.value();

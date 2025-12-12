@@ -14,10 +14,12 @@ use crate::component_syntax::component_reference::ComponentReference;
 use crate::rhai_call_template_function::rhai_call_template_function;
 use crate::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
 #[derive(Clone)]
 pub struct RhaiTemplateRenderer {
     expression_engine: Arc<Engine>,
-    templates: Arc<DashMap<String, ComponentReference>>,
+    templates: Arc<DashMap<SmartString, ComponentReference>>,
 }
 
 impl RhaiTemplateRenderer {
@@ -27,7 +29,7 @@ impl RhaiTemplateRenderer {
             mut expression_engine,
         }: RhaiTemplateRendererParams,
     ) -> Result<Self> {
-        let templates: DashMap<String, ComponentReference> = DashMap::new();
+        let templates: DashMap<SmartString, ComponentReference> = DashMap::new();
 
         for entry in &component_registry.components {
             let component_reference = entry.value();

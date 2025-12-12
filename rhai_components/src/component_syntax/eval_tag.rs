@@ -6,12 +6,14 @@ use super::expression_collection::ExpressionCollection;
 use super::tag::Tag;
 use crate::escape_html_attribute::escape_html_attribute;
 
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
 pub fn eval_tag(
     eval_context: &mut EvalContext,
     expression_collection: &mut ExpressionCollection,
     tag: &Tag,
-) -> Result<String, Box<EvalAltResult>> {
-    let mut result = String::new();
+) -> Result<SmartString, Box<EvalAltResult>> {
+    let mut result = SmartString::new_const();
 
     if tag.is_closing {
         result.push_str("</");

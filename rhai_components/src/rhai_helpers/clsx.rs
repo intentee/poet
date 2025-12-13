@@ -1,8 +1,11 @@
 use rhai::EvalAltResult;
+use rhai::ImmutableString;
 use rhai::Map;
 
-pub fn clsx(message: Map) -> Result<String, Box<EvalAltResult>> {
-    let mut glued_class = String::new();
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+
+pub fn clsx(message: Map) -> Result<ImmutableString, Box<EvalAltResult>> {
+    let mut glued_class = SmartString::new_const();
 
     for (key, value) in &message {
         if !value.is_bool() {
@@ -16,5 +19,11 @@ pub fn clsx(message: Map) -> Result<String, Box<EvalAltResult>> {
         }
     }
 
-    Ok(glued_class.trim().to_string())
+    let trimmed = glued_class.trim();
+
+    if trimmed.len() == glued_class.len() {
+        Ok(glued_class.into())
+    } else {
+        Ok(trimmed.into())
+    }
 }

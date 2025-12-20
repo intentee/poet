@@ -25,8 +25,6 @@ use crate::rhai_helpers::render_hierarchy;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
-
 pub struct RhaiTemplateRendererFactory {
     base_directory: PathBuf,
     component_registry: Arc<ComponentRegistry>,
@@ -43,9 +41,7 @@ impl RhaiTemplateRendererFactory {
     }
 
     pub fn register_component_file(&self, file_entry: FileEntry) {
-        let component_name: SmartString = file_entry
-            .get_stem_relative_to(&self.shortcodes_subdirectory)
-            .into();
+        let component_name = file_entry.get_stem_relative_to(&self.shortcodes_subdirectory);
 
         self.component_registry
             .register_component(ComponentReference {

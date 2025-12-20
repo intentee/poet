@@ -1,10 +1,6 @@
-use rhai::ImmutableString;
-
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
-
 /// Taken from Tera: https://github.com/Keats/tera/blob/master/src/utils.rs
-pub fn escape_html(input: &str) -> ImmutableString {
-    let mut output = SmartString::new_const();
+pub fn escape_html(input: &str) -> String {
+    let mut output = String::with_capacity(input.len() * 2);
 
     for char in input.chars() {
         match char {
@@ -18,5 +14,5 @@ pub fn escape_html(input: &str) -> ImmutableString {
         }
     }
 
-    output.into()
+    output
 }

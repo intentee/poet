@@ -2,10 +2,8 @@ use dashmap::DashMap;
 
 use super::component_reference::ComponentReference;
 
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
-
 pub struct ComponentRegistry {
-    pub components: DashMap<SmartString, ComponentReference>,
+    pub components: DashMap<String, ComponentReference>,
 }
 
 impl ComponentRegistry {

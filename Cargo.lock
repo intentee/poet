@@ -1138,9 +1138,9 @@ dependencies = [
 
 [[package]]
 name = "esbuild-metafile"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b54de53651904d519e8429828b5a4fa6b0469748dfd31929bc2c22061d0d2bd"
+checksum = "c9668abb28cf52cc50ff3757d2e588fcfca1a0898658948c94b8a9fe17c1b622"
 dependencies = [
  "actix-utils",
  "actix-web",
@@ -2136,7 +2136,7 @@ dependencies = [
 
 [[package]]
 name = "poet"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "actix",
  "actix-cors",

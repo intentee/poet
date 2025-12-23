@@ -6,6 +6,13 @@ use dashmap::DashMap;
 use rhai::Engine;
 use rhai::Position;
 use rhai::module_resolvers::FileModuleResolver;
+use rhai_components::component_syntax::component_meta_module::ComponentMetaModule;
+use rhai_components::component_syntax::component_reference::ComponentReference;
+use rhai_components::component_syntax::component_reference_stub::ComponentReferenceStub;
+use rhai_components::component_syntax::component_registry::ComponentRegistry;
+use rhai_components::component_syntax::evaluator_factory::EvaluatorFactory;
+use rhai_components::component_syntax::parse_component::parse_component;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::asset_manager::AssetManager;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
@@ -18,27 +25,20 @@ use crate::filesystem::file_entry::FileEntry;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
-use crate::rhai_components::component_meta_module::ComponentMetaModule;
-use crate::rhai_components::component_reference::ComponentReference;
-use crate::rhai_components::component_registry::ComponentRegistry;
-use crate::rhai_components::evaluator_factory::EvaluatorFactory;
-use crate::rhai_components::parse_component::parse_component;
 use crate::rhai_functions::clsx;
 use crate::rhai_functions::error;
 use crate::rhai_functions::has;
 use crate::rhai_functions::render_hierarchy;
-use crate::rhai_safe_random_affix::rhai_safe_random_affix;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
-pub struct RhaiTemplateFactory {
+pub struct RhaiTemplateRendererFactory {
     base_directory: PathBuf,
     component_registry: Arc<ComponentRegistry>,
     shortcodes_subdirectory: PathBuf,
 }
 
-impl RhaiTemplateFactory {
+impl RhaiTemplateRendererFactory {
     pub fn new(base_directory: PathBuf, shortcodes_subdirectory: PathBuf) -> Self {
         Self {
             base_directory,
@@ -50,16 +50,14 @@ impl RhaiTemplateFactory {
     pub fn register_component_file(&self, file_entry: FileEntry) {
         let component_name = file_entry.get_stem_relative_to(&self.shortcodes_subdirectory);
 
-        self.component_registry
-            .register_component(ComponentReference {
-                global_fn_name: format!("{}_{}", component_name, rhai_safe_random_affix()),
-                name: component_name.clone(),
-                path: component_name,
-            });
+        self.component_registry.register_component_from_stub(ComponentReferenceStub {
+            name: component_name.clone(),
+            path: component_name,
+        });
     }
 }
 
-impl TryInto<RhaiTemplateRenderer> for RhaiTemplateFactory {
+impl TryInto<RhaiTemplateRenderer> for RhaiTemplateRendererFactory {
     type Error = anyhow::Error;
 
     fn try_into(self) -> Result<RhaiTemplateRenderer, Self::Error> {

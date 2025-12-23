@@ -4,6 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use esbuild_metafile::EsbuildMetaFile;
 use markdown::mdast::Node;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::asset_manager::AssetManager;
 use crate::asset_path_renderer::AssetPathRenderer;
@@ -19,7 +20,6 @@ use crate::mcp::prompt_controller::PromptController;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument::Argument;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub struct PromptDocumentController {
     pub asset_path_renderer: AssetPathRenderer,
@@ -115,7 +115,7 @@ mod tests {
     use crate::mcp::jsonrpc::JSONRPC_VERSION;
     use crate::mcp::jsonrpc::role::Role;
     use crate::mcp::prompt_message::PromptMessage;
-    use crate::rhai_template_factory::RhaiTemplateFactory;
+    use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
 
     #[tokio::test]
     async fn test_convert_to_prompt_messages() -> Result<()> {
@@ -139,7 +139,7 @@ mod tests {
         "#}
         .to_string();
 
-        let rhai_template_factory = RhaiTemplateFactory::new(
+        let rhai_template_factory = RhaiTemplateRendererFactory::new(
             PathBuf::from(env!("CARGO_MANIFEST_DIR")),
             PathBuf::from("shortcodes"),
         );

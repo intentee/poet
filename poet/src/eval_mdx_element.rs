@@ -7,10 +7,9 @@ use markdown::mdast::MdxJsxAttribute;
 use markdown::mdast::Node;
 use rhai::CustomType;
 use rhai::Dynamic;
-
-use crate::escape_html_attribute::escape_html_attribute;
-use crate::rhai_components::tag_name::TagName;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
+use rhai_components::component_syntax::tag_name::TagName;
+use rhai_components::escape_html_attribute::escape_html_attribute;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub fn eval_mdx_element<TComponentContext>(
     attributes: &[AttributeContent],

@@ -15,12 +15,12 @@ use markdown::mdast::Strong;
 use markdown::mdast::Table;
 use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use syntect::parsing::SyntaxSet;
 
 use crate::content_document_component_context::ContentDocumentComponentContext;
 use crate::eval_content_document_mdast::eval_content_document_children;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 

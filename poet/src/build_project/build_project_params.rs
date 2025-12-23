@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use esbuild_metafile::EsbuildMetaFile;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::filesystem::storage::Storage;
-use crate::rhai_template_renderer::RhaiTemplateRenderer;
 
 pub struct BuildProjectParams {
     pub asset_path_renderer: AssetPathRenderer,

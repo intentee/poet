@@ -9,7 +9,7 @@ use rhai::Dynamic;
 use rhai::Engine;
 use rhai::Scope;
 
-use crate::rhai_components::component_reference::ComponentReference;
+use crate::component_syntax::component_reference::ComponentReference;
 
 #[derive(Clone)]
 pub struct RhaiTemplateRenderer {

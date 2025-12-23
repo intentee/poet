@@ -12,7 +12,7 @@ use super::output_combined_symbol::OutputCombinedSymbol;
 use super::output_semantic_symbol::OutputSemanticSymbol;
 use super::output_symbol::OutputSymbol;
 use super::tag::Tag;
-use crate::rhai_components::tag_name::TagName;
+use crate::component_syntax::tag_name::TagName;
 
 pub fn combine_output_symbols(
     state: &Dynamic,

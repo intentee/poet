@@ -25,9 +25,9 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
+use rhai_components::escape_html::escape_html;
+use rhai_components::escape_html_attribute::escape_html_attribute;
 
-use crate::escape_html::escape_html;
-use crate::escape_html_attribute::escape_html_attribute;
 use crate::eval_mdx_element::eval_mdx_element;
 use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;
 use crate::is_external_link::is_external_link;

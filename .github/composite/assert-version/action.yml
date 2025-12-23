@@ -22,7 +22,6 @@ runs:
           echo "Expected version is not valid. Exiting..."
           exit 1
         fi
-
         if [[ "${{ env.BINARY_VERSION }}" != *"${{ inputs.expected-version }}"* ]]; then
           exit 1
         fi

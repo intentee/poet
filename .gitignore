@@ -8,3 +8,5 @@
 /static
 /target
 /tsconfig.tsbuildinfo
+/.envrc
+/.direnv

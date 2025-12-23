@@ -19,7 +19,8 @@ pub fn rhai_call_template_function(
 
     let tmp_ast = AST::new([], module);
 
-    let result = engine.call_fn::<ImmutableString>(&mut Scope::new(), &tmp_ast, "template", args)?;
+    let result =
+        engine.call_fn::<ImmutableString>(&mut Scope::new(), &tmp_ast, "template", args)?;
 
     Ok(result.into())
 }

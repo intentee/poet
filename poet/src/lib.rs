@@ -37,6 +37,7 @@ pub mod find_front_matter_in_mdast;
 pub mod find_table_of_contents_in_mdast;
 pub mod find_text_content_in_mdast;
 pub mod flexible_datetime;
+pub mod generate_sitemap;
 pub mod holder;
 pub mod is_external_link;
 pub mod is_valid_desktop_entry_string;

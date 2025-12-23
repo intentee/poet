@@ -103,7 +103,7 @@ fn render_document<'render>(
 
 pub async fn build_project(
     BuildProjectParams {
-        asset_path_renderer,
+        mut asset_path_renderer,
         esbuild_metafile,
         generated_page_base_path,
         is_watching,
@@ -330,7 +330,7 @@ pub async fn build_project(
         info!("Building sitemap");
 
         match create_sitemap(
-            &asset_path_renderer.base_path,
+            &mut asset_path_renderer.base_path,
             content_document_by_basename.values(),
         ) {
             Ok(sitemap) => {

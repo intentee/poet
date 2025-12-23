@@ -7,7 +7,7 @@ use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_reference::ContentDocumentReference;
 
 pub fn create_sitemap(
-    base_url: &String,
+    base_url: &mut String,
     content_document_by_basename: std::collections::hash_map::Values<
         '_,
         ContentDocumentBasename,
@@ -31,6 +31,10 @@ pub fn create_sitemap(
             .to_string_lossy()
             .into_owned()
             .replace("index", "");
+
+        if !base_url.ends_with('/') {
+            base_url.push_str("/");
+        }
 
         if page_path != "" {
             page_path = format!("{base_url}{page_path}");

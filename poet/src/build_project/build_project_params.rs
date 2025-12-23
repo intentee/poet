@@ -10,8 +10,8 @@ pub struct BuildProjectParams {
     pub asset_path_renderer: AssetPathRenderer,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,
     pub generated_page_base_path: String,
+    pub generate_sitemap: bool,
     pub is_watching: bool,
     pub rhai_template_renderer: RhaiTemplateRenderer,
-    pub generate_sitemap: bool,
     pub source_filesystem: Arc<Storage>,
 }

@@ -1138,9 +1138,9 @@ dependencies = [
 
 [[package]]
 name = "esbuild-metafile"
-version = "0.5.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "309f09d28539a42ca467019db5a74893fc755a921558635964a4b729ea5f5f96"
+checksum = "c9668abb28cf52cc50ff3757d2e588fcfca1a0898658948c94b8a9fe17c1b622"
 dependencies = [
  "actix-utils",
  "actix-web",
@@ -2136,7 +2136,7 @@ dependencies = [
 
 [[package]]
 name = "poet"
-version = "0.3.0"
+version = "0.5.13"
 dependencies = [
  "actix",
  "actix-cors",
@@ -2178,6 +2178,7 @@ dependencies = [
  "serde",
  "serde_json",
  "slug",
+ "smartstring",
  "syntect",
  "tantivy",
  "tempfile",
@@ -2448,7 +2449,6 @@ dependencies = [
  "once_cell",
  "rhai_codegen",
  "serde",
- "serde_json",
  "smallvec",
  "smartstring",
  "thin-vec",
@@ -2467,12 +2467,13 @@ dependencies = [
 
 [[package]]
 name = "rhai_components"
-version = "0.3.0"
+version = "0.5.10"
 dependencies = [
  "anyhow",
  "dashmap",
  "nanoid",
  "rhai",
+ "smartstring",
  "tokio",
 ]
 

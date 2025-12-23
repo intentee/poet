@@ -2,7 +2,7 @@
 description = "JSX-like syntax extension for Rhai"
 license = "Apache-2.0"
 name = "rhai_components"
-version = "0.3.0"
+version = "0.5.10"
 edition = "2024"
 
 [dependencies]
@@ -10,4 +10,5 @@ anyhow = { workspace = true }
 dashmap = { workspace = true }
 nanoid = { workspace = true }
 rhai = { workspace = true }
+smartstring = { workspace = true }
 tokio = { workspace = true }

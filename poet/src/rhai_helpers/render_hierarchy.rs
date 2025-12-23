@@ -10,7 +10,7 @@ fn render_node(
     context: &NativeCallContext,
     node: &ContentDocumentTreeNode,
     callback: &FnPtr,
-    nesting_level: i64,
+    nesting_level: i32,
 ) -> Result<Dynamic, Box<EvalAltResult>> {
     callback.call_within_context(
         context,

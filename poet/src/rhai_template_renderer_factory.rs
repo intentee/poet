@@ -2,17 +2,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
-use dashmap::DashMap;
 use rhai::Engine;
-use rhai::Position;
 use rhai::module_resolvers::FileModuleResolver;
-use rhai_components::component_syntax::component_meta_module::ComponentMetaModule;
+use rhai_components::builds_engine::BuildsEngine;
 use rhai_components::component_syntax::component_reference::ComponentReference;
-use rhai_components::component_syntax::component_reference_stub::ComponentReferenceStub;
 use rhai_components::component_syntax::component_registry::ComponentRegistry;
-use rhai_components::component_syntax::evaluator_factory::EvaluatorFactory;
-use rhai_components::component_syntax::parse_component::parse_component;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
+use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
 use crate::asset_manager::AssetManager;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
@@ -25,10 +21,7 @@ use crate::filesystem::file_entry::FileEntry;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
-use crate::rhai_functions::clsx;
-use crate::rhai_functions::error;
-use crate::rhai_functions::has;
-use crate::rhai_functions::render_hierarchy;
+use crate::rhai_helpers::render_hierarchy;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
@@ -50,25 +43,20 @@ impl RhaiTemplateRendererFactory {
     pub fn register_component_file(&self, file_entry: FileEntry) {
         let component_name = file_entry.get_stem_relative_to(&self.shortcodes_subdirectory);
 
-        self.component_registry.register_component_from_stub(ComponentReferenceStub {
-            name: component_name.clone(),
-            path: component_name,
-        });
+        self.component_registry
+            .register_component(ComponentReference {
+                name: component_name.clone(),
+                path: component_name,
+            });
     }
 }
 
-impl TryInto<RhaiTemplateRenderer> for RhaiTemplateRendererFactory {
-    type Error = anyhow::Error;
+impl BuildsEngine for RhaiTemplateRendererFactory {
+    fn component_registry(&self) -> Arc<ComponentRegistry> {
+        self.component_registry.clone()
+    }
 
-    fn try_into(self) -> Result<RhaiTemplateRenderer, Self::Error> {
-        let evaluator_factory = EvaluatorFactory {
-            component_registry: self.component_registry.clone(),
-        };
-
-        let mut engine = Engine::new();
-
-        engine.set_fail_on_invalid_map_property(true);
-        engine.set_max_expr_depths(256, 256);
+    fn prepare_engine(&self, engine: &mut Engine) -> Result<()> {
         engine.set_module_resolver(FileModuleResolver::new_with_path(
             self.base_directory.join(&self.shortcodes_subdirectory),
         ));
@@ -86,47 +74,22 @@ impl TryInto<RhaiTemplateRenderer> for RhaiTemplateRendererFactory {
         engine.build_type::<PromptDocumentComponentContext>();
         engine.build_type::<PromptDocumentFrontMatter>();
         engine.build_type::<TableOfContents>();
-        engine.register_fn("clsx", clsx);
-        engine.register_fn("error", error);
-        engine.register_fn("has", has);
+
         engine.register_fn("render_hierarchy", render_hierarchy);
-        engine.set_max_call_levels(128);
 
-        engine.register_custom_syntax_without_look_ahead_raw(
-            "component",
-            parse_component,
-            true,
-            evaluator_factory.create_component_evaluator(),
-        );
+        Ok(())
+    }
+}
 
-        let templates: DashMap<String, ComponentReference> = DashMap::new();
+impl TryInto<RhaiTemplateRenderer> for RhaiTemplateRendererFactory {
+    type Error = anyhow::Error;
 
-        for entry in &self.component_registry.components {
-            let component_reference = entry.value();
+    fn try_into(self) -> Result<RhaiTemplateRenderer, Self::Error> {
+        let expression_engine = self.create_engine()?;
 
-            let module_resolver = engine.module_resolver();
-            let module = module_resolver.resolve(
-                &engine,
-                None,
-                &component_reference.path,
-                Position::NONE,
-            )?;
-
-            engine.register_static_module(component_reference.name.clone(), module);
-
-            templates.insert(
-                component_reference.name.clone(),
-                component_reference.clone(),
-            );
-        }
-
-        let meta_module = ComponentMetaModule::from(self.component_registry.clone());
-
-        engine.register_global_module(meta_module.into_global_module(&engine)?.into());
-
-        Ok(RhaiTemplateRenderer::new(
-            Arc::new(engine),
-            Arc::new(templates),
-        ))
+        RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
+            component_registry: self.component_registry,
+            expression_engine,
+        })
     }
 }

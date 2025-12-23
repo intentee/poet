@@ -1,14 +1,16 @@
+use crate::SmartStringLazy;
+
 #[derive(Clone, Debug)]
 pub enum OutputSymbol {
     BodyExpression,
-    Text(String),
+    Text(SmartStringLazy),
     TagLeftAnglePlusWhitespace,
-    TagCloseBeforeNamePlusWhitespace(String),
-    TagName(String),
+    TagCloseBeforeNamePlusWhitespace(SmartStringLazy),
+    TagName(SmartStringLazy),
     TagPadding,
-    TagAttributeName(String),
+    TagAttributeName(SmartStringLazy),
     TagAttributeValueExpression,
-    TagAttributeValueString(String),
+    TagAttributeValueString(SmartStringLazy),
     TagSelfClose,
     TagRightAngle,
 }

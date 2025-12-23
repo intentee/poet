@@ -1,6 +1,8 @@
+use crate::SmartStringLazy;
+
 #[derive(Clone, Debug, Hash)]
 pub struct TagName {
-    pub name: String,
+    pub name: SmartStringLazy,
 }
 
 impl TagName {

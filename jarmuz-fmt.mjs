@@ -5,7 +5,14 @@ import { jarmuz } from "jarmuz";
 jarmuz({
   once: true,
   pipeline: ["cargo-fmt", "prettier"],
-  watch: ["jarmuz", "resources", "src", "templates", "*.mjs"],
+  watch: [
+    "jarmuz",
+    "resources",
+    "poet",
+    "rhai_components",
+    "templates",
+    "*.mjs",
+  ],
 }).decide(function ({ matches, schedule }) {
   switch (true) {
     case matches("**/*.css"):

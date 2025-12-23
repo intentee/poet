@@ -6,6 +6,8 @@ fn template(context, props, content) {
         <title>Poet</title>
       </head>
       <body>
+        <PrimaryNavigation>test</PrimaryNavigation>
+
         Hello!
 
         {content}

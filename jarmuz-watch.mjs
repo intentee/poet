@@ -5,10 +5,10 @@ import { jarmuz } from "jarmuz";
 jarmuz({
   once: false,
   pipeline: ["cargo-build", "poet-watch", "tcm", "tsc", "esbuild-development"],
-  watch: ["resources", "src"],
+  watch: ["resources", "poet", "rhai_components"],
 }).decide(function ({ matches, schedule }) {
   switch (true) {
-    case matches("src/**/*.rs"):
+    case matches("**/*.rs"):
       schedule("cargo-build");
       return;
     case matches("resources/**/*.{ts,tsx}"):

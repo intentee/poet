@@ -28,6 +28,7 @@ pub struct ProjectBuilder {
     pub ctrlc_notifier: CancellationToken,
     pub esbuild_metafile_holder: EsbuildMetaFileHolder,
     pub generated_page_base_path: String,
+    pub on_author_file_changed: Arc<Notify>,
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
     pub session_manager: SessionManager,
@@ -104,6 +105,7 @@ impl Service for ProjectBuilder {
 
             tokio::select! {
                 _ = self.esbuild_metafile_holder.update_notifier.notified() => continue,
+                _ = self.on_author_file_changed.notified() => continue,
                 _ = self.on_content_file_changed.notified() => continue,
                 _ = self.rhai_template_renderer_holder.update_notifier.notified() => continue,
                 _ = self.ctrlc_notifier.cancelled() => break,

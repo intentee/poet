@@ -44,14 +44,13 @@ impl ContentDocumentComponentContext {
         }
     }
 
-    fn rhai_authors(&mut self) -> String {
+    fn rhai_authors(&mut self) -> rhai::Array {
         self.front_matter
             .authors
             .iter()
             .filter_map(|basename| self.authors.get(basename))
-            .map(|author| author.front_matter.name.clone())
-            .collect::<Vec<_>>()
-            .join(", ")
+            .map(|author| rhai::Dynamic::from(author.front_matter.clone()))
+            .collect()
     }
 
     fn rhai_belongs_to(&mut self, collection_name: &str) -> Result<bool, Box<EvalAltResult>> {

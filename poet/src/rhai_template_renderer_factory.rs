@@ -11,6 +11,7 @@ use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
 use crate::asset_manager::AssetManager;
+use crate::author_front_matter::AuthorFrontMatter;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
 use crate::content_document_component_context::ContentDocumentComponentContext;
 use crate::content_document_front_matter::ContentDocumentFrontMatter;
@@ -63,6 +64,7 @@ impl BuildsEngine for RhaiTemplateRendererFactory {
 
         engine.build_type::<ArgumentWithInput>();
         engine.build_type::<AssetManager>();
+        engine.build_type::<AuthorFrontMatter>();
         engine.build_type::<ContentDocumentCollectionRanked>();
         engine.build_type::<ContentDocumentComponentContext>();
         engine.build_type::<ContentDocumentFrontMatter>();

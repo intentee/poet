@@ -20,6 +20,9 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
+use crate::author::Author;
+use crate::author_basename::AuthorBasename;
+use crate::author_front_matter::AuthorFrontMatter;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
@@ -45,6 +48,7 @@ use crate::string_to_mdast::string_to_mdast;
 fn render_document<'render>(
     ContentDocumentRenderingContext {
         asset_path_renderer,
+        authors,
         available_collections,
         content_document:
             ContentDocument {
@@ -66,6 +70,7 @@ fn render_document<'render>(
 ) -> Result<String> {
     let component_context = ContentDocumentComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
+        authors,
         available_collections,
         content_document_collections_ranked,
         content_document_linker,
@@ -134,6 +139,8 @@ pub async fn build_project(
     let mut content_document_sources: BTreeMap<ContentDocumentBasename, ContentDocumentSource> =
         Default::default();
 
+    let mut authors: BTreeMap<AuthorBasename, Author> = Default::default();
+
     for file in source_filesystem.read_project_files().await? {
         if file.kind.is_content() {
             let mdast = string_to_mdast(&file.contents)?;
@@ -181,11 +188,49 @@ pub async fn build_project(
                     },
                 );
             }
+        } else if file.kind.is_author() {
+            let front_matter: AuthorFrontMatter =
+                toml::from_str(&file.contents).map_err(|err| {
+                    anyhow!(
+                        "Failed to parse author file {:?}: {err}",
+                        file.relative_path
+                    )
+                })?;
+
+            let basename_path = file.get_stem_path_relative_to(&PathBuf::from("authors"));
+            let basename: AuthorBasename = basename_path.into();
+
+            authors.insert(
+                basename.clone(),
+                Author {
+                    basename,
+                    front_matter,
+                },
+            );
+        }
+    }
+
+    for author in authors.values() {
+        if author.front_matter.name.trim().is_empty() {
+            error_collection.register_error(
+                format!("author:{}", author.basename),
+                anyhow!("Author name cannot be empty"),
+            );
         }
     }
 
     // Validate before/after/parent documents in collections
     for reference in content_document_by_basename.values() {
+        // Validate author exists
+        for author_basename in &reference.front_matter.authors {
+            if !authors.contains_key(author_basename) {
+                error_collection.register_error(
+                    reference.basename().to_string(),
+                    anyhow!("Author does not exist: '{author_basename}'"),
+                );
+            }
+        }
+
         // Validate primary collections
         if let Some(primary_collection) = &reference.front_matter.primary_collection
             && !reference
@@ -261,6 +306,7 @@ pub async fn build_project(
     let content_document_basename_by_id_arc = Arc::new(content_document_basename_by_id);
     let content_document_by_basename_arc = Arc::new(content_document_by_basename);
     let content_document_collections_ranked_arc = Arc::new(content_document_collections_ranked);
+    let authors_arc = Arc::new(authors);
     let content_document_linker = ContentDocumentLinker {
         content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
         content_document_by_basename: content_document_by_basename_arc.clone(),
@@ -283,6 +329,7 @@ pub async fn build_project(
         .for_each(|content_document| {
             match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
+                authors: authors_arc.clone(),
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,
@@ -325,6 +372,7 @@ pub async fn build_project(
 
     if error_collection.is_empty() {
         Ok(BuildProjectResultStub {
+            authors: authors_arc,
             esbuild_metafile,
             content_document_linker,
             content_document_sources: Arc::new(content_document_sources),

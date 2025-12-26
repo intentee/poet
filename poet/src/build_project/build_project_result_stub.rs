@@ -4,6 +4,8 @@ use std::sync::Arc;
 use esbuild_metafile::EsbuildMetaFile;
 use rayon::prelude::*;
 
+use crate::author::Author;
+use crate::author_basename::AuthorBasename;
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_linker::ContentDocumentLinker;
@@ -11,6 +13,7 @@ use crate::content_document_source::ContentDocumentSource;
 use crate::filesystem::memory::Memory;
 
 pub struct BuildProjectResultStub {
+    pub authors: Arc<BTreeMap<AuthorBasename, Author>>,
     pub content_document_linker: ContentDocumentLinker,
     pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     pub esbuild_metafile: Arc<EsbuildMetaFile>,
@@ -39,6 +42,7 @@ impl BuildProjectResultStub {
             .collect();
 
         BuildProjectResult {
+            authors: self.authors,
             changed_since_last_build,
             content_document_linker: self.content_document_linker,
             content_document_sources: self.content_document_sources,

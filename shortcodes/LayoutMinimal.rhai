@@ -10,6 +10,8 @@ fn template(context, props, content) {
 
         Hello!
 
+        <p>Authors: {context.authors}</p>
+
         {content}
       </body>
     </html>

@@ -20,9 +20,6 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
-use crate::author::Author;
-use crate::author_basename::AuthorBasename;
-use crate::author_front_matter::AuthorFrontMatter;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
@@ -107,6 +104,7 @@ fn render_document<'render>(
 pub async fn build_project(
     BuildProjectParams {
         asset_path_renderer,
+        authors,
         esbuild_metafile,
         generated_page_base_path,
         is_watching,
@@ -138,8 +136,6 @@ pub async fn build_project(
     let mut content_document_list: Vec<ContentDocument> = Vec::new();
     let mut content_document_sources: BTreeMap<ContentDocumentBasename, ContentDocumentSource> =
         Default::default();
-
-    let mut authors: BTreeMap<AuthorBasename, Author> = Default::default();
 
     for file in source_filesystem.read_project_files().await? {
         if file.kind.is_content() {
@@ -188,40 +184,11 @@ pub async fn build_project(
                     },
                 );
             }
-        } else if file.kind.is_author() {
-            let front_matter: AuthorFrontMatter =
-                toml::from_str(&file.contents).map_err(|err| {
-                    anyhow!(
-                        "Failed to parse author file {:?}: {err}",
-                        file.relative_path
-                    )
-                })?;
-
-            let basename_path = file.get_stem_path_relative_to(&PathBuf::from("authors"));
-            let basename: AuthorBasename = basename_path.into();
-
-            authors.insert(
-                basename.clone(),
-                Author {
-                    basename,
-                    front_matter,
-                },
-            );
-        }
-    }
-
-    for author in authors.values() {
-        if author.front_matter.name.trim().is_empty() {
-            error_collection.register_error(
-                format!("author:{}", author.basename),
-                anyhow!("Author name cannot be empty"),
-            );
         }
     }
 
     // Validate before/after/parent documents in collections
     for reference in content_document_by_basename.values() {
-        // Validate author exists
         for author_basename in &reference.front_matter.authors {
             if !authors.contains_key(author_basename) {
                 error_collection.register_error(

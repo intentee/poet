@@ -9,6 +9,7 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::build_authors::build_authors;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
@@ -55,8 +56,17 @@ impl ProjectBuilder {
             }
         };
 
+        let authors = match build_authors(self.source_filesystem.clone()).await {
+            Ok(authors) => authors,
+            Err(err) => {
+                error!("Failed to build authors: {err:#}");
+                return;
+            }
+        };
+
         match build_project(BuildProjectParams {
             asset_path_renderer: self.asset_path_renderer.clone(),
+            authors,
             esbuild_metafile,
             generated_page_base_path: self.generated_page_base_path.clone(),
             is_watching: true,

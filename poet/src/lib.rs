@@ -6,6 +6,7 @@ pub mod asset_path_renderer;
 pub mod author;
 pub mod author_basename;
 pub mod author_front_matter;
+pub mod build_authors;
 pub mod build_project;
 pub mod build_prompt_document_controller;
 pub mod build_prompt_document_controller_collection;

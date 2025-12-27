@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use rhai::CustomType;
+use rhai::Dynamic;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
@@ -49,7 +50,7 @@ impl ContentDocumentComponentContext {
             .authors
             .iter()
             .filter_map(|basename| self.authors.get(basename))
-            .map(|author| rhai::Dynamic::from(author.front_matter.clone()))
+            .map(|author| Dynamic::from(author.front_matter.clone()))
             .collect()
     }
 

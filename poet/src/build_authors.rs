@@ -41,15 +41,6 @@ pub async fn build_authors(
         }
     }
 
-    for author in authors.values() {
-        if author.front_matter.name.trim().is_empty() {
-            error_collection.register_error(
-                format!("author:{}", author.basename),
-                anyhow!("Author name cannot be empty"),
-            );
-        }
-    }
-
     if error_collection.is_empty() {
         Ok(authors)
     } else {

@@ -47,6 +47,9 @@ pub struct Watch {
 
     #[arg(value_parser = validate_is_directory)]
     source_directory: PathBuf,
+
+    #[arg(long, default_value = "false")]
+    sitemap: bool,
 }
 
 impl BuildsProject for Watch {
@@ -134,6 +137,7 @@ impl Handler for Watch {
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             session_manager,
+            generate_sitemap: self.sitemap,
             source_filesystem: source_filesystem.clone(),
         }));
 

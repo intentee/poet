@@ -119,6 +119,7 @@ mod tests {
             generated_page_base_path: public_path,
             is_watching: false,
             rhai_template_renderer,
+            generate_sitemap: false,
             source_filesystem,
         })
         .await

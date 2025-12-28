@@ -16,9 +16,7 @@ impl AuthorFrontMatter {
             name: name.to_string(),
         }
     }
-}
 
-impl AuthorFrontMatter {
     fn rhai_name(&mut self) -> String {
         self.name.clone()
     }

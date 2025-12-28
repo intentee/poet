@@ -20,24 +20,34 @@ pub async fn build_authors(
 
     for file in source_filesystem.read_project_files().await? {
         if file.kind.is_author() {
-            let front_matter: AuthorFrontMatter =
-                toml::from_str(&file.contents).map_err(|err| {
-                    anyhow!(
-                        "Failed to parse author file {:?}: {err}",
-                        file.relative_path
-                    )
-                })?;
+            let front_matter: AuthorFrontMatter = match toml::from_str(&file.contents) {
+                Ok(front_matter) => front_matter,
+                Err(err) => {
+                    error_collection.register_error(
+                        file.relative_path.display().to_string(),
+                        anyhow!("Failed to parse author file: {err}"),
+                    );
+                    continue; // skip to next file
+                }
+            };
 
             let basename_path = file.get_stem_path_relative_to(&PathBuf::from("authors"));
             let basename: AuthorBasename = basename_path.into();
 
-            authors.insert(
-                basename.clone(),
-                Author {
-                    basename,
-                    front_matter,
-                },
-            );
+            if authors.contains_key(&basename) {
+                error_collection.register_error(
+                    format!("author:{}", basename),
+                    anyhow!("Duplicate author basename: '{basename}'"),
+                );
+            } else {
+                authors.insert(
+                    basename.clone(),
+                    Author {
+                        basename,
+                        front_matter,
+                    },
+                );
+            }
         }
     }
 

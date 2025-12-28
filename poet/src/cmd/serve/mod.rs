@@ -17,6 +17,7 @@ use log::info;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::build_authors::build_authors;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result::BuildProjectResult;
@@ -108,8 +109,11 @@ impl Handler for Serve {
             version: app_dir_desktop_entry.site_version.clone(),
         };
 
+        let authors = build_authors(source_filesystem.clone()).await?;
+
         let build_project_result: BuildProjectResult = build_project(BuildProjectParams {
             asset_path_renderer: asset_path_renderer.clone(),
+            authors,
             esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.clone()).await?,
             generated_page_base_path: self.public_path.clone(),
             is_watching: false,

@@ -45,6 +45,7 @@ use crate::string_to_mdast::string_to_mdast;
 fn render_document<'render>(
     ContentDocumentRenderingContext {
         asset_path_renderer,
+        authors,
         available_collections,
         content_document:
             ContentDocument {
@@ -66,6 +67,7 @@ fn render_document<'render>(
 ) -> Result<String> {
     let component_context = ContentDocumentComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
+        authors,
         available_collections,
         content_document_collections_ranked,
         content_document_linker,
@@ -102,6 +104,7 @@ fn render_document<'render>(
 pub async fn build_project(
     BuildProjectParams {
         asset_path_renderer,
+        authors,
         esbuild_metafile,
         generated_page_base_path,
         is_watching,
@@ -186,6 +189,15 @@ pub async fn build_project(
 
     // Validate before/after/parent documents in collections
     for reference in content_document_by_basename.values() {
+        for author_basename in &reference.front_matter.authors {
+            if !authors.contains_key(author_basename) {
+                error_collection.register_error(
+                    reference.basename().to_string(),
+                    anyhow!("Author does not exist: '{author_basename}'"),
+                );
+            }
+        }
+
         // Validate primary collections
         if let Some(primary_collection) = &reference.front_matter.primary_collection
             && !reference
@@ -261,6 +273,7 @@ pub async fn build_project(
     let content_document_basename_by_id_arc = Arc::new(content_document_basename_by_id);
     let content_document_by_basename_arc = Arc::new(content_document_by_basename);
     let content_document_collections_ranked_arc = Arc::new(content_document_collections_ranked);
+    let authors_arc = Arc::new(authors);
     let content_document_linker = ContentDocumentLinker {
         content_document_basename_by_id: content_document_basename_by_id_arc.clone(),
         content_document_by_basename: content_document_by_basename_arc.clone(),
@@ -283,6 +296,7 @@ pub async fn build_project(
         .for_each(|content_document| {
             match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
+                authors: authors_arc.clone(),
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,
@@ -325,6 +339,7 @@ pub async fn build_project(
 
     if error_collection.is_empty() {
         Ok(BuildProjectResultStub {
+            authors: authors_arc,
             esbuild_metafile,
             content_document_linker,
             content_document_sources: Arc::new(content_document_sources),

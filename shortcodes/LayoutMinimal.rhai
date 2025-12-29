@@ -1,6 +1,4 @@
 fn template(context, props, content) {
-  let author_names = context.authors.map(|a| a.data.name).join(", ");
-
   component {
     <!DOCTYPE html>
     <html lang="en">
@@ -14,7 +12,20 @@ fn template(context, props, content) {
 
         {content}
 
-        <p>Authors: {author_names}</p>
+        <p>Authors:
+          {
+            let ret = [];
+
+            for author in context.authors {
+              ret.push(component {
+                <span>{author.basename}</span>
+                <span>{author.data.name}</span>
+              });
+            }
+
+            ret
+          }
+        </p>
       </body>
     </html>
   }

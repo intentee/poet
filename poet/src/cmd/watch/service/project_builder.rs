@@ -9,7 +9,6 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::asset_path_renderer::AssetPathRenderer;
-use crate::build_authors::build_authors;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
@@ -29,7 +28,6 @@ pub struct ProjectBuilder {
     pub ctrlc_notifier: CancellationToken,
     pub esbuild_metafile_holder: EsbuildMetaFileHolder,
     pub generated_page_base_path: String,
-    pub on_author_file_changed: Arc<Notify>,
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
     pub session_manager: SessionManager,
@@ -56,17 +54,8 @@ impl ProjectBuilder {
             }
         };
 
-        let authors = match build_authors(self.source_filesystem.clone()).await {
-            Ok(authors) => authors,
-            Err(err) => {
-                error!("Failed to build authors: {err:#}");
-                return;
-            }
-        };
-
         match build_project(BuildProjectParams {
             asset_path_renderer: self.asset_path_renderer.clone(),
-            authors,
             esbuild_metafile,
             generated_page_base_path: self.generated_page_base_path.clone(),
             is_watching: true,
@@ -115,7 +104,6 @@ impl Service for ProjectBuilder {
 
             tokio::select! {
                 _ = self.esbuild_metafile_holder.update_notifier.notified() => continue,
-                _ = self.on_author_file_changed.notified() => continue,
                 _ = self.on_content_file_changed.notified() => continue,
                 _ = self.rhai_template_renderer_holder.update_notifier.notified() => continue,
                 _ = self.ctrlc_notifier.cancelled() => break,

@@ -67,7 +67,6 @@ impl Handler for Watch {
 
         let WatchProjectHandle {
             debouncer: _debouncer,
-            on_author_file_changed,
             on_content_file_changed,
             on_esbuild_metafile_changed,
             on_prompt_file_changed,
@@ -132,7 +131,6 @@ impl Handler for Watch {
             ctrlc_notifier: ctrlc_notifier.clone(),
             esbuild_metafile_holder: esbuild_metafile_holder.clone(),
             generated_page_base_path: generated_page_base_path.clone(),
-            on_author_file_changed,
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             session_manager,

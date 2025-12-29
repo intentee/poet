@@ -1,6 +1,4 @@
 fn template(context, props, content) {
-  let author_name = if !context.authors.is_empty() { context.authors[0].name } else { "" };
-
   component {
     <!DOCTYPE html>
     <html lang="en">
@@ -8,7 +6,10 @@ fn template(context, props, content) {
         <title>Poet</title>
       </head>
       <body>
-        <p>Author: {author_name}</p>
+        <PrimaryNavigation>test</PrimaryNavigation>
+
+        Hello!
+
         {content}
       </body>
     </html>

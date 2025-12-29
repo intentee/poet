@@ -111,11 +111,7 @@ pub fn eval_tag_stack_node(
                 Ok(rhai_call_template_function(
                     eval_context.engine(),
                     &opening_tag.tag_name.name,
-                    (
-                        context,
-                        Dynamic::from_map(props),
-                        Dynamic::from(result.to_string()),
-                    ),
+                    (context, Dynamic::from_map(props), Dynamic::from(result.to_string())),
                 )
                 .map_err(|err| {
                     EvalAltResult::ErrorRuntime(

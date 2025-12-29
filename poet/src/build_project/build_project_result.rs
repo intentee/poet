@@ -3,8 +3,6 @@ use std::sync::Arc;
 
 use esbuild_metafile::EsbuildMetaFile;
 
-use crate::author::Author;
-use crate::author_basename::AuthorBasename;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_linker::ContentDocumentLinker;
@@ -13,7 +11,6 @@ use crate::filesystem::memory::Memory;
 
 #[derive(Clone)]
 pub struct BuildProjectResult {
-    pub authors: Arc<BTreeMap<AuthorBasename, Author>>,
     pub changed_since_last_build: Vec<ContentDocumentSource>,
     pub content_document_linker: ContentDocumentLinker,
     pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
@@ -24,7 +21,6 @@ pub struct BuildProjectResult {
 impl From<BuildProjectResultStub> for BuildProjectResult {
     fn from(
         BuildProjectResultStub {
-            authors,
             content_document_linker,
             content_document_sources,
             esbuild_metafile,
@@ -32,7 +28,6 @@ impl From<BuildProjectResultStub> for BuildProjectResult {
         }: BuildProjectResultStub,
     ) -> Self {
         Self {
-            authors,
             changed_since_last_build: vec![],
             content_document_linker,
             content_document_sources,

@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -8,15 +7,12 @@ use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_path_renderer::AssetPathRenderer;
-use crate::author::Author;
-use crate::author_basename::AuthorBasename;
 use crate::content_document::ContentDocument;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
 use crate::content_document_linker::ContentDocumentLinker;
 
 pub struct ContentDocumentRenderingContext<'render> {
     pub asset_path_renderer: AssetPathRenderer,
-    pub authors: Arc<BTreeMap<AuthorBasename, Author>>,
     pub available_collections: Arc<HashSet<String>>,
     pub content_document: &'render ContentDocument,
     pub content_document_collections_ranked: Arc<HashMap<String, ContentDocumentCollectionRanked>>,

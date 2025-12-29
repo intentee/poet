@@ -60,7 +60,6 @@ impl TryFrom<FileEntryStub> for FileEntry {
             contents_hash: hash(file_entry_stub.contents.as_bytes()),
             contents: file_entry_stub.contents,
             kind: match (top_directory.as_str(), extension.as_str()) {
-                ("authors", "toml") => FileEntryKind::Author,
                 ("content", "md") => FileEntryKind::Content,
                 ("prompts", "md") => FileEntryKind::Prompt,
                 ("shortcodes", "rhai") => FileEntryKind::Shortcode,

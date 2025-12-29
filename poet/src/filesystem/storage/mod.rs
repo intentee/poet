@@ -23,7 +23,6 @@ pub struct Storage {
 impl Filesystem for Storage {
     async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
         let mut to_visit: Vec<PathBuf> = vec![
-            self.base_directory.join("authors"),
             self.base_directory.join("content"),
             self.base_directory.join("prompts"),
             self.base_directory.join("shortcodes"),
@@ -48,7 +47,7 @@ impl Filesystem for Storage {
 
                     if let Some(extension) = path.extension() {
                         match extension.to_str() {
-                            Some("md") | Some("rhai") | Some("toml") => {
+                            Some("md") | Some("rhai") => {
                                 files.push(
                                     FileEntryStub {
                                         contents: fs::read_to_string(&path).await.context(

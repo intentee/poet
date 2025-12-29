@@ -20,7 +20,6 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
-use crate::author::Author;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
@@ -47,6 +46,7 @@ fn render_document<'render>(
     ContentDocumentRenderingContext {
         asset_path_renderer,
         authors,
+        available_authors,
         available_collections,
         content_document:
             ContentDocument {
@@ -66,16 +66,10 @@ fn render_document<'render>(
         syntax_set,
     }: ContentDocumentRenderingContext<'render>,
 ) -> Result<String> {
-    let filtered_authors: Vec<Author> = front_matter
-        .authors
-        .iter()
-        .filter_map(|basename| authors.get(basename).cloned())
-        .collect();
-
     let component_context = ContentDocumentComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
-        authors: filtered_authors,
-        available_authors: authors,
+        authors: authors.clone(),
+        available_authors: available_authors,
         available_collections,
         content_document_collections_ranked,
         content_document_linker,
@@ -197,13 +191,13 @@ pub async fn build_project(
 
     // Validate before/after/parent documents in collections
     for reference in content_document_by_basename.values() {
-        for author_basename in &reference.front_matter.authors {
-            if !authors.contains_key(author_basename) {
-                error_collection.register_error(
-                    reference.basename().to_string(),
-                    anyhow!("Author does not exist: '{author_basename}'"),
-                );
-            }
+        let (_, not_found) = authors.resolve(&reference.front_matter.authors);
+
+        for author_name in not_found {
+            error_collection.register_error(
+                reference.basename().to_string(),
+                anyhow!("Author does not exist: '{author_name}'"),
+            );
         }
 
         // Validate primary collections
@@ -303,9 +297,13 @@ pub async fn build_project(
             }
         })
         .for_each(|content_document| {
+            let (resolved_authors, _) =
+                authors_arc.resolve(&content_document.reference.front_matter.authors);
+
             match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
-                authors: authors_arc.clone(),
+                authors: resolved_authors,
+                available_authors: authors_arc.clone(),
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,

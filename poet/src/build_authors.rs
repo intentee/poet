@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -7,15 +6,14 @@ use anyhow::anyhow;
 
 use crate::author::Author;
 use crate::author_basename::AuthorBasename;
+use crate::author_collection::AuthorCollection;
 use crate::author_data::AuthorData;
 use crate::document_error_collection::DocumentErrorCollection;
 use crate::filesystem::Filesystem;
 use crate::filesystem::storage::Storage;
 
-pub async fn build_authors(
-    source_filesystem: Arc<Storage>,
-) -> Result<BTreeMap<AuthorBasename, Author>> {
-    let mut authors: BTreeMap<AuthorBasename, Author> = BTreeMap::new();
+pub async fn build_authors(source_filesystem: Arc<Storage>) -> Result<AuthorCollection> {
+    let mut authors = AuthorCollection::default();
     let error_collection: DocumentErrorCollection = Default::default();
 
     for file in source_filesystem.read_project_files().await? {

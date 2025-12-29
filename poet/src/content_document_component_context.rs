@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -9,7 +8,7 @@ use rhai::TypeBuilder;
 
 use crate::asset_manager::AssetManager;
 use crate::author::Author;
-use crate::author_basename::AuthorBasename;
+use crate::author_collection::AuthorCollection;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
 use crate::content_document_front_matter::ContentDocumentFrontMatter;
 use crate::content_document_linker::ContentDocumentLinker;
@@ -20,7 +19,7 @@ use crate::table_of_contents::TableOfContents;
 pub struct ContentDocumentComponentContext {
     pub asset_manager: AssetManager,
     pub authors: Vec<Author>,
-    pub available_authors: Arc<BTreeMap<AuthorBasename, Author>>,
+    pub available_authors: Arc<AuthorCollection>,
     pub available_collections: Arc<HashSet<String>>,
     pub content_document_collections_ranked: Arc<HashMap<String, ContentDocumentCollectionRanked>>,
     pub content_document_linker: ContentDocumentLinker,

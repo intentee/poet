@@ -9,7 +9,6 @@ use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::author_basename::AuthorBasename;
 use crate::content_document_front_matter::collection_placement_list::CollectionPlacementList;
 
 fn default_render() -> bool {
@@ -27,7 +26,7 @@ fn default_render() -> bool {
 #[serde(deny_unknown_fields)]
 pub struct ContentDocumentFrontMatter {
     #[serde(default)]
-    pub authors: Vec<AuthorBasename>,
+    pub authors: Vec<String>,
     pub description: String,
     #[serde(default)]
     pub id: Option<String>,

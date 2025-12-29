@@ -5,6 +5,7 @@ pub mod asset_manager;
 pub mod asset_path_renderer;
 pub mod author;
 pub mod author_basename;
+pub mod author_collection;
 pub mod author_data;
 pub mod build_authors;
 pub mod build_project;

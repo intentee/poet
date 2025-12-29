@@ -9,6 +9,7 @@ use rhai::TypeBuilder;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::author_basename::AuthorBasename;
 use crate::content_document_front_matter::collection_placement_list::CollectionPlacementList;
 
 fn default_render() -> bool {
@@ -25,6 +26,8 @@ fn default_render() -> bool {
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentDocumentFrontMatter {
+    #[serde(default)]
+    pub authors: Vec<AuthorBasename>,
     pub description: String,
     #[serde(default)]
     pub id: Option<String>,
@@ -48,6 +51,7 @@ impl ContentDocumentFrontMatter {
     #[cfg(test)]
     pub fn mock(name: &str) -> Self {
         Self {
+            authors: vec![],
             description: "".to_string(),
             id: None,
             last_updated_at: None,

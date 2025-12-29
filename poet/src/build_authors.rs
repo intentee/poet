@@ -34,14 +34,7 @@ pub async fn build_authors(
             let basename_path = file.get_stem_path_relative_to(&PathBuf::from("authors"));
             let basename: AuthorBasename = basename_path.into();
 
-            if authors.contains_key(&basename) {
-                error_collection.register_error(
-                    format!("author:{}", basename),
-                    anyhow!("Duplicate author basename: '{basename}'"),
-                );
-            } else {
-                authors.insert(basename.clone(), Author { basename, data });
-            }
+            authors.insert(basename.clone(), Author { basename, data });
         }
     }
 

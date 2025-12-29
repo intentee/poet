@@ -27,27 +27,20 @@ pub async fn build_authors(
                         file.relative_path.display().to_string(),
                         anyhow!("Failed to parse author file: {err}"),
                     );
-                    continue; // skip to next file
+                    continue;
                 }
             };
 
             let basename_path = file.get_stem_path_relative_to(&PathBuf::from("authors"));
             let basename: AuthorBasename = basename_path.into();
 
-            if authors.contains_key(&basename) {
-                error_collection.register_error(
-                    format!("author:{}", basename),
-                    anyhow!("Duplicate author basename: '{basename}'"),
-                );
-            } else {
-                authors.insert(
-                    basename.clone(),
-                    Author {
-                        basename,
-                        front_matter,
-                    },
-                );
-            }
+            authors.insert(
+                basename.clone(),
+                Author {
+                    basename,
+                    front_matter,
+                },
+            );
         }
     }
 

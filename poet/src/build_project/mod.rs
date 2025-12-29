@@ -20,6 +20,7 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
+use crate::author::Author;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
@@ -45,6 +46,7 @@ use crate::string_to_mdast::string_to_mdast;
 fn render_document<'render>(
     ContentDocumentRenderingContext {
         asset_path_renderer,
+        authors,
         available_collections,
         content_document:
             ContentDocument {
@@ -64,8 +66,16 @@ fn render_document<'render>(
         syntax_set,
     }: ContentDocumentRenderingContext<'render>,
 ) -> Result<String> {
+    let filtered_authors: Vec<Author> = front_matter
+        .authors
+        .iter()
+        .filter_map(|basename| authors.get(basename).cloned())
+        .collect();
+
     let component_context = ContentDocumentComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
+        authors: filtered_authors,
+        available_authors: authors,
         available_collections,
         content_document_collections_ranked,
         content_document_linker,
@@ -260,6 +270,8 @@ pub async fn build_project(
         return Err(anyhow!("{error_collection}"));
     }
 
+    let authors_arc = Arc::new(authors);
+
     let available_collections_arc: Arc<HashSet<String>> = Arc::new(
         content_document_collections
             .keys()
@@ -293,6 +305,7 @@ pub async fn build_project(
         .for_each(|content_document| {
             match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
+                authors: authors_arc.clone(),
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,

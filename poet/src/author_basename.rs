@@ -7,7 +7,6 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-
 pub struct AuthorBasename(pub String);
 
 impl Display for AuthorBasename {

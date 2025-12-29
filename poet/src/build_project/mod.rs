@@ -102,6 +102,7 @@ fn render_document<'render>(
 pub async fn build_project(
     BuildProjectParams {
         asset_path_renderer,
+        authors,
         esbuild_metafile,
         generated_page_base_path,
         is_watching,
@@ -186,6 +187,15 @@ pub async fn build_project(
 
     // Validate before/after/parent documents in collections
     for reference in content_document_by_basename.values() {
+        for author_basename in &reference.front_matter.authors {
+            if !authors.contains_key(author_basename) {
+                error_collection.register_error(
+                    reference.basename().to_string(),
+                    anyhow!("Author does not exist: '{author_basename}'"),
+                );
+            }
+        }
+
         // Validate primary collections
         if let Some(primary_collection) = &reference.front_matter.primary_collection
             && !reference

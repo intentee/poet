@@ -20,6 +20,7 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
+use crate::author_resolve_result::AuthorResolveResult;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
@@ -288,23 +289,25 @@ pub async fn build_project(
             }
         })
         .for_each(|content_document| {
-            let (resolved_authors, not_found) =
-                authors_arc.resolve(&content_document.reference.front_matter.authors);
+            let AuthorResolveResult {
+                found_authors,
+                missing_authors,
+            } = authors_arc.resolve(&content_document.reference.front_matter.authors);
 
-            for author_name in &not_found {
+            for author_name in &missing_authors {
                 error_collection.register_error(
                     content_document.reference.basename().to_string(),
                     anyhow!("Author does not exist: '{author_name}'"),
                 );
             }
 
-            if !not_found.is_empty() {
+            if !missing_authors.is_empty() {
                 return;
             }
 
             match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
-                authors: resolved_authors,
+                authors: found_authors,
                 available_authors: authors_arc.clone(),
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),

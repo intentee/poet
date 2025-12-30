@@ -5,6 +5,7 @@ use rhai::TypeBuilder;
 
 use crate::author::Author;
 use crate::author_basename::AuthorBasename;
+use crate::author_resolve_result::AuthorResolveResult;
 
 #[derive(Clone, Default)]
 pub struct AuthorCollection {
@@ -20,20 +21,23 @@ impl AuthorCollection {
         self.authors.values()
     }
 
-    pub fn resolve(&self, names: &[String]) -> (Vec<Author>, Vec<String>) {
-        let mut authors = Vec::new();
-        let mut not_found = Vec::new();
+    pub fn resolve(&self, names: &[String]) -> AuthorResolveResult {
+        let mut found_authors = Vec::new();
+        let mut missing_authors = Vec::new();
 
         for name in names {
             let basename = AuthorBasename::from(name.clone());
 
             match self.authors.get(&basename) {
-                Some(author) => authors.push(author.clone()),
-                None => not_found.push(name.clone()),
+                Some(author) => found_authors.push(author.clone()),
+                None => missing_authors.push(name.clone()),
             }
         }
 
-        (authors, not_found)
+        AuthorResolveResult {
+            found_authors,
+            missing_authors,
+        }
     }
 }
 

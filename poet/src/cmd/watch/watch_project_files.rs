@@ -19,6 +19,7 @@ use tokio::sync::Notify;
 pub struct WatchProjectHandle {
     pub debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
     pub on_author_file_changed: Arc<Notify>,
+    pub on_blog_file_changed: Arc<Notify>,
     pub on_content_file_changed: Arc<Notify>,
     pub on_esbuild_metafile_changed: Arc<Notify>,
     pub on_prompt_file_changed: Arc<Notify>,
@@ -45,21 +46,25 @@ fn is_temp_file(path: &Path) -> bool {
 
 pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHandle> {
     let authors_directory = source_directory.join("authors");
+    let blogs_directory = source_directory.join("blogs");
     let content_directory = source_directory.join("content");
     let esbuild_metafile_path = source_directory.join("esbuild-meta.json");
     let prompts_directory = source_directory.join("prompts");
     let shortcodes_directory = source_directory.join("shortcodes");
 
     let on_author_file_changed = Arc::new(Notify::new());
+    let on_blog_file_changed = Arc::new(Notify::new());
     let on_content_file_changed = Arc::new(Notify::new());
     let on_esbuild_metafile_changed = Arc::new(Notify::new());
     let on_prompt_file_changed = Arc::new(Notify::new());
     let on_shortcode_file_changed = Arc::new(Notify::new());
 
     let authors_directory_clone = authors_directory.clone();
+    let blogs_directory_clone = blogs_directory.clone();
     let content_directory_clone = content_directory.clone();
     let on_shortcode_file_changed_clone = on_shortcode_file_changed.clone();
     let on_author_file_changed_clone = on_author_file_changed.clone();
+    let on_blog_file_changed_clone = on_blog_file_changed.clone();
     let on_content_file_changed_clone = on_content_file_changed.clone();
     let on_esbuild_metafile_changed_clone = on_esbuild_metafile_changed.clone();
     let on_prompt_file_changed_clone = on_prompt_file_changed.clone();
@@ -105,6 +110,14 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
                                     return;
                                 }
 
+                                if is_inside_directory(&blogs_directory_clone, path) {
+                                    info!("Blog file change detected: {:?}", path.display());
+
+                                    on_blog_file_changed_clone.notify_waiters();
+
+                                    return;
+                                }
+
                                 if is_inside_directory(&authors_directory_clone, path) {
                                     info!("Author file change detected: {:?}", path.display());
 
@@ -137,6 +150,9 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
     create_dir_all(&authors_directory)?;
     debouncer.watch(authors_directory, RecursiveMode::Recursive)?;
 
+    create_dir_all(&blogs_directory)?;
+    debouncer.watch(blogs_directory, RecursiveMode::Recursive)?;
+
     create_dir_all(&content_directory)?;
     debouncer.watch(content_directory, RecursiveMode::Recursive)?;
 
@@ -151,6 +167,7 @@ pub fn watch_project_files(source_directory: PathBuf) -> Result<WatchProjectHand
     Ok(WatchProjectHandle {
         debouncer,
         on_author_file_changed,
+        on_blog_file_changed,
         on_content_file_changed,
         on_esbuild_metafile_changed,
         on_prompt_file_changed,

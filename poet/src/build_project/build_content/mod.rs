@@ -35,7 +35,6 @@ use crate::content_document_source::ContentDocumentSource;
 use crate::document_error_collection::DocumentErrorCollection;
 use crate::eval_content_document_mdast::eval_content_document_mdast;
 use crate::filesystem::Filesystem as _;
-// use crate::filesystem::memory::Memory;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
 use crate::string_to_mdast::string_to_mdast;

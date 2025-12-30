@@ -10,13 +10,12 @@ use std::sync::Arc;
 use anyhow::Result;
 pub use build_authors::build_authors;
 pub use build_content::build_content;
-pub use build_content::build_content_params;
+pub use build_content::build_content_params::BuildContentParams;
 pub use build_project_params::BuildProjectParams;
 pub use build_project_result::BuildProjectResult;
 pub use build_project_result_holder::BuildProjectResultHolder;
 pub use build_project_result_stub::BuildProjectResultStub;
 
-use self::build_content::build_content_params::BuildContentParams;
 use crate::filesystem::memory::Memory;
 
 pub async fn build_project(

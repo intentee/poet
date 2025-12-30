@@ -7,6 +7,8 @@ use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
 use crate::asset_manager::AssetManager;
+use crate::author::Author;
+use crate::author_collection::AuthorCollection;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
 use crate::content_document_front_matter::ContentDocumentFrontMatter;
 use crate::content_document_linker::ContentDocumentLinker;
@@ -16,6 +18,8 @@ use crate::table_of_contents::TableOfContents;
 #[derive(Clone)]
 pub struct ContentDocumentComponentContext {
     pub asset_manager: AssetManager,
+    pub authors: Vec<Author>,
+    pub available_authors: Arc<AuthorCollection>,
     pub available_collections: Arc<HashSet<String>>,
     pub content_document_collections_ranked: Arc<HashMap<String, ContentDocumentCollectionRanked>>,
     pub content_document_linker: ContentDocumentLinker,
@@ -29,6 +33,8 @@ impl ContentDocumentComponentContext {
     pub fn with_table_of_contents(self, table_of_contents: TableOfContents) -> Self {
         Self {
             asset_manager: self.asset_manager,
+            authors: self.authors,
+            available_authors: self.available_authors,
             available_collections: self.available_collections,
             content_document_collections_ranked: self.content_document_collections_ranked,
             content_document_linker: self.content_document_linker,
@@ -37,6 +43,20 @@ impl ContentDocumentComponentContext {
             reference: self.reference,
             table_of_contents: Some(table_of_contents),
         }
+    }
+
+    fn rhai_authors(&mut self) -> rhai::Array {
+        self.authors
+            .iter()
+            .map(|author| rhai::Dynamic::from(author.clone()))
+            .collect()
+    }
+
+    fn rhai_available_authors(&mut self) -> rhai::Array {
+        self.available_authors
+            .values()
+            .map(|author| rhai::Dynamic::from(author.clone()))
+            .collect()
     }
 
     fn rhai_belongs_to(&mut self, collection_name: &str) -> Result<bool, Box<EvalAltResult>> {
@@ -136,6 +156,8 @@ impl CustomType for ContentDocumentComponentContext {
         builder
             .with_name("ContentDocumentComponentContext")
             .with_get("assets", Self::rhai_get_assets)
+            .with_get("authors", Self::rhai_authors)
+            .with_get("available_authors", Self::rhai_available_authors)
             .with_get("front_matter", Self::rhai_front_matter)
             .with_get("is_watching", Self::rhai_is_watching)
             .with_get("primary_collection", Self::rhai_primary_collection)

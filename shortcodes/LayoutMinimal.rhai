@@ -11,6 +11,21 @@ fn template(context, props, content) {
         Hello!
 
         {content}
+
+        <p>Authors:
+          {
+            let ret = [];
+
+            for author in context.authors {
+              ret.push(component {
+                <span>{author.basename}</span>
+                <span>{author.data.name}</span>
+              });
+            }
+
+            ret
+          }
+        </p>
       </body>
     </html>
   }

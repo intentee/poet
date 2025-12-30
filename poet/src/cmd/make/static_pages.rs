@@ -6,6 +6,7 @@ use clap::Parser;
 use log::info;
 
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::build_authors::build_authors;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
@@ -42,6 +43,7 @@ impl Handler for StaticPages {
     async fn handle(&self) -> Result<()> {
         let source_filesystem = self.source_filesystem();
         let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.clone()).await?;
 
         let BuildProjectResultStub {
             esbuild_metafile,
@@ -51,6 +53,7 @@ impl Handler for StaticPages {
             asset_path_renderer: AssetPathRenderer {
                 base_path: self.public_path.clone(),
             },
+            authors,
             esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.clone()).await?,
             generated_page_base_path: self.public_path.clone(),
             is_watching: false,

@@ -20,6 +20,7 @@ use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
 use crate::asset_manager::AssetManager;
+use crate::author_resolve_result::AuthorResolveResult;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
@@ -45,6 +46,8 @@ use crate::string_to_mdast::string_to_mdast;
 fn render_document<'render>(
     ContentDocumentRenderingContext {
         asset_path_renderer,
+        authors,
+        available_authors,
         available_collections,
         content_document:
             ContentDocument {
@@ -66,6 +69,8 @@ fn render_document<'render>(
 ) -> Result<String> {
     let component_context = ContentDocumentComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
+        authors: authors.clone(),
+        available_authors: available_authors,
         available_collections,
         content_document_collections_ranked,
         content_document_linker,
@@ -102,6 +107,7 @@ fn render_document<'render>(
 pub async fn build_project(
     BuildProjectParams {
         asset_path_renderer,
+        authors,
         esbuild_metafile,
         generated_page_base_path,
         is_watching,
@@ -250,6 +256,8 @@ pub async fn build_project(
         return Err(anyhow!("{error_collection}"));
     }
 
+    let authors_arc = Arc::new(authors);
+
     let available_collections_arc: Arc<HashSet<String>> = Arc::new(
         content_document_collections
             .keys()
@@ -281,8 +289,26 @@ pub async fn build_project(
             }
         })
         .for_each(|content_document| {
+            let AuthorResolveResult {
+                found_authors,
+                missing_authors,
+            } = authors_arc.resolve(&content_document.reference.front_matter.authors);
+
+            for author_name in &missing_authors {
+                error_collection.register_error(
+                    content_document.reference.basename().to_string(),
+                    anyhow!("Author does not exist: '{author_name}'"),
+                );
+            }
+
+            if !missing_authors.is_empty() {
+                return;
+            }
+
             match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),
+                authors: found_authors,
+                available_authors: authors_arc.clone(),
                 available_collections: available_collections_arc.clone(),
                 esbuild_metafile: esbuild_metafile.clone(),
                 is_watching,

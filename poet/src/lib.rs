@@ -8,7 +8,6 @@ pub mod author_basename;
 pub mod author_collection;
 pub mod author_data;
 pub mod author_resolve_result;
-pub mod build_authors;
 pub mod build_project;
 pub mod build_prompt_document_controller;
 pub mod build_prompt_document_controller_collection;

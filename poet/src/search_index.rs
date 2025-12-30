@@ -97,9 +97,8 @@ impl SearchIndex {
 mod tests {
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
-    use crate::build_authors::build_authors;
+    use crate::build_project::BuildProjectParams;
     use crate::build_project::build_project;
-    use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::storage::Storage;
@@ -111,13 +110,11 @@ mod tests {
             base_directory: env!("CARGO_MANIFEST_DIR").into(),
         });
         let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
-        let authors = build_authors(source_filesystem.clone()).await?;
 
         build_project(BuildProjectParams {
             asset_path_renderer: AssetPathRenderer {
                 base_path: public_path.clone(),
             },
-            authors,
             esbuild_metafile: Default::default(),
             generated_page_base_path: public_path,
             is_watching: false,

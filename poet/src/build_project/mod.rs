@@ -191,15 +191,6 @@ pub async fn build_project(
 
     // Validate before/after/parent documents in collections
     for reference in content_document_by_basename.values() {
-        let (_, not_found) = authors.resolve(&reference.front_matter.authors);
-
-        for author_name in not_found {
-            error_collection.register_error(
-                reference.basename().to_string(),
-                anyhow!("Author does not exist: '{author_name}'"),
-            );
-        }
-
         // Validate primary collections
         if let Some(primary_collection) = &reference.front_matter.primary_collection
             && !reference
@@ -297,8 +288,19 @@ pub async fn build_project(
             }
         })
         .for_each(|content_document| {
-            let (resolved_authors, _) =
+            let (resolved_authors, not_found) =
                 authors_arc.resolve(&content_document.reference.front_matter.authors);
+
+            for author_name in &not_found {
+                error_collection.register_error(
+                    content_document.reference.basename().to_string(),
+                    anyhow!("Author does not exist: '{author_name}'"),
+                );
+            }
+
+            if !not_found.is_empty() {
+                return;
+            }
 
             match render_document(ContentDocumentRenderingContext {
                 asset_path_renderer: asset_path_renderer.clone(),

@@ -61,7 +61,7 @@ impl TryFrom<FileEntryStub> for FileEntry {
             contents: file_entry_stub.contents,
             kind: match (top_directory.as_str(), extension.as_str()) {
                 ("authors", "toml") => FileEntryKind::Author,
-                ("blogst", "md") => FileEntryKind::BlogPost,
+                ("blogs", "md") => FileEntryKind::BlogPost,
                 ("content", "md") => FileEntryKind::Content,
                 ("prompts", "md") => FileEntryKind::Prompt,
                 ("shortcodes", "rhai") => FileEntryKind::Shortcode,

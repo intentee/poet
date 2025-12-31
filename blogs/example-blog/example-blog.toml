@@ -1,0 +1,6 @@
+base_path = "blogs/foo"
+
+[url_pattern]
+blog_post = "{year}/{month}/{day}/{slug}"
+
+# this will also hold pagination

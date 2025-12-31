@@ -1,6 +1,5 @@
 pub mod build_blogs_params;
 
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -9,8 +8,6 @@ use anyhow::anyhow;
 use crate::author_resolve_result::AuthorResolveResult;
 use crate::blog_post_basename::BlogPostBasename;
 use crate::blog_post_front_matter::BlogPostFrontMatter;
-use crate::blog_post_reference::BlogPostReference;
-use crate::blog_post_source::BlogPostSource;
 use crate::build_project::build_blogs::build_blogs_params::BuildBlogsParams;
 use crate::document_error_collection::DocumentErrorCollection;
 use crate::filesystem::Filesystem as _;
@@ -22,9 +19,8 @@ pub async fn build_blogs(
         authors,
         source_filesystem,
     }: BuildBlogsParams,
-) -> Result<BTreeMap<BlogPostBasename, BlogPostSource>> {
+) -> Result<()> {
     let error_collection: DocumentErrorCollection = Default::default();
-    let mut blog_post_sources: BTreeMap<BlogPostBasename, BlogPostSource> = Default::default();
 
     for file in source_filesystem.read_project_files().await? {
         if file.kind.is_blog_post() {
@@ -53,30 +49,11 @@ pub async fn build_blogs(
             if !missing_authors.is_empty() {
                 continue;
             }
-
-            let reference = BlogPostReference {
-                basename_path,
-                front_matter,
-            };
-
-            if reference.front_matter.render {
-                let relative_path = format!("{basename}.md");
-
-                blog_post_sources.insert(
-                    basename,
-                    BlogPostSource {
-                        file_entry: file,
-                        mdast,
-                        reference,
-                        relative_path,
-                    },
-                );
-            }
         }
     }
 
     if error_collection.is_empty() {
-        Ok(blog_post_sources)
+        Ok(())
     } else {
         Err(anyhow!("{error_collection}"))
     }

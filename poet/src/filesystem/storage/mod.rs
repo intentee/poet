@@ -24,6 +24,7 @@ impl Filesystem for Storage {
     async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
         let mut to_visit: Vec<PathBuf> = vec![
             self.base_directory.join("authors"),
+            self.base_directory.join("blogs"),
             self.base_directory.join("content"),
             self.base_directory.join("prompts"),
             self.base_directory.join("shortcodes"),

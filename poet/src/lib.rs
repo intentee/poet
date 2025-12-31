@@ -8,7 +8,7 @@ pub mod author_basename;
 pub mod author_collection;
 pub mod author_data;
 pub mod author_resolve_result;
-pub mod blog;
+pub mod blog_post;
 pub mod blog_post_basename;
 pub mod blog_post_front_matter;
 pub mod blog_post_reference;

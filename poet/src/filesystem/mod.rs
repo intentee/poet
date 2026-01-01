@@ -17,9 +17,19 @@ use self::read_file_contents_result::ReadFileContentsResult;
 
 #[async_trait]
 pub trait Filesystem: Send + Sync {
-    async fn read_project_files(&self) -> Result<Vec<FileEntry>>;
+    async fn read_author_files(&self) -> Result<Vec<FileEntry>>;
+
+    async fn read_blog_config_files(&self) -> Result<Vec<FileEntry>>;
+
+    async fn read_content_files(&self) -> Result<Vec<FileEntry>>;
 
     async fn read_file_contents(&self, path: &Path) -> Result<ReadFileContentsResult>;
+
+    async fn read_project_files(&self) -> Result<Vec<FileEntry>>;
+
+    async fn read_prompt_files(&self) -> Result<Vec<FileEntry>>;
+
+    async fn read_shortcode_files(&self) -> Result<Vec<FileEntry>>;
 
     async fn set_file_contents(&self, path: &Path, contents: &str) -> Result<()>;
 

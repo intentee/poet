@@ -19,10 +19,8 @@ pub async fn compile_shortcodes(source_filesystem: Arc<Storage>) -> Result<RhaiT
         PathBuf::from("shortcodes"),
     );
 
-    for file in &source_filesystem.read_project_files().await? {
-        if file.kind.is_shortcode() {
-            rhai_template_factory.register_component_file(file.clone());
-        }
+    for file in &source_filesystem.read_shortcode_files().await? {
+        rhai_template_factory.register_component_file(file.clone());
     }
 
     rhai_template_factory.try_into()

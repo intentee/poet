@@ -24,6 +24,33 @@ impl Default for Memory {
 
 #[async_trait]
 impl Filesystem for Memory {
+    async fn read_author_files(&self) -> Result<Vec<FileEntry>> {
+        Ok(self
+            .read_project_files()
+            .await?
+            .into_iter()
+            .filter(|file_entry| file_entry.kind.is_author())
+            .collect::<Vec<FileEntry>>())
+    }
+
+    async fn read_blog_config_files(&self) -> Result<Vec<FileEntry>> {
+        Ok(self
+            .read_project_files()
+            .await?
+            .into_iter()
+            .filter(|file_entry| file_entry.kind.is_blog_config())
+            .collect::<Vec<FileEntry>>())
+    }
+
+    async fn read_content_files(&self) -> Result<Vec<FileEntry>> {
+        Ok(self
+            .read_project_files()
+            .await?
+            .into_iter()
+            .filter(|file_entry| file_entry.kind.is_content())
+            .collect::<Vec<FileEntry>>())
+    }
+
     async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
         self.files
             .iter()
@@ -35,6 +62,24 @@ impl Filesystem for Memory {
                 .try_into()
             })
             .collect::<Result<Vec<FileEntry>>>()
+    }
+
+    async fn read_prompt_files(&self) -> Result<Vec<FileEntry>> {
+        Ok(self
+            .read_project_files()
+            .await?
+            .into_iter()
+            .filter(|file_entry| file_entry.kind.is_prompt())
+            .collect::<Vec<FileEntry>>())
+    }
+
+    async fn read_shortcode_files(&self) -> Result<Vec<FileEntry>> {
+        Ok(self
+            .read_project_files()
+            .await?
+            .into_iter()
+            .filter(|file_entry| file_entry.kind.is_shortcode())
+            .collect::<Vec<FileEntry>>())
     }
 
     async fn read_file_contents(&self, relative_path: &Path) -> Result<ReadFileContentsResult> {

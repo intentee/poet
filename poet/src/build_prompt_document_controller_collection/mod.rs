@@ -34,10 +34,9 @@ pub async fn build_prompt_document_controller_collection(
     let prompt_controller_map: DashMap<String, Arc<dyn PromptController>> = Default::default();
 
     source_filesystem
-        .read_project_files()
+        .read_prompt_files()
         .await?
         .into_par_iter()
-        .filter(|file| file.kind.is_prompt())
         .for_each(|file| {
             let name = file
                 .get_stem_path_relative_to(&PathBuf::from("prompts"))

@@ -136,53 +136,48 @@ pub async fn build_content(
     let mut content_document_sources: BTreeMap<ContentDocumentBasename, ContentDocumentSource> =
         Default::default();
 
-    for file in source_filesystem.read_project_files().await? {
-        if file.kind.is_content() {
-            let mdast = string_to_mdast(&file.contents)?;
-            let front_matter: ContentDocumentFrontMatter = find_front_matter_in_mdast(&mdast)?
-                .ok_or_else(|| {
-                    anyhow!("No front matter found in file: {:?}", file.relative_path)
-                })?;
+    for file in source_filesystem.read_content_files().await? {
+        let mdast = string_to_mdast(&file.contents)?;
+        let front_matter: ContentDocumentFrontMatter = find_front_matter_in_mdast(&mdast)?
+            .ok_or_else(|| anyhow!("No front matter found in file: {:?}", file.relative_path))?;
 
-            let basename_path = file.get_stem_path_relative_to(&PathBuf::from("content"));
-            let basename: ContentDocumentBasename = basename_path.clone().into();
-            let content_document_reference = ContentDocumentReference {
-                basename_path,
-                front_matter: front_matter.clone(),
-                generated_page_base_path: generated_page_base_path.clone(),
-            };
+        let basename_path = file.get_stem_path_relative_to(&PathBuf::from("content"));
+        let basename: ContentDocumentBasename = basename_path.clone().into();
+        let content_document_reference = ContentDocumentReference {
+            basename_path,
+            front_matter: front_matter.clone(),
+            generated_page_base_path: generated_page_base_path.clone(),
+        };
 
-            if let Some(id) = &front_matter.id {
-                if content_document_basename_by_id.contains_key(id) {
-                    error_collection.register_error(
-                        content_document_reference.basename().to_string(),
-                        anyhow!("Duplicate document id: #{id} in '{basename}'"),
-                    );
-                }
-
-                content_document_basename_by_id.insert(id.clone(), basename.clone());
-            }
-
-            content_document_by_basename
-                .insert(basename.clone(), content_document_reference.clone());
-            content_document_list.push(ContentDocument {
-                mdast: mdast.clone(),
-                reference: content_document_reference.clone(),
-            });
-
-            if content_document_reference.front_matter.render {
-                let relative_path = format!("{basename}.md");
-
-                content_document_sources.insert(
-                    basename,
-                    ContentDocumentSource {
-                        file_entry: file,
-                        mdast,
-                        reference: content_document_reference,
-                        relative_path,
-                    },
+        if let Some(id) = &front_matter.id {
+            if content_document_basename_by_id.contains_key(id) {
+                error_collection.register_error(
+                    content_document_reference.basename().to_string(),
+                    anyhow!("Duplicate document id: #{id} in '{basename}'"),
                 );
             }
+
+            content_document_basename_by_id.insert(id.clone(), basename.clone());
+        }
+
+        content_document_by_basename.insert(basename.clone(), content_document_reference.clone());
+        content_document_list.push(ContentDocument {
+            mdast: mdast.clone(),
+            reference: content_document_reference.clone(),
+        });
+
+        if content_document_reference.front_matter.render {
+            let relative_path = format!("{basename}.md");
+
+            content_document_sources.insert(
+                basename,
+                ContentDocumentSource {
+                    file_entry: file,
+                    mdast,
+                    reference: content_document_reference,
+                    relative_path,
+                },
+            );
         }
     }
 

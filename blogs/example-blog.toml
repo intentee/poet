@@ -1,4 +1,4 @@
-base_path = "blogs/foo"
+base_path = "foo/bar"
 
 [url_pattern]
 blog_post = "{year}/{month}/{day}/{slug}"

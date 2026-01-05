@@ -12,6 +12,7 @@ use tokio::fs;
 use super::Filesystem;
 use super::file_entry::FileEntry;
 use super::read_file_contents_result::ReadFileContentsResult;
+use crate::blog_name::BlogName;
 use crate::filesystem::file_entry_stub::FileEntryStub;
 use crate::filesystem::storage::create_parent_directories::create_parent_directories;
 
@@ -105,6 +106,17 @@ impl Filesystem for Storage {
         Ok(files
             .into_iter()
             .filter(|file_entry| file_entry.kind.is_blog_config())
+            .collect::<Vec<FileEntry>>())
+    }
+
+    async fn read_blog_posts_from_blog(&self, blog_name: &BlogName) -> Result<Vec<FileEntry>> {
+        let ReadFilesFromDirResult { files, .. } = self
+            .read_files_from_dir(blog_name.relative_blog_directory())
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .filter(|file_entry| file_entry.kind.is_blog_post())
             .collect::<Vec<FileEntry>>())
     }
 

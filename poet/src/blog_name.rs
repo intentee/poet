@@ -9,6 +9,12 @@ use serde::Serialize;
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct BlogName(pub String);
 
+impl BlogName {
+    pub fn relative_blog_directory(&self) -> PathBuf {
+        PathBuf::from("blogs").join(&self.0)
+    }
+}
+
 impl Display for BlogName {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> Result {
         write!(formatter, "{}", self.0)

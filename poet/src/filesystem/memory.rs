@@ -8,6 +8,7 @@ use dashmap::DashMap;
 use super::Filesystem;
 use super::file_entry::FileEntry;
 use super::read_file_contents_result::ReadFileContentsResult;
+use crate::blog_name::BlogName;
 use crate::filesystem::file_entry_stub::FileEntryStub;
 
 pub struct Memory {
@@ -39,6 +40,19 @@ impl Filesystem for Memory {
             .await?
             .into_iter()
             .filter(|file_entry| file_entry.kind.is_blog_config())
+            .collect::<Vec<FileEntry>>())
+    }
+
+    async fn read_blog_posts_from_blog(&self, blog_name: &BlogName) -> Result<Vec<FileEntry>> {
+        let blog_dir = blog_name.relative_blog_directory();
+
+        Ok(self
+            .read_project_files()
+            .await?
+            .into_iter()
+            .filter(|file_entry| {
+                file_entry.kind.is_blog_post() && file_entry.relative_path.starts_with(&blog_dir)
+            })
             .collect::<Vec<FileEntry>>())
     }
 

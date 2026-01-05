@@ -24,6 +24,7 @@ pub async fn build_authors(source_filesystem: Arc<Storage>) -> Result<AuthorColl
                     file.relative_path.display().to_string(),
                     anyhow!("Failed to parse author file: {err}"),
                 );
+
                 continue;
             }
         };

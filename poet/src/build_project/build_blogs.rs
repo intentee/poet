@@ -22,6 +22,7 @@ pub async fn build_blogs(source_filesystem: Arc<Storage>) -> Result<()> {
                     file.relative_path.display().to_string(),
                     anyhow!("Failed to parse blog config file: {err}"),
                 );
+
                 continue;
             }
         };
@@ -32,6 +33,13 @@ pub async fn build_blogs(source_filesystem: Arc<Storage>) -> Result<()> {
         let blog_name: BlogName = path.into();
 
         info!("Found blog name: {}", blog_name);
+
+        for post in source_filesystem
+            .read_blog_posts_from_blog(&blog_name)
+            .await?
+        {
+            info!("Found blog post: {}", post.relative_path.display());
+        }
     }
 
     if error_collection.is_empty() {

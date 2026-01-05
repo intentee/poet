@@ -2,6 +2,7 @@
 pub enum FileEntryKind {
     Author,
     BlogConfig,
+    BlogPost,
     Content,
     Other,
     Prompt,
@@ -15,6 +16,10 @@ impl FileEntryKind {
 
     pub fn is_blog_config(&self) -> bool {
         *self == Self::BlogConfig
+    }
+
+    pub fn is_blog_post(&self) -> bool {
+        *self == Self::BlogPost
     }
 
     pub fn is_content(&self) -> bool {

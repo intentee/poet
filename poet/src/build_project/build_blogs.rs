@@ -20,19 +20,17 @@ pub async fn build_blogs(source_filesystem: Arc<Storage>) -> Result<()> {
             Err(err) => {
                 error_collection.register_error(
                     file.relative_path.display().to_string(),
-                    anyhow!("Failed to parse blog config file: {err}"),
+                    anyhow!("Failed to parse blog config file: {err:#?}"),
                 );
 
                 continue;
             }
         };
 
-        info!("Found blog config: {:?}", config);
-
         let path = file.get_stem_path_relative_to(&PathBuf::from("blogs"));
         let blog_name: BlogName = path.into();
 
-        info!("Found blog name: {}", blog_name);
+        info!("Found blog: '{}'", blog_name);
 
         for post in source_filesystem
             .read_blog_posts_from_blog(&blog_name)

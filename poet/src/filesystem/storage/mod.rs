@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use anyhow::Context as _;
 use anyhow::Result;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use log::debug;
 use tokio::fs;
@@ -39,7 +40,16 @@ impl Storage {
             if metadata.is_dir() {
                 directories.push(path);
             } else {
-                let relative_path = path.strip_prefix(&self.base_directory)?.to_path_buf();
+                let relative_path = path
+                    .strip_prefix(&self.base_directory)
+                    .map_err(|_| {
+                        anyhow!(
+                            "Unable to strip base directory prefix from '{}', base directory: {}",
+                            path.display(),
+                            self.base_directory.display()
+                        )
+                    })?
+                    .to_path_buf();
 
                 if let Some(extension) = path.extension() {
                     match extension.to_str() {
@@ -111,7 +121,10 @@ impl Filesystem for Storage {
 
     async fn read_blog_posts_from_blog(&self, blog_name: &BlogName) -> Result<Vec<FileEntry>> {
         let ReadFilesFromDirResult { files, .. } = self
-            .read_files_from_dir(blog_name.relative_blog_directory())
+            .read_files_from_dir(
+                self.base_directory
+                    .join(blog_name.relative_blog_directory()),
+            )
             .await?;
 
         Ok(files

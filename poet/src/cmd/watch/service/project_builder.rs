@@ -93,7 +93,7 @@ impl ProjectBuilder {
 
                 info!("Build successful");
             }
-            Err(err) => error!("Failed to build project: {err:#}"),
+            Err(err) => error!("Failed to build project: {err:#?}"),
         }
     }
 }

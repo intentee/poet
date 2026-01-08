@@ -12,7 +12,6 @@ use super::output_combined_symbol::OutputCombinedSymbol;
 use super::output_semantic_symbol::OutputSemanticSymbol;
 use super::output_symbol::OutputSymbol;
 use super::tag::Tag;
-use crate::SmartStringLazy;
 use crate::component_syntax::tag_name::TagName;
 
 pub fn combine_output_symbols(
@@ -137,7 +136,7 @@ pub fn combine_output_symbols(
                     existing_text.push_str(&text);
                 }
                 _ => {
-                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text));
+                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text.to_string()));
                 }
             },
             OutputCombinedSymbol::TagLeftAngle => match semantic_symbols.back_mut() {
@@ -149,7 +148,7 @@ pub fn combine_output_symbols(
                         is_closing: false,
                         is_self_closing: false,
                         tag_name: TagName {
-                            name: SmartStringLazy::new_const(),
+                            name: String::new(),
                         },
                     }));
                 }

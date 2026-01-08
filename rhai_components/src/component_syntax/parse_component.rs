@@ -77,7 +77,7 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 _ => {
-                    push_to_state(state, OutputSymbol::Text(last_symbol.into()))?;
+                    push_to_state(state, OutputSymbol::Text(last_symbol.to_string()))?;
                     state.set_tag(ParserState::Body as i32);
 
                     Ok(Some("$raw$".into()))
@@ -107,14 +107,14 @@ pub fn parse_component(
                 "/" => {
                     push_to_state(
                         state,
-                        OutputSymbol::TagCloseBeforeNamePlusWhitespace(last_symbol.into()),
+                        OutputSymbol::TagCloseBeforeNamePlusWhitespace(last_symbol.to_string()),
                     )?;
                     state.set_tag(ParserState::TagCloseBeforeNamePlusWhitespace as i32);
 
                     Ok(Some("$raw$".into()))
                 }
                 _ => {
-                    push_to_state(state, OutputSymbol::TagName(last_symbol.into()))?;
+                    push_to_state(state, OutputSymbol::TagName(last_symbol.to_string()))?;
                     state.set_tag(ParserState::TagName as i32);
 
                     Ok(Some("$raw$".into()))
@@ -124,14 +124,14 @@ pub fn parse_component(
                 _ if last_symbol.trim().is_empty() => {
                     push_to_state(
                         state,
-                        OutputSymbol::TagCloseBeforeNamePlusWhitespace(last_symbol.into()),
+                        OutputSymbol::TagCloseBeforeNamePlusWhitespace(last_symbol.to_string()),
                     )?;
                     state.set_tag(ParserState::TagCloseBeforeNamePlusWhitespace as i32);
 
                     Ok(Some("$raw$".into()))
                 }
                 _ => {
-                    push_to_state(state, OutputSymbol::TagName(last_symbol.into()))?;
+                    push_to_state(state, OutputSymbol::TagName(last_symbol.to_string()))?;
                     state.set_tag(ParserState::TagName as i32);
 
                     Ok(Some("$raw$".into()))
@@ -151,7 +151,7 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 _ => {
-                    push_to_state(state, OutputSymbol::TagName(last_symbol.into()))?;
+                    push_to_state(state, OutputSymbol::TagName(last_symbol.to_string()))?;
                     state.set_tag(ParserState::TagName as i32);
 
                     Ok(Some("$raw$".into()))
@@ -182,7 +182,10 @@ pub fn parse_component(
                     Ok(Some(">".into()))
                 }
                 _ => {
-                    push_to_state(state, OutputSymbol::TagAttributeName(last_symbol.into()))?;
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                    )?;
                     state.set_tag(ParserState::TagAttributeName as i32);
 
                     Ok(Some("$raw$".into()))
@@ -213,7 +216,10 @@ pub fn parse_component(
                     Ok(Some("$raw$".into()))
                 }
                 _ => {
-                    push_to_state(state, OutputSymbol::TagAttributeName(last_symbol.into()))?;
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                    )?;
                     state.set_tag(ParserState::TagAttributeName as i32);
 
                     Ok(Some("$raw$".into()))
@@ -237,7 +243,10 @@ pub fn parse_component(
                     Ok(Some("$inner$".into()))
                 }
                 _ => {
-                    push_to_state(state, OutputSymbol::TagAttributeName(last_symbol.into()))?;
+                    push_to_state(
+                        state,
+                        OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                    )?;
                     state.set_tag(ParserState::TagContent as i32);
 
                     Ok(Some("$raw$".into()))
@@ -252,7 +261,7 @@ pub fn parse_component(
                 _ => {
                     push_to_state(
                         state,
-                        OutputSymbol::TagAttributeValueString(last_symbol.into()),
+                        OutputSymbol::TagAttributeValueString(last_symbol.to_string()),
                     )?;
                     state.set_tag(ParserState::TagAttributeValueString as i32);
 

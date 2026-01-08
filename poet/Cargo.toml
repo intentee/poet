@@ -46,7 +46,6 @@ schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 slug = { workspace = true }
-smartstring = { workspace = true }
 syntect = { workspace = true }
 tantivy = { workspace = true }
 tokio = { workspace = true }

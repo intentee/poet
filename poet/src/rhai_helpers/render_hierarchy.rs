@@ -16,7 +16,7 @@ fn render_node(
         context,
         (
             Dynamic::from(node.clone()),
-            Dynamic::from_int(nesting_level),
+            Dynamic::from_int(nesting_level as rhai::INT),
             {
                 let mut next_level = String::new();
 

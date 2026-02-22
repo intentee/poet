@@ -27,7 +27,8 @@ where
     let tag_name = TagName {
         name: name
             .clone()
-            .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?,
+            .ok_or_else(|| anyhow!("MdxJsxFlowElement without a name"))?
+            .into(),
     };
 
     let props = {

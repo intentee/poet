@@ -28,6 +28,9 @@ pub struct StaticPages {
     #[arg(long)]
     public_path: String,
 
+    #[arg(long, default_value = "false")]
+    sitemap: bool,
+
     #[arg(value_parser = validate_is_directory)]
     source_directory: PathBuf,
 }
@@ -56,6 +59,7 @@ impl Handler for StaticPages {
             authors,
             esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.clone()).await?,
             generated_page_base_path: self.public_path.clone(),
+            generate_sitemap: self.sitemap,
             is_watching: false,
             rhai_template_renderer,
             source_filesystem,

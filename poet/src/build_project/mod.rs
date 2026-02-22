@@ -7,6 +7,7 @@ mod content_document_rendering_context;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -41,6 +42,7 @@ use crate::filesystem::Filesystem as _;
 use crate::filesystem::memory::Memory;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
+use crate::generate_sitemap::create_sitemap;
 use crate::string_to_mdast::string_to_mdast;
 
 fn render_document<'render>(
@@ -110,6 +112,7 @@ pub async fn build_project(
         authors,
         esbuild_metafile,
         generated_page_base_path,
+        generate_sitemap,
         is_watching,
         rhai_template_renderer,
         source_filesystem,
@@ -348,6 +351,23 @@ pub async fn build_project(
                     .register_error(content_document.reference.basename().to_string(), err),
             }
         });
+
+    if generate_sitemap {
+        info!("Building sitemap");
+
+        match create_sitemap(content_document_by_basename_arc.values()) {
+            Ok(sitemap) => {
+                if let Err(err) =
+                    memory_filesystem.set_file_contents_sync(Path::new("sitemap.xml"), &sitemap)
+                {
+                    error_collection.register_error("sitemap.xml".to_string(), err);
+                }
+            }
+            Err(err) => {
+                error_collection.register_error("sitemap.xml".to_string(), err);
+            }
+        }
+    }
 
     if error_collection.is_empty() {
         Ok(BuildProjectResultStub {

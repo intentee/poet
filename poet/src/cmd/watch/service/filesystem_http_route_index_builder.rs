@@ -20,7 +20,7 @@ pub struct FilesystemHttpRouteIndexBuilder {
 }
 
 impl FilesystemHttpRouteIndexBuilder {
-    async fn do_build_filesystem_htto_route_index(&self) {
+    async fn do_build_filesystem_http_route_index(&self) {
         let BuildProjectResult {
             memory_filesystem, ..
         } = match self.build_project_result_holder.get().await {
@@ -51,7 +51,7 @@ impl FilesystemHttpRouteIndexBuilder {
 impl Service for FilesystemHttpRouteIndexBuilder {
     async fn run(&self) -> Result<()> {
         loop {
-            self.do_build_filesystem_htto_route_index().await;
+            self.do_build_filesystem_http_route_index().await;
 
             tokio::select! {
                 _ = self.build_project_result_holder.update_notifier.notified() => continue,

@@ -2177,6 +2177,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "sitemap-rs",
  "slug",
  "syntect",
  "tantivy",
@@ -2693,6 +2694,16 @@ name = "simd-adler32"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
+
+[[package]]
+name = "sitemap-rs"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9973bbcfa8fb93f9bee6625b6bfbabcc918f734034d229c18642dd870ac6b2df"
+dependencies = [
+ "chrono",
+ "xml-builder",
+]
 
 [[package]]
 name = "sketches-ddsketch"
@@ -3617,6 +3628,12 @@ name = "writeable"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
+
+[[package]]
+name = "xml-builder"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c023e38161c176b6ed516e2c398acd755cd19983661eff519b811c01646e10f"
 
 [[package]]
 name = "yaml-rust"

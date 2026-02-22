@@ -120,6 +120,7 @@ mod tests {
             authors,
             esbuild_metafile: Default::default(),
             generated_page_base_path: public_path,
+            generate_sitemap: false,
             is_watching: false,
             rhai_template_renderer,
             source_filesystem,

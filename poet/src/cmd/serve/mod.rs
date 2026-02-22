@@ -61,6 +61,9 @@ pub struct Serve {
 
     #[arg(long)]
     public_path: String,
+
+    #[arg(long, default_value = "false")]
+    sitemap: bool,
 }
 
 impl BuildsProject for Serve {
@@ -116,6 +119,7 @@ impl Handler for Serve {
             authors,
             esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.clone()).await?,
             generated_page_base_path: self.public_path.clone(),
+            generate_sitemap: self.sitemap,
             is_watching: false,
             rhai_template_renderer: rhai_template_renderer.clone(),
             source_filesystem: source_filesystem.clone(),

@@ -45,3 +45,7 @@ fmt: node_modules
 .PHONY: watch
 watch: node_modules
 	./jarmuz-watch.mjs
+
+.PHONY: release
+release: node_modules
+	cargo build --release

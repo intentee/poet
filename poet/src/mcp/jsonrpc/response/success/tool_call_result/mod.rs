@@ -16,7 +16,7 @@ use crate::mcp::content_block::ContentBlock;
 use crate::mcp::content_block::text_content::TextContent;
 use crate::mcp::jsonrpc::response::success::tool_call_result::failure::Failure;
 use crate::mcp::jsonrpc::response::success::tool_call_result::success::Success;
-use crate::mcp::tool_call_error_message::ToolCallErrorMesage;
+use crate::mcp::tool_call_error_message::ToolCallErrorMessage;
 
 #[derive(Debug)]
 pub enum ToolCallResult<TStructuredContent: Serialize> {
@@ -68,10 +68,10 @@ impl<'de, TStructuredContent: DeserializeOwned + Serialize> Deserialize<'de>
     }
 }
 
-impl<'a, TStructuredContent: Serialize> From<ToolCallErrorMesage<'a>>
+impl<'message, TStructuredContent: Serialize> From<ToolCallErrorMessage<'message>>
     for ToolCallResult<TStructuredContent>
 {
-    fn from(message: ToolCallErrorMesage<'a>) -> Self {
+    fn from(message: ToolCallErrorMessage<'message>) -> Self {
         ToolCallResult::Failure(Failure {
             content: vec![ContentBlock::TextContent(TextContent {
                 text: message.0.to_string(),

@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use esbuild_metafile::EsbuildMetaFile;
-use rayon::prelude::*;
+use rayon::iter::ParallelBridge as _;
+use rayon::iter::ParallelIterator as _;
 
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::content_document_basename::ContentDocumentBasename;

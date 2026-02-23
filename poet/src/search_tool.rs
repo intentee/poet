@@ -13,7 +13,7 @@ use crate::mcp::content_block::resource_link::ResourceLink;
 use crate::mcp::jsonrpc::response::success::tool_call_result::ToolCallResult;
 use crate::mcp::jsonrpc::response::success::tool_call_result::success::Success;
 use crate::mcp::resource_provider::ResourceProvider as _;
-use crate::mcp::tool_call_error_message::ToolCallErrorMesage;
+use crate::mcp::tool_call_error_message::ToolCallErrorMessage;
 use crate::mcp::tool_provider::ToolProvider;
 use crate::mcp::tool_responder::ToolResponder;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
@@ -88,7 +88,7 @@ impl ToolResponder<Self> for SearchTool {
                 }))
             },
             None => Ok(
-                ToolCallErrorMesage(
+                ToolCallErrorMessage(
                     "Search index is not ready yet. There are no successful builds yet, or the server needs more time to start."
                 ).into(),
             ),

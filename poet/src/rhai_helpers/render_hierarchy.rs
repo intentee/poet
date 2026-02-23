@@ -10,13 +10,13 @@ fn render_node(
     context: &NativeCallContext,
     node: &ContentDocumentTreeNode,
     callback: &FnPtr,
-    nesting_level: i32,
+    nesting_level: i64,
 ) -> Result<Dynamic, Box<EvalAltResult>> {
     callback.call_within_context(
         context,
         (
             Dynamic::from(node.clone()),
-            Dynamic::from_int(nesting_level),
+            Dynamic::from_int(nesting_level as rhai::INT),
             {
                 let mut next_level = String::new();
 

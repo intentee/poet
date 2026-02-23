@@ -4,7 +4,8 @@ use std::sync::RwLock;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use rayon::prelude::*;
+use rayon::iter::IntoParallelRefIterator as _;
+use rayon::iter::ParallelIterator as _;
 use tantivy::Index;
 use tantivy::IndexReader;
 use tantivy::IndexWriter;

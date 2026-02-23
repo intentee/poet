@@ -24,12 +24,13 @@ impl ContentDocumentReference {
     }
 
     pub fn canonical_link(&self) -> Result<String, String> {
-        Ok(format!(
-            "{}{}",
-            self.generated_page_base_path,
-            self.basename_link_stem()?
-        )
-        .to_string())
+        let base_path = if self.generated_page_base_path.ends_with('/') {
+            self.generated_page_base_path.clone()
+        } else {
+            format!("{}/", self.generated_page_base_path)
+        };
+
+        Ok(format!("{}{}", base_path, self.basename_link_stem()?))
     }
 
     /// Starts without leading slash
@@ -229,6 +230,22 @@ mod tests {
                 .display()
                 .to_string(),
             "foo/index.html"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn canonical_link_adds_trailing_slash_to_base_path() -> Result<()> {
+        let reference = ContentDocumentReference {
+            basename_path: "foo/bar".into(),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
+            generated_page_base_path: "https://example.com".to_string(),
+        };
+
+        assert_eq!(
+            reference.canonical_link().unwrap(),
+            "https://example.com/foo/bar/"
         );
 
         Ok(())

@@ -1,1 +1,1 @@
-pub struct ToolCallErrorMesage<'a>(pub &'a str);
+pub struct ToolCallErrorMessage<'message>(pub &'message str);

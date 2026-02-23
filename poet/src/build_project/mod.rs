@@ -15,7 +15,8 @@ use anyhow::anyhow;
 use dashmap::DashMap;
 use log::debug;
 use log::info;
-use rayon::prelude::*;
+use rayon::iter::IntoParallelRefIterator as _;
+use rayon::iter::ParallelIterator as _;
 use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 

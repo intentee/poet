@@ -7,7 +7,8 @@ use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
 use log::info;
-use rayon::prelude::*;
+use rayon::iter::IntoParallelIterator as _;
+use rayon::iter::ParallelIterator as _;
 
 use crate::build_prompt_document_controller::build_prompt_document_controller;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;

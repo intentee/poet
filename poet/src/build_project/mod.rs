@@ -356,7 +356,11 @@ pub async fn build_project(
     if generate_sitemap {
         info!("Building sitemap");
 
-        match create_sitemap(content_document_by_basename_arc.values()) {
+        match create_sitemap(
+            content_document_by_basename_arc
+                .values()
+                .filter(|content_document| content_document.front_matter.render),
+        ) {
             Ok(sitemap) => {
                 if let Err(err) =
                     memory_filesystem.set_file_contents_sync(Path::new("sitemap.xml"), &sitemap)

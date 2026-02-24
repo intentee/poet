@@ -37,4 +37,4 @@ pub mod tool_responder;
 
 pub const MCP_HEADER_PROTOCOL_VERSION: &str = "Mcp-Protocol-Version";
 pub const MCP_HEADER_SESSION: &str = "Mcp-Session-Id";
-pub const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
+pub const MCP_PROTOCOL_VERSION: &str = "2025-11-25";

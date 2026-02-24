@@ -18,7 +18,6 @@ pub struct ClientCapabilityRoots {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct ClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub elicitation: Option<EmptyObject>,
@@ -28,6 +27,8 @@ pub struct ClientCapabilities {
     pub roots: Option<ClientCapabilityRoots>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sampling: Option<EmptyObject>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -109,11 +109,11 @@ impl Filesystem for Storage {
     }
 
     async fn read_blog_config_files(&self) -> Result<Vec<FileEntry>> {
-        let ReadFilesFromDirResult { files, .. } = self
-            .read_files_from_dir(self.base_directory.join("blogs"))
-            .await?;
+        let to_visit: Vec<PathBuf> = vec![self.base_directory.join("blogs")];
 
-        Ok(files
+        Ok(self
+            .read_files_from_dirs(to_visit)
+            .await?
             .into_iter()
             .filter(|file_entry| file_entry.kind.is_blog_config())
             .collect::<Vec<FileEntry>>())

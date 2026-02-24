@@ -9,7 +9,6 @@ pub mod build_project_result_stub;
 use std::sync::Arc;
 
 use anyhow::Result;
-
 pub use build_authors::build_authors;
 pub use build_blogs::build_blogs;
 pub use build_content::build_content;
@@ -33,7 +32,7 @@ pub async fn build_project(
 ) -> Result<BuildProjectResultStub> {
     let authors = build_authors(source_filesystem.clone()).await?;
 
-    build_blogs(source_filesystem.clone()).await?;
+    let blogs = build_blogs(source_filesystem.clone()).await?;
 
     let memory_filesystem = Arc::new(Memory::default());
 

@@ -14,6 +14,7 @@ actix-web = { workspace = true }
 actix-web-lab = { workspace = true }
 actix-ws = { workspace = true }
 anyhow = { workspace = true }
+bincode = { workspace = true }
 async-stream = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
@@ -36,6 +37,8 @@ markdown = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
 nom = { workspace = true }
+paddler_client = { workspace = true }
+paddler_types = { workspace = true }
 notify = { workspace = true }
 notify-debouncer-full = { workspace = true }
 petgraph = { workspace = true }

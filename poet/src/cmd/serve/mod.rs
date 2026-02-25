@@ -2,8 +2,12 @@ mod app_data;
 mod http_route;
 
 use std::net::SocketAddr;
+use std::path::Path;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
+
+use url::Url;
 
 use actix_files::Files;
 use actix_web::App;
@@ -24,7 +28,9 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
+use crate::generate_embedding::paddler_embedding_client::PaddlerEmbeddingClient;
 use crate::holder::Holder as _;
+use crate::cmd::EMBEDDINGS_FILENAME;
 use crate::cmd::STATIC_FILES_PUBLIC_PATH;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
@@ -47,6 +53,8 @@ use crate::search_index::SearchIndex;
 use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 use crate::search_tool::SearchTool;
+use crate::semantic_search_index::SemanticSearchIndex;
+use crate::semantic_search_tool::SemanticSearchTool;
 
 #[derive(Parser)]
 pub struct Serve {
@@ -58,6 +66,9 @@ pub struct Serve {
 
     #[arg(long)]
     app_name: String,
+
+    #[arg(long, value_parser = parse_socket_addr)]
+    paddler_addr: Option<SocketAddr>,
 
     #[arg(long)]
     public_path: String,
@@ -183,6 +194,22 @@ impl Handler for Serve {
                 .clone(),
             search_index_reader_holder: search_index_reader_holder.clone(),
         });
+
+        let embeddings_path = Path::new(EMBEDDINGS_FILENAME);
+
+        if let Some(paddler_addr) = &self.paddler_addr {
+            let semantic_search_index =
+                Arc::new(SemanticSearchIndex::load_from_file(&embeddings_path)?);
+            let inference_url = Url::from_str(&format!("http://{paddler_addr}"))?;
+            let paddler_embeddings_client = Arc::new(PaddlerEmbeddingClient::new(inference_url));
+
+            tool_registry.register_owned(SemanticSearchTool {
+                mcp_resource_provider_content_documents: mcp_resource_provider_content_documents
+                    .clone(),
+                paddler_embeddings_client,
+                semantic_search_index,
+            });
+        }
 
         let tool_registry_arc: Arc<ToolRegistry> = Arc::new(tool_registry);
 

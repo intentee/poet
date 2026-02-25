@@ -23,6 +23,9 @@ test_site.AppDir:
 		--title "Test Site" \
 		--version "1.2.3"
 
+target/debug/poet:
+	cargo build
+
 test_site.AppDir/poet: target/debug/poet test_site.AppDir
 	cp target/debug/poet test_site.AppDir/poet
 

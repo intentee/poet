@@ -9,4 +9,5 @@ mod service_manager;
 mod value_parser;
 pub mod watch;
 
+const EMBEDDINGS_FILENAME: &str = "embeddings.bin";
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";

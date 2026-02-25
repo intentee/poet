@@ -28,6 +28,8 @@ pub struct ClientCapabilities {
     pub roots: Option<ClientCapabilityRoots>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sampling: Option<EmptyObject>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tasks: Option<Value>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

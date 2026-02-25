@@ -233,4 +233,20 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn canonical_link_does_not_add_trailing_slash_to_base_path() -> Result<()> {
+        let reference = ContentDocumentReference {
+            basename_path: "foo/bar".into(),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
+            generated_page_base_path: "https://example.com".to_string(),
+        };
+
+        assert_eq!(
+            reference.canonical_link().unwrap(),
+            "https://example.comfoo/bar/"
+        );
+
+        Ok(())
+    }
 }

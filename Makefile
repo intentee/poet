@@ -47,5 +47,5 @@ watch: node_modules
 	./jarmuz-watch.mjs
 
 .PHONY: release
-release: node_modules
+release:
 	cargo build --release

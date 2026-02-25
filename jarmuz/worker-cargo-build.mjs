@@ -1,3 +1,5 @@
 import { command } from "jarmuz/job-types";
 
-command("cargo build --all-targets");
+const features = process.env.FEATURES;
+const featuresFlag = features ? ` --features ${features}` : "";
+command(`cargo build --all-targets${featuresFlag}`);

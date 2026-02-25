@@ -13,6 +13,7 @@ use tokio::fs;
 use super::Filesystem;
 use super::file_entry::FileEntry;
 use super::read_file_contents_result::ReadFileContentsResult;
+#[cfg(feature = "blog")]
 use crate::blog_name::BlogName;
 use crate::filesystem::file_entry_stub::FileEntryStub;
 use crate::filesystem::storage::create_parent_directories::create_parent_directories;
@@ -108,6 +109,7 @@ impl Filesystem for Storage {
             .collect::<Vec<FileEntry>>())
     }
 
+    #[cfg(feature = "blog")]
     async fn read_blog_config_files(&self) -> Result<Vec<FileEntry>> {
         let to_visit: Vec<PathBuf> = vec![self.base_directory.join("blogs")];
 
@@ -119,6 +121,7 @@ impl Filesystem for Storage {
             .collect::<Vec<FileEntry>>())
     }
 
+    #[cfg(feature = "blog")]
     async fn read_blog_posts_from_blog(&self, blog_name: &BlogName) -> Result<Vec<FileEntry>> {
         let ReadFilesFromDirResult { files, .. } = self
             .read_files_from_dir(
@@ -145,13 +148,16 @@ impl Filesystem for Storage {
     }
 
     async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
-        let to_visit: Vec<PathBuf> = vec![
+        #[cfg_attr(not(feature = "blog"), allow(unused_mut))]
+        let mut to_visit: Vec<PathBuf> = vec![
             self.base_directory.join("authors"),
-            self.base_directory.join("blogs"),
             self.base_directory.join("content"),
             self.base_directory.join("prompts"),
             self.base_directory.join("shortcodes"),
         ];
+
+        #[cfg(feature = "blog")]
+        to_visit.push(self.base_directory.join("blogs"));
 
         self.read_files_from_dirs(to_visit).await
     }

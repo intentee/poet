@@ -1,7 +1,9 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FileEntryKind {
     Author,
+    #[cfg(feature = "blog")]
     BlogConfig,
+    #[cfg(feature = "blog")]
     BlogPost,
     Content,
     Other,
@@ -14,10 +16,12 @@ impl FileEntryKind {
         *self == Self::Author
     }
 
+    #[cfg(feature = "blog")]
     pub fn is_blog_config(&self) -> bool {
         *self == Self::BlogConfig
     }
 
+    #[cfg(feature = "blog")]
     pub fn is_blog_post(&self) -> bool {
         *self == Self::BlogPost
     }

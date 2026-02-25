@@ -14,14 +14,17 @@ use async_trait::async_trait;
 
 use self::file_entry::FileEntry;
 use self::read_file_contents_result::ReadFileContentsResult;
+#[cfg(feature = "blog")]
 use crate::blog_name::BlogName;
 
 #[async_trait]
 pub trait Filesystem: Send + Sync {
     async fn read_author_files(&self) -> Result<Vec<FileEntry>>;
 
+    #[cfg(feature = "blog")]
     async fn read_blog_config_files(&self) -> Result<Vec<FileEntry>>;
 
+    #[cfg(feature = "blog")]
     async fn read_blog_posts_from_blog(&self, blog_name: &BlogName) -> Result<Vec<FileEntry>>;
 
     async fn read_content_files(&self) -> Result<Vec<FileEntry>>;

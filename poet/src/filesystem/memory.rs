@@ -8,6 +8,7 @@ use dashmap::DashMap;
 use super::Filesystem;
 use super::file_entry::FileEntry;
 use super::read_file_contents_result::ReadFileContentsResult;
+#[cfg(feature = "blog")]
 use crate::blog_name::BlogName;
 use crate::filesystem::file_entry_stub::FileEntryStub;
 
@@ -34,6 +35,7 @@ impl Filesystem for Memory {
             .collect::<Vec<FileEntry>>())
     }
 
+    #[cfg(feature = "blog")]
     async fn read_blog_config_files(&self) -> Result<Vec<FileEntry>> {
         Ok(self
             .read_project_files()
@@ -43,6 +45,7 @@ impl Filesystem for Memory {
             .collect::<Vec<FileEntry>>())
     }
 
+    #[cfg(feature = "blog")]
     async fn read_blog_posts_from_blog(&self, blog_name: &BlogName) -> Result<Vec<FileEntry>> {
         let blog_dir = blog_name.relative_blog_directory();
 

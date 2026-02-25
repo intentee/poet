@@ -1,4 +1,5 @@
 pub mod build_authors;
+#[cfg(feature = "blog")]
 pub mod build_blogs;
 pub mod build_content;
 pub mod build_project_params;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 pub use build_authors::build_authors;
+#[cfg(feature = "blog")]
 pub use build_blogs::build_blogs;
 pub use build_content::build_content;
 pub use build_content::build_content_params::BuildContentParams;
@@ -32,7 +34,8 @@ pub async fn build_project(
 ) -> Result<BuildProjectResultStub> {
     let authors = build_authors(source_filesystem.clone()).await?;
 
-    let blogs = build_blogs(source_filesystem.clone()).await?;
+    #[cfg(feature = "blog")]
+    let _blogs = build_blogs(source_filesystem.clone()).await?;
 
     let memory_filesystem = Arc::new(Memory::default());
 

@@ -148,16 +148,22 @@ impl Filesystem for Storage {
     }
 
     async fn read_project_files(&self) -> Result<Vec<FileEntry>> {
-        #[cfg_attr(not(feature = "blog"), allow(unused_mut))]
-        let mut to_visit: Vec<PathBuf> = vec![
+        #[cfg(feature = "blog")]
+        let to_visit: Vec<PathBuf> = vec![
             self.base_directory.join("authors"),
+            self.base_directory.join("blogs"),
             self.base_directory.join("content"),
             self.base_directory.join("prompts"),
             self.base_directory.join("shortcodes"),
         ];
 
-        #[cfg(feature = "blog")]
-        to_visit.push(self.base_directory.join("blogs"));
+        #[cfg(not(feature = "blog"))]
+        let to_visit: Vec<PathBuf> = vec![
+            self.base_directory.join("authors"),
+            self.base_directory.join("content"),
+            self.base_directory.join("prompts"),
+            self.base_directory.join("shortcodes"),
+        ];
 
         self.read_files_from_dirs(to_visit).await
     }

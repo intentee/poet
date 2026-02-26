@@ -1,12 +1,12 @@
 [workspace]
 resolver = "3"
 members = [
+    "embedding_codec",
     "poet",
     "rhai_components",
 ]
 
 [workspace.dependencies]
-bincode = "1.3"
 actix = "0.13.5"
 actix-cors = "0.7.1"
 actix-files = "0.6.6"

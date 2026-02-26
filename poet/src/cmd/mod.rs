@@ -9,5 +9,6 @@ mod service_manager;
 mod value_parser;
 pub mod watch;
 
+#[cfg(feature = "embeddings")]
 const EMBEDDINGS_FILENAME: &str = "embeddings.bin";
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";

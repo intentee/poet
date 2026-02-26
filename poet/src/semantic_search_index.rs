@@ -1,8 +1,10 @@
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
 use anyhow::Result;
+use embedding_codec::EmbeddingCodec;
 use log::debug;
 
 pub struct SemanticSearchIndex {
@@ -12,7 +14,7 @@ pub struct SemanticSearchIndex {
 impl SemanticSearchIndex {
     pub fn load_from_file(path: &Path) -> Result<Self> {
         let bytes = fs::read(path)?;
-        let embeddings: BTreeMap<String, Vec<f32>> = bincode::deserialize(&bytes)?;
+        let embeddings = EmbeddingCodec::deserialize(&bytes)?;
 
         Ok(Self { embeddings })
     }
@@ -32,7 +34,7 @@ impl SemanticSearchIndex {
             .filter(|(_basename, score)| *score >= min_score)
             .collect();
 
-        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
         scored.truncate(top_k);
 
         scored

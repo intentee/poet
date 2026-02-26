@@ -8,11 +8,13 @@ use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+#[cfg(feature = "embeddings")]
 use log::warn;
 use tokio::fs;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::assert_valid_desktop_entry_string::assert_valid_desktop_entry_string;
+#[cfg(feature = "embeddings")]
 use crate::cmd::EMBEDDINGS_FILENAME;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
@@ -29,6 +31,7 @@ const ICON: &str = r#"<svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.
 
 #[derive(Parser)]
 pub struct AppDir {
+    #[cfg(feature = "embeddings")]
     #[arg(long)]
     embeddings_file: Option<PathBuf>,
 
@@ -54,11 +57,12 @@ impl AppDir {
     }
 
     fn render_app_run_file(&self) -> Result<String> {
+        #[cfg(feature = "embeddings")]
         if self.embeddings_file.is_some() {
-            self.render_app_run_file_with_embeddings()
-        } else {
-            self.render_app_run_file_without_embeddings()
+            return self.render_app_run_file_with_embeddings();
         }
+
+        self.render_app_run_file_without_embeddings()
     }
 
     fn render_app_run_file_without_embeddings(&self) -> Result<String> {
@@ -105,6 +109,7 @@ impl AppDir {
         })
     }
 
+    #[cfg(feature = "embeddings")]
     fn render_app_run_file_with_embeddings(&self) -> Result<String> {
         Ok(formatdoc! {
             r#"
@@ -201,6 +206,7 @@ impl Handler for AppDir {
             )
             .await?;
 
+        #[cfg(feature = "embeddings")]
         if let Some(embeddings_file) = &self.embeddings_file {
             info!("Copying embeddings to AppDir...");
 

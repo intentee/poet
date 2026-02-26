@@ -9,6 +9,8 @@ pub mod author_collection;
 pub mod author_data;
 pub mod author_resolve_result;
 pub mod build_authors;
+pub mod build_content_document_sources;
+pub mod build_content_document_sources_result;
 pub mod build_project;
 pub mod build_prompt_document_controller;
 pub mod build_prompt_document_controller_collection;
@@ -43,8 +45,9 @@ pub mod find_front_matter_in_mdast;
 pub mod find_table_of_contents_in_mdast;
 pub mod find_text_content_in_mdast;
 pub mod flexible_datetime;
-pub mod generate_sitemap;
+#[cfg(feature = "embeddings")]
 pub mod generate_embedding;
+pub mod generate_sitemap;
 pub mod holder;
 pub mod is_external_link;
 pub mod is_valid_desktop_entry_string;
@@ -69,8 +72,11 @@ pub mod search_index_reader;
 pub mod search_index_reader_holder;
 pub mod search_index_schema;
 pub mod search_tool;
+#[cfg(feature = "embeddings")]
 pub mod semantic_search_index;
+#[cfg(feature = "embeddings")]
 pub mod semantic_search_index_holder;
+#[cfg(feature = "embeddings")]
 pub mod semantic_search_tool;
 pub mod string_to_mdast;
 pub mod table_of_contents;

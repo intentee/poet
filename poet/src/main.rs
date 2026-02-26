@@ -3,6 +3,7 @@ use clap::Parser;
 use clap::Subcommand;
 use poet::cmd::handler::Handler;
 use poet::cmd::make::app_dir::AppDir;
+#[cfg(feature = "embeddings")]
 use poet::cmd::make::embeddings::Embeddings;
 use poet::cmd::make::static_pages::StaticPages;
 use poet::cmd::serve::Serve;
@@ -33,6 +34,7 @@ enum Make {
     /// Generates AppDir (packageable with AppImageKit)
     AppDir(AppDir),
     /// Generates embeddings for all content documents
+    #[cfg(feature = "embeddings")]
     Embeddings(Embeddings),
     /// Generates static pages
     StaticPages(StaticPages),
@@ -42,6 +44,7 @@ fn get_handler() -> Option<Box<dyn Handler>> {
     match Cli::parse().command {
         Some(Commands::Make { command }) => match command {
             Make::AppDir(handler) => Some(Box::new(handler)),
+            #[cfg(feature = "embeddings")]
             Make::Embeddings(handler) => Some(Box::new(handler)),
             Make::StaticPages(handler) => Some(Box::new(handler)),
         },

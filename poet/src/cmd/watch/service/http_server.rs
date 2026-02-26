@@ -64,6 +64,7 @@ impl Service for HttpServer {
             let tool_registry = self.tool_registry.clone();
 
             let server_info = Implementation {
+                description: None,
                 name: "poet".to_string(),
                 title: Some("Poet".to_string()),
                 version: env!("CARGO_PKG_VERSION").to_string(),

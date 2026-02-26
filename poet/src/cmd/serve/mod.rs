@@ -107,6 +107,7 @@ impl Handler for Serve {
         );
 
         let server_info = Implementation {
+            description: None,
             name: app_dir_desktop_entry.name.clone(),
             title: Some(app_dir_desktop_entry.title.clone()),
             version: app_dir_desktop_entry.site_version.clone(),

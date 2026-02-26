@@ -8,10 +8,14 @@ use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+#[cfg(feature = "embeddings")]
+use log::warn;
 use tokio::fs;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::assert_valid_desktop_entry_string::assert_valid_desktop_entry_string;
+#[cfg(feature = "embeddings")]
+use crate::cmd::EMBEDDINGS_FILENAME;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
 use crate::cmd::value_parser::validate_is_directory;
@@ -27,6 +31,10 @@ const ICON: &str = r#"<svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.
 
 #[derive(Parser)]
 pub struct AppDir {
+    #[cfg(feature = "embeddings")]
+    #[arg(long)]
+    embeddings_file: Option<PathBuf>,
+
     #[arg(long)]
     name: String,
 
@@ -49,6 +57,15 @@ impl AppDir {
     }
 
     fn render_app_run_file(&self) -> Result<String> {
+        #[cfg(feature = "embeddings")]
+        if self.embeddings_file.is_some() {
+            return self.render_app_run_file_with_embeddings();
+        }
+
+        self.render_app_run_file_without_embeddings()
+    }
+
+    fn render_app_run_file_without_embeddings(&self) -> Result<String> {
         Ok(formatdoc! {
             r#"
                 #!/usr/bin/env sh
@@ -92,6 +109,63 @@ impl AppDir {
         })
     }
 
+    #[cfg(feature = "embeddings")]
+    fn render_app_run_file_with_embeddings(&self) -> Result<String> {
+        Ok(formatdoc! {
+            r#"
+                #!/usr/bin/env sh
+
+                ADDR=""
+                PADDLER_ADDR=""
+                PUBLIC_PATH=""
+
+                while [ $# -gt 0 ]; do
+                    case $1 in
+                        --addr)
+                            ADDR="$2"
+                            shift 2
+                            ;;
+                        --paddler-addr)
+                            PADDLER_ADDR="$2"
+                            shift 2
+                            ;;
+                        --public-path)
+                            PUBLIC_PATH="$2"
+                            shift 2
+                            ;;
+                        *)
+                            echo "Unknown argument: $1"
+                            echo "Usage: $0 --addr ADDRESS --public-path PATH [--paddler-addr ADDRESS]"
+                            exit 1
+                            ;;
+                    esac
+                done
+
+                if [ -z "$ADDR" ]; then
+                    echo "Error: --addr is required"
+                    echo "Usage: $0 --addr ADDRESS --public-path PATH [--paddler-addr ADDRESS]"
+                    exit 1
+                fi
+
+                if [ -z "$PUBLIC_PATH" ]; then
+                    echo "Error: --public-path is required"
+                    echo "Usage: $0 --addr ADDRESS --public-path PATH [--paddler-addr ADDRESS]"
+                    exit 1
+                fi
+
+                EXTRA_ARGS=""
+
+                if [ -n "$PADDLER_ADDR" ]; then
+                    EXTRA_ARGS="--embeddings-file $APPDIR/{embeddings_filename} --paddler-addr $PADDLER_ADDR"
+                fi
+
+                exec $APPDIR/poet serve $APPDIR --addr "$ADDR" --app-name "{name}" --public-path "$PUBLIC_PATH" $EXTRA_ARGS
+            "#,
+            embeddings_filename = EMBEDDINGS_FILENAME,
+            name = self.name,
+        })
+    }
+
     fn render_desktop_file(&self) -> Result<String> {
         Ok(AppDirDesktopEntry {
             name: assert_valid_desktop_entry_string(&self.name)?,
@@ -131,6 +205,17 @@ impl Handler for AppDir {
                 &PathBuf::from("esbuild-meta.json"),
             )
             .await?;
+
+        #[cfg(feature = "embeddings")]
+        if let Some(embeddings_file) = &self.embeddings_file {
+            info!("Copying embeddings to AppDir...");
+
+            fs::copy(embeddings_file, app_dir_path.join(EMBEDDINGS_FILENAME)).await?;
+        } else {
+            warn!(
+                "No embeddings file provided. The AppDir will not include semantic search capabilities. Use --embeddings-file to include embeddings."
+            );
+        }
 
         info!("Copying assets to AppDir...");
 

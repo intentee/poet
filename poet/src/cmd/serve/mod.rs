@@ -3,7 +3,12 @@ mod http_route;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
+#[cfg(feature = "embeddings")]
+use std::str::FromStr;
 use std::sync::Arc;
+
+#[cfg(feature = "embeddings")]
+use url::Url;
 
 use actix_files::Files;
 use actix_web::App;
@@ -14,6 +19,8 @@ use indoc::formatdoc;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
+#[cfg(feature = "embeddings")]
+use log::warn;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::asset_path_renderer::AssetPathRenderer;
@@ -24,7 +31,11 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
+#[cfg(feature = "embeddings")]
+use crate::generate_embedding::paddler_embedding_client::PaddlerEmbeddingClient;
 use crate::holder::Holder as _;
+#[cfg(feature = "embeddings")]
+use crate::cmd::EMBEDDINGS_FILENAME;
 use crate::cmd::STATIC_FILES_PUBLIC_PATH;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
@@ -47,6 +58,10 @@ use crate::search_index::SearchIndex;
 use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 use crate::search_tool::SearchTool;
+#[cfg(feature = "embeddings")]
+use crate::semantic_search_index::SemanticSearchIndex;
+#[cfg(feature = "embeddings")]
+use crate::semantic_search_tool::SemanticSearchTool;
 
 #[derive(Parser)]
 pub struct Serve {
@@ -58,6 +73,10 @@ pub struct Serve {
 
     #[arg(long)]
     app_name: String,
+
+    #[cfg(feature = "embeddings")]
+    #[arg(long, value_parser = parse_socket_addr)]
+    paddler_addr: Option<SocketAddr>,
 
     #[arg(long)]
     public_path: String,
@@ -183,6 +202,31 @@ impl Handler for Serve {
                 .clone(),
             search_index_reader_holder: search_index_reader_holder.clone(),
         });
+
+        #[cfg(feature = "embeddings")]
+        {
+            let embeddings_path = PathBuf::from(EMBEDDINGS_FILENAME);
+
+            match &self.paddler_addr {
+                Some(paddler_addr) => {
+                    let semantic_search_index =
+                        Arc::new(SemanticSearchIndex::load_from_file(&embeddings_path)?);
+                    let inference_url = Url::from_str(&format!("http://{paddler_addr}"))?;
+                    let paddler_embeddings_client =
+                        Arc::new(PaddlerEmbeddingClient::new(inference_url));
+
+                    tool_registry.register_owned(SemanticSearchTool {
+                        mcp_resource_provider_content_documents:
+                            mcp_resource_provider_content_documents.clone(),
+                        paddler_embeddings_client,
+                        semantic_search_index,
+                    });
+                }
+                None => {
+                    warn!("Paddler address not provided, semantic search tool will be disabled");
+                }
+            }
+        }
 
         let tool_registry_arc: Arc<ToolRegistry> = Arc::new(tool_registry);
 

@@ -5,6 +5,9 @@ name = "poet"
 version = "0.5.14"
 edition = "2024"
 
+[features]
+embeddings = ["dep:embedding_codec", "dep:paddler_client", "dep:paddler_types"]
+
 [dependencies]
 actix = { workspace = true }
 actix-cors = { workspace = true }
@@ -22,6 +25,7 @@ chrono = { workspace = true }
 clap = { workspace = true }
 ctrlc = { workspace = true }
 dashmap = { workspace = true }
+embedding_codec = { path = "../embedding_codec", version = "0.1", optional = true }
 env_logger = { workspace = true }
 esbuild-metafile = { workspace = true }
 freedesktop_entry_parser = { workspace = true }
@@ -36,6 +40,8 @@ markdown = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
 nom = { workspace = true }
+paddler_client = { workspace = true, optional = true }
+paddler_types = { workspace = true, optional = true }
 notify = { workspace = true }
 notify-debouncer-full = { workspace = true }
 petgraph = { workspace = true }

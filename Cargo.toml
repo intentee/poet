@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "embedding_codec",
     "poet",
     "rhai_components",
 ]
@@ -53,5 +54,7 @@ tokio = { version = "1.45.1", features = ["full"] }
 tokio-stream = "0.1.17"
 tokio-util = "0.7.16"
 toml = "0.9.5"
+paddler_client = { path = "../paddler/paddler_client" }
+paddler_types = { path = "../paddler/paddler_types", default-features = false }
 url = "2.5.6"
 uuid = { version = "1.18.1", features = ["rng", "serde", "v4"] }

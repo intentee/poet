@@ -41,6 +41,10 @@ impl ToolProvider for SearchTool {
     fn name(&self) -> String {
         "search".to_string()
     }
+
+    fn description(&self) -> Option<String> {
+        Some("Search content using key-word match".to_string())
+    }
 }
 
 #[async_trait]

@@ -7,6 +7,7 @@ use actix_web::web::Bytes;
 use async_trait::async_trait;
 use futures_core::stream::Stream;
 use log::error;
+use log::warn;
 use tokio::sync::mpsc::Receiver;
 use tokio::time::interval;
 
@@ -121,9 +122,16 @@ impl Handler for InitializeHandler {
 
     async fn handle(
         self,
-        Initialize { id, .. }: Self::Request,
+        Initialize { id, params, .. }: Self::Request,
         _: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
+        if !params.capabilities.extra.is_empty() {
+            warn!(
+                "Unknown fields in client capabilities: {:#?}",
+                params.capabilities.extra
+            );
+        }
+
         let SessionWithNotificationsReceiver {
             notification_rx,
             session,

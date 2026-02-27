@@ -194,9 +194,7 @@ pub async fn build_content(
         {
             error_collection.register_error(
                 reference.basename().to_string(),
-                anyhow!(
-                    "Document does belong to the collection it claims to be it's primary collection"
-                ),
+                anyhow!("Document does not belong to its declared primary collection"),
             );
         }
 

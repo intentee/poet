@@ -1,6 +1,1 @@
 base_path = "foo/bar"
-
-[url_pattern]
-blog_post = "{year}/{month}/{day}/{slug}"
-
-# this will also hold pagination

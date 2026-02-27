@@ -76,11 +76,10 @@ impl Storage {
         Ok(ReadFilesFromDirResult { directories, files })
     }
 
-    async fn read_files_from_dirs(&self, to_visit: Vec<PathBuf>) -> Result<Vec<FileEntry>> {
+    async fn read_files_from_dirs(&self, mut to_visit: Vec<PathBuf>) -> Result<Vec<FileEntry>> {
         let mut all_files = Vec::new();
-        let mut to_visit_mut = to_visit.clone();
 
-        while let Some(current) = to_visit_mut.pop() {
+        while let Some(current) = to_visit.pop() {
             if !current.exists() {
                 continue;
             }
@@ -89,7 +88,7 @@ impl Storage {
                 self.read_files_from_dir(current).await?;
 
             all_files.extend(files);
-            to_visit_mut.extend(directories);
+            to_visit.extend(directories);
         }
 
         Ok(all_files)
@@ -111,11 +110,16 @@ impl Filesystem for Storage {
 
     #[cfg(feature = "blog")]
     async fn read_blog_config_files(&self) -> Result<Vec<FileEntry>> {
-        let to_visit: Vec<PathBuf> = vec![self.base_directory.join("blogs")];
+        let blogs_dir = self.base_directory.join("blogs");
+
+        if !blogs_dir.exists() {
+            return Ok(Vec::new());
+        }
 
         Ok(self
-            .read_files_from_dirs(to_visit)
+            .read_files_from_dir(blogs_dir)
             .await?
+            .files
             .into_iter()
             .filter(|file_entry| file_entry.kind.is_blog_config())
             .collect::<Vec<FileEntry>>())
@@ -123,14 +127,18 @@ impl Filesystem for Storage {
 
     #[cfg(feature = "blog")]
     async fn read_blog_posts_from_blog(&self, blog_name: &BlogName) -> Result<Vec<FileEntry>> {
-        let ReadFilesFromDirResult { files, .. } = self
-            .read_files_from_dir(
-                self.base_directory
-                    .join(blog_name.relative_blog_directory()),
-            )
-            .await?;
+        let blog_dir = self
+            .base_directory
+            .join(blog_name.relative_blog_directory());
 
-        Ok(files
+        if !blog_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        Ok(self
+            .read_files_from_dir(blog_dir)
+            .await?
+            .files
             .into_iter()
             .filter(|file_entry| file_entry.kind.is_blog_post())
             .collect::<Vec<FileEntry>>())

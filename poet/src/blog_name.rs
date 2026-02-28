@@ -32,3 +32,18 @@ impl From<String> for BlogName {
         Self(blog_name)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_relative_blog_directory() {
+        let blog_name = BlogName("example-blog".to_string());
+
+        assert_eq!(
+            blog_name.relative_blog_directory(),
+            PathBuf::from("blogs/example-blog")
+        );
+    }
+}

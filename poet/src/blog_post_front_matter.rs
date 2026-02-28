@@ -16,3 +16,21 @@ pub struct BlogPostFrontMatter {
     pub render: bool,
     pub title: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_render_defaults_to_true() {
+        let input = r#"
+            description = "A post"
+            layout = "PageBlogPost"
+            title = "Hello"
+        "#;
+
+        let front_matter: BlogPostFrontMatter = toml::from_str(input).unwrap();
+
+        assert_eq!(front_matter.render, true);
+    }
+}

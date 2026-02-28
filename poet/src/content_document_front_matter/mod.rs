@@ -82,6 +82,24 @@ impl ContentDocumentFrontMatter {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_render_defaults_to_true() {
+        let input = r#"
+            description = "A page"
+            layout = "SomeLayout"
+            title = "Hello"
+        "#;
+
+        let front_matter: ContentDocumentFrontMatter = toml::from_str(input).unwrap();
+
+        assert_eq!(front_matter.render, true);
+    }
+}
+
 impl CustomType for ContentDocumentFrontMatter {
     fn build(mut builder: TypeBuilder<Self>) {
         builder

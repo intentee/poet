@@ -36,6 +36,7 @@ pub mod eval_content_document_mdast;
 pub mod eval_mdx_element;
 pub mod eval_prompt_document_mdast;
 pub mod eval_prompt_document_mdast_params;
+pub mod external_asset;
 pub mod filesystem;
 pub mod filesystem_http_route_index;
 pub mod filesystem_http_route_index_holder;

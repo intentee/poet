@@ -1,7 +1,5 @@
 # Project Context
 
-Poet is a Rust static site generator with a built-in MCP server. It uses a custom JSX-like syntax via Rhai scripting.
-
 When working with this codebase, prioritize readability over cleverness. Ask clarifying questions before making architectural changes.
 
 Keep it simple, be opinionated, follow best practices. Avoid using configurable parameters.
@@ -20,7 +18,7 @@ Keep the code beautiful. Always optimize the code for a great developer experien
 - Decide to group the modules based on software architecture, messaging hierarchy, or inheritance. Do not group modules just for the sake of it.
 - Maintain a tree-like structure of modules, avoid circular dependencies at all costs. Extract common functions or structs into separate modules, or separate subprojects in the workspace.
 - Name files the same way as the struct or function they contain.
-- Be explicit, do not use general import statements that involve "*", prefer to import everything explicitly. The exception is `use super::*` in test modules.
+- Be explicit, do not use general import statements that involve "*", prefer to import everything explicitly.
 - Do not use copy-pasted or copied code in any capacity. If you have issues extracting something into a module, discuss the steps first.
 - Keeping slightly different message types, or other kinds of structs that are only slightly different, because of the context they are used in, is fine.
 - Each function or method should do just a single thing. The single responsibility principle is really important.
@@ -33,7 +31,7 @@ Keep the code beautiful. Always optimize the code for a great developer experien
 - Add an empty line between loops and preceding statements from the same scope.
 - Handle all the errors; never ignore them. Make sure the application does not panic.
 - In Rust, never ignore errors with `Err(_)`; always make sure you are matching an expected error variant instead.
-- Never use `.expect`, or `.unwrap`. In Rust, if a function can fail, use a matching Result (can be from the anyhow crate) instead. In case of doubt on this, ask. Allow `.expect` in mutex lock poison checks.
+- Never use `.expect`, or `.unwrap`. In Rust, if a function can fail, use a matching Result (can be from the anyhow crate) instead. In case of doubt on this, ask. Allow `.expect` in mutex lock poison checks, or when integrating CPP libraries into Rust.
 - Use object-oriented style and composition. Avoid functions that take a struct as a parameter; move it to the struct implementation instead.
 - Always make sure mutex locks are held for the shortest possible time.
 - Always specify Rust dependencies in root Cargo.toml, then use workspace versions of packages in workspace members.

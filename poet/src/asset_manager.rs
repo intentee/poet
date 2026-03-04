@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use esbuild_metafile::EsbuildMetaFile;
 use esbuild_metafile::HttpPreloader;
@@ -9,10 +10,12 @@ use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
 use crate::asset_path_renderer::AssetPathRenderer;
+use crate::external_asset::ExternalAsset;
 
 #[derive(Clone)]
 pub struct AssetManager {
     esbuild_metafile: Arc<EsbuildMetaFile>,
+    external_assets: Arc<Mutex<BTreeSet<ExternalAsset>>>,
     http_preloader: Arc<HttpPreloader>,
     path_renderer: AssetPathRenderer,
 }
@@ -24,6 +27,7 @@ impl AssetManager {
     ) -> Self {
         AssetManager {
             esbuild_metafile: esbuild_metafile.clone(),
+            external_assets: Arc::new(Mutex::new(BTreeSet::new())),
             http_preloader: Arc::new(HttpPreloader::new(esbuild_metafile)),
             path_renderer,
         }
@@ -72,6 +76,15 @@ impl AssetManager {
             rendered_includes.insert(path.render(&self.path_renderer));
         }
 
+        for external_asset in self
+            .external_assets
+            .lock()
+            .expect("external assets mutex poisoned")
+            .iter()
+        {
+            rendered_includes.insert(external_asset.render(&self.path_renderer));
+        }
+
         for element in rendered_preloads {
             rendered_assets.push_str(&element);
         }
@@ -82,6 +95,20 @@ impl AssetManager {
 
         rendered_assets
     }
+
+    fn rhai_script(&mut self, url: String) {
+        self.external_assets
+            .lock()
+            .expect("external assets mutex poisoned")
+            .insert(ExternalAsset::Script(url));
+    }
+
+    fn rhai_stylesheet(&mut self, url: String) {
+        self.external_assets
+            .lock()
+            .expect("external assets mutex poisoned")
+            .insert(ExternalAsset::Stylesheet(url));
+    }
 }
 
 impl CustomType for AssetManager {
@@ -91,6 +118,8 @@ impl CustomType for AssetManager {
             .with_fn("add", Self::rhai_add)
             .with_fn("file", Self::rhai_file)
             .with_fn("preload", Self::rhai_preload)
-            .with_fn("render", Self::rhai_render);
+            .with_fn("render", Self::rhai_render)
+            .with_fn("script", Self::rhai_script)
+            .with_fn("stylesheet", Self::rhai_stylesheet);
     }
 }

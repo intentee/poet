@@ -30,6 +30,10 @@ pub struct ResourceListAggregate {
 }
 
 impl ResourceListAggregate {
+    pub fn total(&self) -> usize {
+        self.providers.iter().map(|p| p.0.total()).sum()
+    }
+
     pub async fn list_resources(
         &self,
         ListResourcesCursor { offset, per_page }: ListResourcesCursor,

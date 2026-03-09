@@ -298,6 +298,50 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_pagination_zero_per_page_returns_empty() -> Result<()> {
+        let total = 4;
+
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let result = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: 0,
+                per_page: 0,
+            })
+            .await?;
+
+        assert_eq!(result.len(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pagination_offset_overflow_returns_empty() -> Result<()> {
+        let total = 4;
+
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let result = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: usize::MAX,
+                per_page: 2,
+            })
+            .await?;
+
+        assert_eq!(result.len(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_list_resources() -> Result<()> {
         let resource_list_aggregate: ResourceListAggregate = vec![
             Arc::new(TestResourceProvider {

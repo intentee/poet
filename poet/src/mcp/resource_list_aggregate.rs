@@ -214,6 +214,70 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_pagination_first_page() -> Result<()> {
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total: 4,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let first_page = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: 0,
+                per_page: 2,
+            })
+            .await?;
+
+        assert_eq!(first_page.len(), 2);
+        assert_eq!(first_page.first().unwrap().name, "name_p1_r0");
+        assert_eq!(first_page.get(1).unwrap().name, "name_p1_r1");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pagination_second_page() -> Result<()> {
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total: 4,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let second_page = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: 2,
+                per_page: 2,
+            })
+            .await?;
+
+        assert_eq!(second_page.len(), 2);
+        assert_eq!(second_page.first().unwrap().name, "name_p1_r2");
+        assert_eq!(second_page.get(1).unwrap().name, "name_p1_r3");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pagination_beyond_last_page() -> Result<()> {
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total: 4,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let beyond = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: 4,
+                per_page: 2,
+            })
+            .await?;
+
+        assert_eq!(beyond.len(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_list_resources() -> Result<()> {
         let resource_list_aggregate: ResourceListAggregate = vec![
             Arc::new(TestResourceProvider {

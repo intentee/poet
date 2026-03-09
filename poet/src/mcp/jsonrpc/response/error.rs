@@ -66,6 +66,15 @@ impl Error {
         }
     }
 
+    pub fn invalid_params(id: Id, message: String) -> Self {
+        Self::RequestInternal {
+            code: ERROR_INVALID_PARAMS,
+            id,
+            jsonrpc: JSONRPC_VERSION.to_string(),
+            message,
+        }
+    }
+
     pub fn invalid_request(message: String) -> Self {
         Self::GenericMessage {
             code: ERROR_INVALID_REQUEST,

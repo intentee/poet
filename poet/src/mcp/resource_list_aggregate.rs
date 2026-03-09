@@ -30,6 +30,10 @@ pub struct ResourceListAggregate {
 }
 
 impl ResourceListAggregate {
+    pub fn total(&self) -> usize {
+        self.providers.iter().map(|p| p.0.total()).sum()
+    }
+
     pub async fn list_resources(
         &self,
         ListResourcesCursor { offset, per_page }: ListResourcesCursor,
@@ -207,6 +211,134 @@ mod tests {
         fn total(&self) -> usize {
             self.total
         }
+    }
+
+    #[tokio::test]
+    async fn test_pagination_first_page() -> Result<()> {
+        let total = 4;
+        let per_page = 2;
+        let class = "1";
+
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: class.to_string(),
+            total,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let first_page = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: 0,
+                per_page,
+            })
+            .await?;
+
+        assert_eq!(first_page.len(), per_page);
+        assert_eq!(
+            first_page.first().unwrap().name,
+            format!("name_p{class}_r0")
+        );
+        assert_eq!(first_page.get(1).unwrap().name, format!("name_p{class}_r1"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pagination_second_page() -> Result<()> {
+        let total = 4;
+        let per_page = 2;
+        let class = "1";
+
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: class.to_string(),
+            total,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let second_page = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: per_page,
+                per_page,
+            })
+            .await?;
+
+        assert_eq!(second_page.len(), per_page);
+        assert_eq!(
+            second_page.first().unwrap().name,
+            format!("name_p{class}_r{per_page}")
+        );
+        assert_eq!(
+            second_page.get(1).unwrap().name,
+            format!("name_p{class}_r{}", per_page + 1)
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pagination_beyond_last_page() -> Result<()> {
+        let total = 4;
+        let per_page = 2;
+
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let beyond = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: total,
+                per_page,
+            })
+            .await?;
+
+        assert_eq!(beyond.len(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pagination_zero_per_page_returns_empty() -> Result<()> {
+        let total = 4;
+
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let result = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: 0,
+                per_page: 0,
+            })
+            .await?;
+
+        assert_eq!(result.len(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pagination_offset_overflow_returns_empty() -> Result<()> {
+        let total = 4;
+
+        let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
+            class: "1".to_string(),
+            total,
+        }) as Arc<dyn ResourceProvider>]
+        .into();
+
+        let result = aggregate
+            .list_resources(ListResourcesCursor {
+                offset: usize::MAX,
+                per_page: 2,
+            })
+            .await?;
+
+        assert_eq!(result.len(), 0);
+
+        Ok(())
     }
 
     #[tokio::test]

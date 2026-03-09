@@ -215,60 +215,80 @@ mod tests {
 
     #[tokio::test]
     async fn test_pagination_first_page() -> Result<()> {
+        let total = 4;
+        let per_page = 2;
+        let class = "1";
+
         let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
-            class: "1".to_string(),
-            total: 4,
+            class: class.to_string(),
+            total,
         }) as Arc<dyn ResourceProvider>]
         .into();
 
         let first_page = aggregate
             .list_resources(ListResourcesCursor {
                 offset: 0,
-                per_page: 2,
+                per_page,
             })
             .await?;
 
-        assert_eq!(first_page.len(), 2);
-        assert_eq!(first_page.first().unwrap().name, "name_p1_r0");
-        assert_eq!(first_page.get(1).unwrap().name, "name_p1_r1");
+        assert_eq!(first_page.len(), per_page);
+        assert_eq!(
+            first_page.first().unwrap().name,
+            format!("name_p{class}_r0")
+        );
+        assert_eq!(first_page.get(1).unwrap().name, format!("name_p{class}_r1"));
 
         Ok(())
     }
 
     #[tokio::test]
     async fn test_pagination_second_page() -> Result<()> {
+        let total = 4;
+        let per_page = 2;
+        let class = "1";
+
         let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
-            class: "1".to_string(),
-            total: 4,
+            class: class.to_string(),
+            total,
         }) as Arc<dyn ResourceProvider>]
         .into();
 
         let second_page = aggregate
             .list_resources(ListResourcesCursor {
-                offset: 2,
-                per_page: 2,
+                offset: per_page,
+                per_page,
             })
             .await?;
 
-        assert_eq!(second_page.len(), 2);
-        assert_eq!(second_page.first().unwrap().name, "name_p1_r2");
-        assert_eq!(second_page.get(1).unwrap().name, "name_p1_r3");
+        assert_eq!(second_page.len(), per_page);
+        assert_eq!(
+            second_page.first().unwrap().name,
+            format!("name_p{class}_r{per_page}")
+        );
+        assert_eq!(
+            second_page.get(1).unwrap().name,
+            format!("name_p{class}_r{}", per_page + 1)
+        );
 
         Ok(())
     }
 
     #[tokio::test]
     async fn test_pagination_beyond_last_page() -> Result<()> {
+        let total = 4;
+        let per_page = 2;
+
         let aggregate: ResourceListAggregate = vec![Arc::new(TestResourceProvider {
             class: "1".to_string(),
-            total: 4,
+            total,
         }) as Arc<dyn ResourceProvider>]
         .into();
 
         let beyond = aggregate
             .list_resources(ListResourcesCursor {
-                offset: 4,
-                per_page: 2,
+                offset: total,
+                per_page,
             })
             .await?;
 

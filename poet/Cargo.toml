@@ -2,7 +2,7 @@
 description = "Static site generator with optional MCP server and LLM SEO optimizations"
 license = "Apache-2.0"
 name = "poet"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2024"
 
 [dependencies]
@@ -41,7 +41,7 @@ notify-debouncer-full = { workspace = true }
 petgraph = { workspace = true }
 rayon = { workspace = true }
 rhai = { workspace = true }
-rhai_components = { path = "../rhai_components", version = "0.5" }
+rhai_components = { path = "../rhai_components", version = "0.5.11" }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

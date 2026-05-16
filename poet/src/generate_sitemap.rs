@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use anyhow::Result;
 use anyhow::anyhow;
@@ -16,7 +16,7 @@ pub fn create_sitemap<'a>(
 
     for reference in content_documents {
         let url = reference.canonical_link().map_err(|e| anyhow!(e))?;
-        let priority = if reference.basename_path == PathBuf::from("index") {
+        let priority = if reference.basename_path == Path::new("index") {
             0.8
         } else {
             0.5

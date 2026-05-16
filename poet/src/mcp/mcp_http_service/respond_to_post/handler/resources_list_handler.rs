@@ -37,10 +37,7 @@ impl Handler for ResourcesListHandler {
         }: Self::Request,
         session: Self::Session,
     ) -> Result<HttpResponse<BoxBody>> {
-        let list_cursor = match cursor {
-            Some(list_cursor) => list_cursor,
-            None => ListResourcesCursor::default(),
-        };
+        let list_cursor: ListResourcesCursor = cursor.unwrap_or_default();
 
         if list_cursor.per_page < 1 {
             return Ok(HttpResponse::BadRequest().json(Error::invalid_params(

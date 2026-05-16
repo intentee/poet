@@ -1,0 +1,10 @@
+name: setup dev environment
+description: Set up the Node.js and Rust toolchains needed to build the project.
+runs:
+  using: composite
+  steps:
+    - name: setup node
+      uses: ./.github/actions/setup-node
+
+    - name: setup rust
+      uses: ./.github/actions/setup-rust

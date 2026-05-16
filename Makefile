@@ -6,15 +6,21 @@ RUST_LOG ?= debug
 # Real targets
 # -----------------------------------------------------------------------------
 
-package-lock.json: package.json
-	npm install --package-lock-only
-
 node_modules: package-lock.json
 	npm install --from-lockfile
 	touch node_modules
 
+package-lock.json: package.json
+	npm install --package-lock-only
+
 public: node_modules
 	./jarmuz-generate.mjs
+
+target/debug/poet: target/debug/poet
+	cargo build
+
+test_site-x86_64.AppImage: test_site.AppDir test_site.AppDir/poet
+	ARCH=x86_64 appimage-run ~/bin/appimagetool-x86_64.AppImage ./test_site.AppDir
 
 test_site.AppDir:
 	cargo run make app-dir . \
@@ -23,14 +29,8 @@ test_site.AppDir:
 		--title "Test Site" \
 		--version "1.2.3"
 
-target/debug/poet: target/debug/poet
-	cargo build
-
 test_site.AppDir/poet: target/debug/poet test_site.AppDir
 	cp target/debug/poet test_site.AppDir/poet
-
-test_site-x86_64.AppImage: test_site.AppDir test_site.AppDir/poet
-	ARCH=x86_64 appimage-run ~/bin/appimagetool-x86_64.AppImage ./test_site.AppDir
 
 # -----------------------------------------------------------------------------
 # Phony targets
@@ -41,14 +41,33 @@ clean:
 	rm -rf node_modules
 	rm -rf target
 
+.PHONY: clippy
+clippy:
+	cargo clippy --workspace --all-targets -- -D warnings
+
+.PHONY: coverage
+coverage: node_modules
+	cargo llvm-cov clean --workspace
+	cargo llvm-cov --workspace --no-report
+	cargo llvm-cov report --json --output-path target/llvm-cov.json
+	cargo llvm-cov report
+	npx rust-coverage-check target/llvm-cov.json \
+		--workspace-root $(CURDIR) \
+		--gated rhai_components \
+		--required-percent 100
+
 .PHONY: fmt
 fmt: node_modules
 	./jarmuz-fmt.mjs
 
-.PHONY: watch
-watch: node_modules
-	./jarmuz-watch.mjs
-
 .PHONY: release
 release:
 	cargo build --release
+
+.PHONY: test
+test:
+	cargo test --workspace
+
+.PHONY: watch
+watch: node_modules
+	./jarmuz-watch.mjs

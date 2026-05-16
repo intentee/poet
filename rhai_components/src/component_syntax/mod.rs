@@ -75,8 +75,31 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn test_docs_parser() -> Result<()> {
+    fn build_minimal_engine() -> Engine {
+        let component_registry = Arc::new(ComponentRegistry::default());
+        let evaluator_factory = EvaluatorFactory {
+            component_registry,
+        };
+        let mut engine = Engine::new();
+
+        engine.set_fail_on_invalid_map_property(true);
+        engine.set_max_expr_depths(256, 256);
+        engine.set_module_resolver(FileModuleResolver::new_with_path(format!(
+            "{}/src/component_syntax/fixtures",
+            env!("CARGO_MANIFEST_DIR")
+        )));
+        engine.register_custom_syntax_without_look_ahead_raw(
+            "component",
+            parse_component,
+            true,
+            evaluator_factory.create_component_evaluator(),
+        );
+
+        engine
+    }
+
+    #[test]
+    fn renders_full_document_with_components_attributes_and_body_expressions() -> Result<()> {
         let component_context = DummyContext::default();
         let component_registry = Arc::new(ComponentRegistry::default());
 
@@ -113,77 +136,113 @@ mod tests {
         engine.build_type::<DummyAssetCollection>();
         engine.build_type::<DummyContext>();
 
-        let renderer = Func::<(DummyContext, Dynamic, Dynamic), String>::create_from_script(
-            engine,
-            r#"
-                import "LayoutHomepage" as LayoutHomepage;
-                import "Note" as Note;
+        let mut props = Map::new();
 
-                fn template(context, props, content) {
-                    context.assets.add("resouces/controller_foo.tsx");
+        props.insert("bar".into(), "baz".into());
 
-                    component {
-                        <!DOCTYPE html>
-                        <LayoutHomepage extraBodyClass="my-extra-class">
-                            < button
-                                class="myclass"
-                                data-foo={props.bar}
-                                data-fooz={`${props.bar}`}
-                                data-gooz={if true {
-                                    component {
-                                        <div />
-                                    }
-                                } else {
-                                    ":)"
-                                }}
-                                disabled
-                            >
-                                <b><i><u>test</u></i></b>
-                                Hello! :D
-                                {" - "}
-                                <br />
+        let props_dynamic = Dynamic::from_map(props);
+        let content_dynamic = Dynamic::from("");
+        let context = component_context.clone();
+        let rendered_matches =
+            Func::<(DummyContext, Dynamic, Dynamic), String>::create_from_script(
+                engine,
+                r#"
+                    import "LayoutHomepage" as LayoutHomepage;
+                    import "Note" as Note;
 
-                                <Note type="warn">
-                                    {if content.is_empty() {
+                    fn template(context, props, content) {
+                        context.assets.add("resouces/controller_foo.tsx");
+
+                        component {
+                            <!DOCTYPE html>
+                            <LayoutHomepage extraBodyClass="my-extra-class">
+                                < button
+                                    class="myclass"
+                                    data-foo={props.bar}
+                                    data-fooz={`${props.bar}`}
+                                    data-gooz={if true {
                                         component {
-                                            <div>
-                                                NOTE EMPTY CONTENT
-                                            </div>
+                                            <div />
                                         }
                                     } else {
-                                        content
+                                        ":)"
                                     }}
-                                </Note>
-                            </button>
-                        </LayoutHomepage>
+                                    disabled
+                                >
+                                    <b><i><u>test</u></i></b>
+                                    Hello! :D
+                                    {" - "}
+                                    <br />
+
+                                    <Note type="warn">
+                                        {if content.is_empty() {
+                                            component {
+                                                <div>
+                                                    NOTE EMPTY CONTENT
+                                                </div>
+                                            }
+                                        } else {
+                                            content
+                                        }}
+                                    </Note>
+                                </button>
+                            </LayoutHomepage>
+                        }
                     }
-                }
-            "#,
-            "template",
-        )?;
+                "#,
+                "template",
+            )
+            .is_ok_and(|renderer| {
+                renderer(context, props_dynamic, content_dynamic).is_ok_and(|rendered| {
+                    rendered.contains("<!DOCTYPE html>")
+                        && rendered.contains("<html lang=\"en\">")
+                        && rendered.contains("<title>Poet</title>")
+                        && rendered.contains("<button")
+                        && rendered.contains("class=\"myclass\"")
+                        && rendered.contains("data-foo=\"baz\"")
+                        && rendered.contains("data-fooz=\"baz\"")
+                        && rendered.contains("disabled")
+                        && rendered.contains("<b><i><u>test</u></i></b>")
+                        && rendered.contains("Hello! :D")
+                        && rendered.contains(" - ")
+                        && rendered.contains("<br>")
+                        && rendered.contains("class=\"note note--warn\"")
+                        && rendered.contains("NOTE EMPTY CONTENT")
+                        && rendered.contains("</button>")
+                        && rendered.contains("</body>")
+                        && rendered.contains("</html>")
+                })
+            });
 
-        println!(
-            "{}",
-            renderer(
-                component_context.clone(),
-                Dynamic::from_map({
-                    let mut props = Map::new();
-
-                    props.insert("bar".into(), "baz".into());
-
-                    props
-                }),
-                Dynamic::from(""),
-            )?
-        );
-
+        assert!(rendered_matches);
         assert!(
             component_context
                 .assets
                 .assets
                 .contains("resouces/controller_foo.tsx")
         );
-        // assert!(false);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parses_mismatched_closing_tag_as_parse_error() -> Result<()> {
+        let engine = build_minimal_engine();
+
+        assert!(engine
+            .compile(r#"component { <div></span> }"#)
+            .is_err_and(|error| error.to_string().contains("Mismatched closing tag")));
+
+        Ok(())
+    }
+
+    #[test]
+    fn parses_self_close_after_attribute_name_renders_self_closing_tag() -> Result<()> {
+        let engine = build_minimal_engine();
+
+        assert!(engine
+            .eval::<String>(r#"component { <input checked/> }"#)
+            .is_ok_and(|rendered| rendered.contains("<input checked")));
 
         Ok(())
     }

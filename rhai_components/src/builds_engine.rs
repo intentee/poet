@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use dashmap::DashMap;
 use rhai::Engine;
-use rhai::Position;
 
-use crate::component_syntax::component_reference::ComponentReference;
 use crate::component_syntax::component_registry::ComponentRegistry;
 use crate::component_syntax::evaluator_factory::EvaluatorFactory;
 use crate::component_syntax::parse_component::parse_component;
@@ -42,27 +39,93 @@ pub trait BuildsEngine {
 
         self.prepare_engine(&mut engine)?;
 
-        let templates: DashMap<String, ComponentReference> = DashMap::new();
+        Ok(engine)
+    }
+}
 
-        for entry in &self.component_registry().components {
-            let component_reference = entry.value();
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
 
-            let module_resolver = engine.module_resolver();
-            let module = module_resolver.resolve(
-                &engine,
-                None,
-                &component_reference.name,
-                Position::NONE,
-            )?;
+    use anyhow::Result;
+    use anyhow::anyhow;
+    use rhai::Engine;
+    use rhai::module_resolvers::FileModuleResolver;
 
-            engine.register_static_module(component_reference.name.clone(), module);
+    use super::BuildsEngine;
+    use super::ComponentRegistry;
+    use crate::component_syntax::component_reference::ComponentReference;
 
-            templates.insert(
-                component_reference.name.clone(),
-                component_reference.clone(),
-            );
+    fn fixtures_path() -> String {
+        format!("{}/src/component_syntax/fixtures", env!("CARGO_MANIFEST_DIR"))
+    }
+
+    struct TestEngineOk {
+        registry: Arc<ComponentRegistry>,
+    }
+
+    impl BuildsEngine for TestEngineOk {
+        fn component_registry(&self) -> Arc<ComponentRegistry> {
+            self.registry.clone()
         }
 
-        Ok(engine)
+        fn prepare_engine(&self, engine: &mut Engine) -> Result<()> {
+            engine.set_module_resolver(FileModuleResolver::new_with_path(fixtures_path()));
+
+            Ok(())
+        }
+    }
+
+    struct TestEngineFailingPrepare {
+        registry: Arc<ComponentRegistry>,
+    }
+
+    impl BuildsEngine for TestEngineFailingPrepare {
+        fn component_registry(&self) -> Arc<ComponentRegistry> {
+            self.registry.clone()
+        }
+
+        fn prepare_engine(&self, _engine: &mut Engine) -> Result<()> {
+            Err(anyhow!("prepare_engine failed on purpose"))
+        }
+    }
+
+    fn registry_with(names: &[&str]) -> Arc<ComponentRegistry> {
+        let registry = Arc::new(ComponentRegistry::default());
+
+        for name in names {
+            registry.register_component(ComponentReference {
+                name: (*name).to_string(),
+                path: (*name).to_string(),
+            });
+        }
+
+        registry
+    }
+
+    #[test]
+    fn create_engine_registers_helpers_and_custom_syntax() -> Result<()> {
+        let builder = TestEngineOk {
+            registry: registry_with(&["Note"]),
+        };
+
+        assert!(builder.create_engine().is_ok_and(|engine| engine
+            .eval::<String>(r#"clsx(#{ ok: true })"#)
+            .is_ok_and(|result| result == "ok")));
+
+        Ok(())
+    }
+
+    #[test]
+    fn create_engine_propagates_prepare_engine_error() -> Result<()> {
+        let builder = TestEngineFailingPrepare {
+            registry: registry_with(&[]),
+        };
+
+        assert!(builder.create_engine().is_err_and(|error| {
+            error.to_string().contains("prepare_engine failed on purpose")
+        }));
+
+        Ok(())
     }
 }

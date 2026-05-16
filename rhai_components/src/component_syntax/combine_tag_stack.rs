@@ -81,24 +81,14 @@ pub fn combine_tag_stack(
 
                     combine_tag_stack(current_node, opened_tags, semantic_symbols)
                 }
-                None => {
-                    if !opened_tags.is_empty() {
-                        return Err(LexError::UnexpectedInput(format!(
-                            "Unclosed tag: <{}>",
-                            match opened_tags.back() {
-                                Some(tag) => &tag.tag_name.name,
-                                None =>
-                                    return Err(LexError::UnexpectedInput(
-                                        "No opened tags found".to_string(),
-                                    )
-                                    .into_err(Position::NONE)),
-                            }
-                        ))
-                        .into_err(Position::NONE));
-                    }
-
-                    Ok(())
-                }
+                None => match opened_tags.back() {
+                    Some(tag) => Err(LexError::UnexpectedInput(format!(
+                        "Unclosed tag: <{}>",
+                        tag.tag_name.name
+                    ))
+                    .into_err(Position::NONE)),
+                    None => Ok(()),
+                },
             }
         }
         TagStackNode::BodyExpression(_) => Err(LexError::UnexpectedInput(
@@ -109,5 +99,156 @@ pub fn combine_tag_stack(
             "Cannot add child to text node".to_string(),
         )
         .into_err(Position::NONE)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::VecDeque;
+
+    use anyhow::Result;
+
+    use super::OutputSemanticSymbol;
+    use super::Tag;
+    use super::TagStackNode;
+    use super::combine_tag_stack;
+    use crate::component_syntax::expression_reference::ExpressionReference;
+    use crate::component_syntax::tag_name::TagName;
+
+    fn make_tag(name: &str, is_closing: bool, is_self_closing: bool) -> Tag {
+        Tag {
+            attributes: vec![],
+            is_closing,
+            is_self_closing,
+            tag_name: TagName {
+                name: name.to_string(),
+            },
+        }
+    }
+
+    fn empty_root() -> TagStackNode {
+        TagStackNode::Tag {
+            children: vec![],
+            is_closed: false,
+            opening_tag: None,
+        }
+    }
+
+    #[test]
+    fn errs_when_root_node_is_body_expression() -> Result<()> {
+        let mut root = TagStackNode::BodyExpression(ExpressionReference { expression_index: 0 });
+
+        assert!(
+            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut VecDeque::new()).is_err_and(
+                |error| error.to_string().contains("Cannot add child to body expression node")
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn errs_when_root_node_is_text() -> Result<()> {
+        let mut root = TagStackNode::Text("hi".to_string());
+
+        assert!(
+            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut VecDeque::new()).is_err_and(
+                |error| error.to_string().contains("Cannot add child to text node")
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn errs_on_mismatched_closing_tag_name() -> Result<()> {
+        let opening = make_tag("div", false, false);
+        let mut root = TagStackNode::Tag {
+            children: vec![],
+            is_closed: false,
+            opening_tag: Some(opening),
+        };
+        let mut symbols = VecDeque::new();
+
+        symbols.push_back(OutputSemanticSymbol::Tag(make_tag("span", true, false)));
+
+        assert!(
+            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols)
+                .is_err_and(|error| error.to_string().contains("Mismatched closing tag"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn errs_on_closing_tag_when_no_tag_is_open() -> Result<()> {
+        let mut root = empty_root();
+        let mut symbols = VecDeque::new();
+
+        symbols.push_back(OutputSemanticSymbol::Tag(make_tag("div", true, false)));
+
+        assert!(
+            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols)
+                .is_err_and(|error| error.to_string().contains("Unexpected closing tag"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn errs_on_unclosed_tag_at_end() -> Result<()> {
+        let mut root = empty_root();
+        let mut opened = VecDeque::new();
+
+        opened.push_back(make_tag("div", false, false));
+
+        assert!(
+            combine_tag_stack(&mut root, &mut opened, &mut VecDeque::new())
+                .is_err_and(|error| error.to_string().contains("Unclosed tag"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn adds_void_element_as_child_without_requiring_close() -> Result<()> {
+        let mut root = empty_root();
+        let mut symbols = VecDeque::new();
+
+        symbols.push_back(OutputSemanticSymbol::Tag(make_tag("br", false, false)));
+
+        assert!(
+            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok()
+        );
+        assert!(matches!(
+            &root,
+            TagStackNode::Tag { children, .. }
+                if children.len() == 1
+                && matches!(
+                    &children[0],
+                    TagStackNode::Tag { opening_tag: Some(tag), is_closed: false, .. }
+                        if tag.tag_name.name == "br"
+                )
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn drops_empty_text_node_without_adding_child() -> Result<()> {
+        let mut root = empty_root();
+        let mut symbols = VecDeque::new();
+
+        symbols.push_back(OutputSemanticSymbol::Text(String::new()));
+
+        assert!(
+            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok()
+        );
+        assert!(matches!(
+            &root,
+            TagStackNode::Tag { children, .. } if children.is_empty()
+        ));
+
+        Ok(())
     }
 }

@@ -73,7 +73,7 @@ fn render_document<'render>(
     let component_context = ContentDocumentComponentContext {
         asset_manager: AssetManager::from_esbuild_metafile(esbuild_metafile, asset_path_renderer),
         authors: authors.clone(),
-        available_authors: available_authors,
+        available_authors,
         available_collections,
         content_document_collections_ranked,
         content_document_linker,

@@ -16,3 +16,17 @@ pub fn escape_html_attribute(input: &str) -> String {
 
     output
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+
+    use super::escape_html_attribute;
+
+    #[test]
+    fn escapes_only_double_quote() -> Result<()> {
+        assert_eq!(escape_html_attribute("\"&<>'/x"), "&quot;&<>'/x");
+
+        Ok(())
+    }
+}

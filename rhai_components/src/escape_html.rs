@@ -16,3 +16,20 @@ pub fn escape_html(input: &str) -> String {
 
     output
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+
+    use super::escape_html;
+
+    #[test]
+    fn escapes_each_special_character_and_preserves_other() -> Result<()> {
+        assert_eq!(
+            escape_html("&<>\"'/x"),
+            "&amp;&lt;&gt;&quot;&#x27;&#x2F;x"
+        );
+
+        Ok(())
+    }
+}

@@ -1,0 +1,7 @@
+name: setup rust
+description: Set up the Rust build cache.
+runs:
+  using: composite
+  steps:
+    - name: cache rust
+      uses: Swatinem/rust-cache@v2

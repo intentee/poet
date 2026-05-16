@@ -1,0 +1,10 @@
+name: setup node
+description: Set up the Node.js toolchain used by jarmuz.
+runs:
+  using: composite
+  steps:
+    - name: setup node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm

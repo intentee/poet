@@ -89,3 +89,112 @@ impl From<Vec<ContentDocumentTreeNode>> for ContentDocumentHierarchy {
         Self { flat, roots }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+
+    use super::*;
+    use crate::content_document_front_matter::ContentDocumentFrontMatter;
+
+    fn reference(basename: &str, render: bool) -> ContentDocumentReference {
+        let mut front_matter = ContentDocumentFrontMatter::mock(basename);
+
+        front_matter.render = render;
+
+        ContentDocumentReference {
+            basename_path: basename.into(),
+            front_matter,
+            generated_page_base_path: "/".to_string(),
+        }
+    }
+
+    fn tree_node(
+        basename: &str,
+        render: bool,
+        children: Vec<ContentDocumentTreeNode>,
+    ) -> ContentDocumentTreeNode {
+        ContentDocumentTreeNode {
+            children: children.into_iter().collect(),
+            collection_name: "docs".to_string(),
+            reference: reference(basename, render),
+        }
+    }
+
+    fn hierarchy() -> ContentDocumentHierarchy {
+        ContentDocumentHierarchy::from(vec![
+            tree_node("a", true, vec![]),
+            tree_node("hidden", false, vec![]),
+            tree_node("b", true, vec![]),
+        ])
+    }
+
+    fn basename_of(value: Dynamic) -> Option<String> {
+        value
+            .try_cast::<ContentDocumentReference>()
+            .map(|reference| reference.basename().to_string())
+    }
+
+    #[test]
+    fn flattens_tree_depth_first() {
+        let hierarchy = ContentDocumentHierarchy::from(vec![
+            tree_node("a", true, vec![tree_node("a-child", true, vec![])]),
+            tree_node("b", true, vec![]),
+        ]);
+
+        let basenames: Vec<String> = hierarchy
+            .flat
+            .iter()
+            .map(|reference| reference.basename().to_string())
+            .collect();
+
+        assert_eq!(
+            basenames,
+            vec!["a".to_string(), "a-child".to_string(), "b".to_string()]
+        );
+    }
+
+    #[test]
+    fn after_returns_next_renderable_document_skipping_hidden() -> Result<()> {
+        assert_eq!(
+            basename_of(hierarchy().rhai_after("a".to_string())?),
+            Some("b".to_string())
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn after_returns_unit_for_last_document() -> Result<()> {
+        assert!(hierarchy().rhai_after("b".to_string())?.is_unit());
+
+        Ok(())
+    }
+
+    #[test]
+    fn after_fails_for_document_not_in_hierarchy() {
+        assert!(hierarchy().rhai_after("missing".to_string()).is_err());
+    }
+
+    #[test]
+    fn before_returns_previous_renderable_document_skipping_hidden() -> Result<()> {
+        assert_eq!(
+            basename_of(hierarchy().rhai_before("b".to_string())?),
+            Some("a".to_string())
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn before_returns_unit_for_first_document() -> Result<()> {
+        assert!(hierarchy().rhai_before("a".to_string())?.is_unit());
+
+        Ok(())
+    }
+
+    #[test]
+    fn before_fails_for_document_not_in_hierarchy() {
+        assert!(hierarchy().rhai_before("missing".to_string()).is_err());
+    }
+}

@@ -30,3 +30,30 @@ impl TryFrom<String> for Role {
         value.as_str().try_into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+
+    use super::*;
+
+    #[test]
+    fn converts_known_role_strings() -> Result<()> {
+        assert_eq!(Role::try_from("assistant")?, Role::Assistant);
+        assert_eq!(Role::try_from("user")?, Role::User);
+
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_unknown_role_string() {
+        assert!(Role::try_from("system").is_err());
+    }
+
+    #[test]
+    fn converts_from_owned_string() -> Result<()> {
+        assert_eq!(Role::try_from("user".to_string())?, Role::User);
+
+        Ok(())
+    }
+}

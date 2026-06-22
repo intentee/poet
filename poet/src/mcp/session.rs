@@ -114,3 +114,114 @@ impl Session {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tokio::sync::mpsc;
+
+    use super::*;
+
+    fn message(level: LogLevel) -> Message {
+        Message {
+            jsonrpc: JSONRPC_VERSION.to_string(),
+            params: MessageParams {
+                data: "payload".to_string(),
+                level,
+            },
+        }
+    }
+
+    #[tokio::test]
+    async fn log_drops_messages_below_session_level() -> Result<()> {
+        let (notification_tx, mut notification_rx) = mpsc::channel(4);
+        let session = Session::new(notification_tx, "session-1".to_string());
+
+        session.log(message(LogLevel::Debug)).await?;
+
+        assert!(notification_rx.try_recv().is_err());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn log_sends_messages_at_or_above_session_level() -> Result<()> {
+        let (notification_tx, mut notification_rx) = mpsc::channel(4);
+        let session = Session::new(notification_tx, "session-1".to_string());
+
+        session.log(message(LogLevel::Error)).await?;
+
+        assert!(notification_rx.try_recv().is_ok());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn with_log_level_raises_filtering_threshold() -> Result<()> {
+        let (notification_tx, mut notification_rx) = mpsc::channel(4);
+        let session =
+            Session::new(notification_tx, "session-1".to_string()).with_log_level(LogLevel::Error);
+
+        session.log(message(LogLevel::Info)).await?;
+
+        assert!(notification_rx.try_recv().is_err());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn log_message_wraps_params_into_notification() -> Result<()> {
+        let (notification_tx, mut notification_rx) = mpsc::channel(4);
+        let session = Session::new(notification_tx, "session-1".to_string());
+
+        session
+            .log_message(MessageParams {
+                data: "details".to_string(),
+                level: LogLevel::Warning,
+            })
+            .await?;
+
+        let ServerToClientNotification::Message(received) = notification_rx.try_recv()? else {
+            panic!("expected a logging message notification");
+        };
+
+        assert_eq!(received.params.data, "details");
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn subscribe_registers_token_and_rejects_duplicates() -> Result<()> {
+        let (notification_tx, _notification_rx) = mpsc::channel(4);
+        let session = Session::new(notification_tx, "session-1".to_string());
+
+        session
+            .subscribe_to_resource("res://documents/guide")
+            .await?;
+
+        assert!(session.subscribe_token("res://documents/guide")?.is_some());
+        assert!(
+            session
+                .subscribe_to_resource("res://documents/guide")
+                .await
+                .is_err()
+        );
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn terminate_cancels_subscription_tokens() -> Result<()> {
+        let (notification_tx, _notification_rx) = mpsc::channel(4);
+        let session = Session::new(notification_tx, "session-1".to_string());
+
+        let cancellation_token = session
+            .subscribe_to_resource("res://documents/guide")
+            .await?;
+
+        session.terminate().await;
+
+        assert!(cancellation_token.is_cancelled());
+
+        Ok(())
+    }
+}

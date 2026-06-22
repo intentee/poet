@@ -203,4 +203,92 @@ mod tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    async fn copies_single_file_between_filesystems() -> Result<()> {
+        let source = Arc::new(memory::Memory::default());
+
+        source
+            .set_file_contents(Path::new("content/a.md"), "alpha")
+            .await?;
+
+        let destination = memory::Memory::default();
+
+        destination
+            .copy_file_from(source, Path::new("content/a.md"))
+            .await?;
+
+        assert_eq!(
+            destination
+                .read_file_contents_string(Path::new("content/a.md"))
+                .await?,
+            "alpha"
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn copies_all_project_files_between_filesystems() -> Result<()> {
+        let source = Arc::new(memory::Memory::default());
+
+        source
+            .set_file_contents(Path::new("content/a.md"), "alpha")
+            .await?;
+        source
+            .set_file_contents(Path::new("content/b.md"), "beta")
+            .await?;
+
+        let destination = memory::Memory::default();
+
+        destination.copy_project_files_from(source).await?;
+
+        assert_eq!(
+            destination
+                .read_file_contents_string(Path::new("content/a.md"))
+                .await?,
+            "alpha"
+        );
+        assert_eq!(
+            destination
+                .read_file_contents_string(Path::new("content/b.md"))
+                .await?,
+            "beta"
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn read_file_contents_string_fails_for_missing_file() {
+        let filesystem = memory::Memory::default();
+
+        assert!(
+            filesystem
+                .read_file_contents_string(Path::new("missing.md"))
+                .await
+                .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn read_file_contents_string_fails_for_directory() -> Result<()> {
+        let base_directory = tempdir()?;
+        let filesystem = storage::Storage {
+            base_directory: base_directory.path().to_path_buf(),
+        };
+
+        filesystem
+            .set_file_contents(Path::new("content/a.md"), "alpha")
+            .await?;
+
+        assert!(
+            filesystem
+                .read_file_contents_string(Path::new("content"))
+                .await
+                .is_err()
+        );
+
+        Ok(())
+    }
 }

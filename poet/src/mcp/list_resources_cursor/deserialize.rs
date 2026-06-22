@@ -27,3 +27,55 @@ where
         None => Ok(None),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde::Deserialize;
+
+    use super::*;
+
+    #[derive(Deserialize)]
+    struct Wrapper {
+        #[serde(deserialize_with = "deserialize")]
+        cursor: Option<ListResourcesCursor>,
+    }
+
+    fn parse(json: &str) -> Result<Wrapper, serde_json::Error> {
+        serde_json::from_str(json)
+    }
+
+    #[test]
+    fn returns_none_for_null_token() -> Result<(), serde_json::Error> {
+        let wrapper = parse("{\"cursor\": null}")?;
+
+        assert!(wrapper.cursor.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn decodes_offset_and_per_page_from_valid_token() -> Result<(), serde_json::Error> {
+        let token = general_purpose::STANDARD.encode("{\"offset\":5,\"per_page\":10}");
+        let wrapper = parse(&format!("{{\"cursor\": \"{token}\"}}"))?;
+
+        assert_eq!(wrapper.cursor.as_ref().map(|cursor| cursor.offset), Some(5));
+        assert_eq!(
+            wrapper.cursor.as_ref().map(|cursor| cursor.per_page),
+            Some(10)
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_for_token_that_is_not_valid_base64() {
+        assert!(parse("{\"cursor\": \"@@@invalid@@@\"}").is_err());
+    }
+
+    #[test]
+    fn fails_for_token_whose_decoded_bytes_are_not_valid_cursor_json() {
+        let token = general_purpose::STANDARD.encode("not json");
+
+        assert!(parse(&format!("{{\"cursor\": \"{token}\"}}")).is_err());
+    }
+}

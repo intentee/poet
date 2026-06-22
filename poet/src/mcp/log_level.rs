@@ -35,3 +35,44 @@ impl PartialOrd for LogLevel {
         Some(self.cmp(other))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sorts_levels_from_least_to_most_severe() {
+        let mut levels = vec![
+            LogLevel::Emergency,
+            LogLevel::Debug,
+            LogLevel::Warning,
+            LogLevel::Info,
+            LogLevel::Alert,
+            LogLevel::Notice,
+            LogLevel::Critical,
+            LogLevel::Error,
+        ];
+
+        levels.sort();
+
+        assert_eq!(
+            levels,
+            vec![
+                LogLevel::Debug,
+                LogLevel::Info,
+                LogLevel::Notice,
+                LogLevel::Warning,
+                LogLevel::Error,
+                LogLevel::Critical,
+                LogLevel::Alert,
+                LogLevel::Emergency,
+            ]
+        );
+    }
+
+    #[test]
+    fn compares_levels_by_severity() {
+        assert!(LogLevel::Debug < LogLevel::Info);
+        assert!(LogLevel::Emergency > LogLevel::Warning);
+    }
+}

@@ -142,6 +142,8 @@ impl PartialOrd for ContentDocumentReference {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::hash_map::DefaultHasher;
+
     use anyhow::Result;
 
     use super::*;
@@ -248,5 +250,60 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn basename_last_stem_returns_final_path_segment() -> Result<()> {
+        let mut reference = ContentDocumentReference {
+            basename_path: "foo/bar".into(),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
+            generated_page_base_path: "/".to_string(),
+        };
+
+        assert_eq!(reference.rhai_basename_last_stem()?, "bar");
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_target_path_when_basename_has_no_file_stem() {
+        let reference = ContentDocumentReference {
+            basename_path: "foo/..".into(),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
+            generated_page_base_path: "/".to_string(),
+        };
+
+        assert!(reference.target_file_relative_path().is_err());
+    }
+
+    #[test]
+    fn fails_target_path_when_basename_has_no_parent() {
+        let reference = ContentDocumentReference {
+            basename_path: "".into(),
+            front_matter: ContentDocumentFrontMatter::mock("foo"),
+            generated_page_base_path: "/".to_string(),
+        };
+
+        assert!(reference.target_file_relative_path().is_err());
+    }
+
+    #[test]
+    fn identity_is_determined_by_basename_path_only() {
+        let make = |basename: &str, title: &str| ContentDocumentReference {
+            basename_path: basename.into(),
+            front_matter: ContentDocumentFrontMatter::mock(title),
+            generated_page_base_path: "/".to_string(),
+        };
+
+        assert_eq!(make("foo", "one"), make("foo", "two"));
+        assert!(make("a", "x") < make("b", "x"));
+
+        let mut first_hasher = DefaultHasher::new();
+        make("foo", "one").hash(&mut first_hasher);
+
+        let mut second_hasher = DefaultHasher::new();
+        make("foo", "two").hash(&mut second_hasher);
+
+        assert_eq!(first_hasher.finish(), second_hasher.finish());
     }
 }

@@ -30,6 +30,31 @@ pub struct ContentDocumentComponentContext {
 }
 
 impl ContentDocumentComponentContext {
+    #[cfg(test)]
+    pub fn mock() -> Self {
+        Self {
+            asset_manager: AssetManager::from_esbuild_metafile(
+                Arc::new(esbuild_metafile::EsbuildMetaFile::default()),
+                crate::asset_path_renderer::AssetPathRenderer {
+                    base_path: "/".to_string(),
+                },
+            ),
+            authors: Vec::new(),
+            available_authors: Arc::new(AuthorCollection::default()),
+            available_collections: Arc::new(HashSet::new()),
+            content_document_collections_ranked: Arc::new(HashMap::new()),
+            content_document_linker: ContentDocumentLinker::default(),
+            front_matter: ContentDocumentFrontMatter::mock("doc"),
+            is_watching: false,
+            reference: ContentDocumentReference {
+                basename_path: "doc".into(),
+                front_matter: ContentDocumentFrontMatter::mock("doc"),
+                generated_page_base_path: "/".to_string(),
+            },
+            table_of_contents: None,
+        }
+    }
+
     pub fn with_table_of_contents(self, table_of_contents: TableOfContents) -> Self {
         Self {
             asset_manager: self.asset_manager,
@@ -167,5 +192,197 @@ impl CustomType for ContentDocumentComponentContext {
             .with_fn("collection", Self::rhai_collection)
             .with_fn("is_current_page", Self::rhai_is_current_page)
             .with_fn("link_to", Self::rhai_link_to);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use esbuild_metafile::EsbuildMetaFile;
+
+    use super::*;
+    use crate::asset_path_renderer::AssetPathRenderer;
+    use crate::content_document_collection::ContentDocumentCollection;
+    use crate::content_document_front_matter::collection_placement::CollectionPlacement;
+    use crate::content_document_front_matter::collection_placement_list::CollectionPlacementList;
+    use crate::content_document_in_collection::ContentDocumentInCollection;
+
+    fn ranked(name: &str) -> Result<ContentDocumentCollectionRanked, anyhow::Error> {
+        ContentDocumentCollection {
+            documents: vec![ContentDocumentInCollection {
+                collection_placement: CollectionPlacement {
+                    after: None,
+                    name: name.to_string(),
+                    parent: None,
+                },
+                reference: ContentDocumentReference {
+                    basename_path: "entry".into(),
+                    front_matter: ContentDocumentFrontMatter::mock("entry"),
+                    generated_page_base_path: "/".to_string(),
+                },
+            }],
+            name: name.to_string(),
+        }
+        .try_into()
+    }
+
+    fn ranked_map(
+        names: &[&str],
+    ) -> Result<HashMap<String, ContentDocumentCollectionRanked>, anyhow::Error> {
+        let mut map = HashMap::new();
+
+        for name in names {
+            map.insert(name.to_string(), ranked(name)?);
+        }
+
+        Ok(map)
+    }
+
+    fn front_matter(
+        placements: &[&str],
+        primary_collection: Option<&str>,
+    ) -> ContentDocumentFrontMatter {
+        let mut front_matter = ContentDocumentFrontMatter::mock("doc");
+
+        front_matter.collections = CollectionPlacementList {
+            placements: placements
+                .iter()
+                .map(|name| CollectionPlacement {
+                    after: None,
+                    name: name.to_string(),
+                    parent: None,
+                })
+                .collect(),
+        };
+        front_matter.primary_collection = primary_collection.map(|name| name.to_string());
+
+        front_matter
+    }
+
+    fn context(
+        front_matter: ContentDocumentFrontMatter,
+        ranked: HashMap<String, ContentDocumentCollectionRanked>,
+    ) -> ContentDocumentComponentContext {
+        let asset_manager = AssetManager::from_esbuild_metafile(
+            Arc::new(EsbuildMetaFile::default()),
+            AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+        );
+
+        ContentDocumentComponentContext {
+            asset_manager,
+            authors: Vec::new(),
+            available_authors: Arc::new(AuthorCollection::default()),
+            available_collections: Arc::new(HashSet::new()),
+            content_document_collections_ranked: Arc::new(ranked),
+            content_document_linker: ContentDocumentLinker::default(),
+            front_matter,
+            is_watching: false,
+            reference: ContentDocumentReference {
+                basename_path: "doc".into(),
+                front_matter: ContentDocumentFrontMatter::mock("doc"),
+                generated_page_base_path: "/".to_string(),
+            },
+            table_of_contents: None,
+        }
+    }
+
+    #[test]
+    fn collection_returns_ranked_collection_when_used() -> Result<(), anyhow::Error> {
+        let mut context = context(front_matter(&[], None), ranked_map(&["guide"])?);
+
+        assert_eq!(context.rhai_collection("guide")?.name, "guide");
+
+        Ok(())
+    }
+
+    #[test]
+    fn collection_fails_for_unused_collection() {
+        let mut context = context(front_matter(&[], None), HashMap::new());
+
+        assert!(context.rhai_collection("ghost").is_err());
+    }
+
+    #[test]
+    fn belongs_to_is_true_for_member_collection() -> Result<(), anyhow::Error> {
+        let mut context = context(front_matter(&["guide"], None), ranked_map(&["guide"])?);
+
+        assert!(context.rhai_belongs_to("guide")?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn belongs_to_is_false_for_non_member_existing_collection() -> Result<(), anyhow::Error> {
+        let mut context = context(front_matter(&[], None), ranked_map(&["guide"])?);
+
+        assert!(!context.rhai_belongs_to("guide")?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn primary_collection_fails_without_any_placement() {
+        let mut context = context(front_matter(&[], None), HashMap::new());
+
+        assert!(context.rhai_primary_collection().is_err());
+    }
+
+    #[test]
+    fn primary_collection_returns_sole_placement() -> Result<(), anyhow::Error> {
+        let mut context = context(front_matter(&["guide"], None), ranked_map(&["guide"])?);
+
+        assert_eq!(context.rhai_primary_collection()?.name, "guide");
+
+        Ok(())
+    }
+
+    #[test]
+    fn primary_collection_resolves_declared_primary_among_many() -> Result<(), anyhow::Error> {
+        let mut context = context(
+            front_matter(&["guide", "reference"], Some("reference")),
+            ranked_map(&["guide", "reference"])?,
+        );
+
+        assert_eq!(context.rhai_primary_collection()?.name, "reference");
+
+        Ok(())
+    }
+
+    #[test]
+    fn primary_collection_fails_for_many_without_declared_primary() {
+        let mut context = context(front_matter(&["guide", "reference"], None), HashMap::new());
+
+        assert!(context.rhai_primary_collection().is_err());
+    }
+
+    #[test]
+    fn is_current_page_compares_resolved_basename() -> Result<(), anyhow::Error> {
+        let mut context = context(front_matter(&[], None), HashMap::new());
+
+        assert!(context.rhai_is_current_page("doc".to_string())?);
+        assert!(!context.rhai_is_current_page("other".to_string())?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn table_of_contents_fails_when_absent() {
+        let mut context = context(front_matter(&[], None), HashMap::new());
+
+        assert!(context.rhai_table_of_contents().is_err());
+    }
+
+    #[test]
+    fn table_of_contents_is_available_after_being_set() -> Result<(), anyhow::Error> {
+        let mut context = context(front_matter(&[], None), HashMap::new()).with_table_of_contents(
+            TableOfContents {
+                headings: Vec::new(),
+            },
+        );
+
+        assert!(context.rhai_table_of_contents().is_ok());
+
+        Ok(())
     }
 }

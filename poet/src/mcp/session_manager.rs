@@ -71,3 +71,112 @@ impl SessionManager {
         self.session_storage.terminate_session(session).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use actix_web::error::ErrorInternalServerError;
+    use actix_web::test::TestRequest;
+
+    use super::*;
+    use crate::mcp::jsonrpc::JSONRPC_VERSION;
+    use crate::mcp::jsonrpc::notification::message::Message;
+    use crate::mcp::jsonrpc::notification::message::MessageParams;
+    use crate::mcp::log_level::LogLevel;
+
+    fn notification() -> ServerToClientNotification {
+        ServerToClientNotification::Message(Message {
+            jsonrpc: JSONRPC_VERSION.to_string(),
+            params: MessageParams {
+                data: "broadcast".to_string(),
+                level: LogLevel::Info,
+            },
+        })
+    }
+
+    #[actix_web::test]
+    async fn start_new_session_generates_unique_prefixed_ids() -> Result<()> {
+        let manager = SessionManager::default();
+
+        let first = manager.start_new_session().await?;
+        let second = manager.start_new_session().await?;
+
+        assert!(first.session.id().starts_with("poet-"));
+        assert_ne!(first.session.id(), second.session.id());
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn restore_session_returns_none_without_header() -> Result<()> {
+        let manager = SessionManager::default();
+        let request = TestRequest::default().to_srv_request();
+
+        assert!(manager.restore_session(&request).await?.is_none());
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn restore_session_returns_none_for_unknown_id() -> Result<()> {
+        let manager = SessionManager::default();
+        let request = TestRequest::default()
+            .insert_header((MCP_HEADER_SESSION, "poet-unknown"))
+            .to_srv_request();
+
+        assert!(manager.restore_session(&request).await?.is_none());
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn restore_session_returns_stored_session_for_known_id() -> Result<()> {
+        let manager = SessionManager::default();
+        let started = manager.start_new_session().await?;
+        let session_id = started.session.id();
+        let request = TestRequest::default()
+            .insert_header((MCP_HEADER_SESSION, session_id.as_str()))
+            .to_srv_request();
+
+        let Some(restored) = manager.restore_session(&request).await? else {
+            panic!("expected a stored session");
+        };
+
+        assert_eq!(restored.id(), session_id);
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn broadcast_delivers_notification_to_every_session() -> Result<()> {
+        let manager = SessionManager::default();
+        let mut first = manager.start_new_session().await?;
+        let mut second = manager.start_new_session().await?;
+
+        manager
+            .broadcast(notification())
+            .await
+            .map_err(ErrorInternalServerError)?;
+
+        assert!(first.notification_rx.try_recv().is_ok());
+        assert!(second.notification_rx.try_recv().is_ok());
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn terminate_session_removes_it_from_storage() -> Result<()> {
+        let manager = SessionManager::default();
+        let started = manager.start_new_session().await?;
+        let session_id = started.session.id();
+
+        manager.terminate_session(started.session.clone()).await?;
+
+        let request = TestRequest::default()
+            .insert_header((MCP_HEADER_SESSION, session_id.as_str()))
+            .to_srv_request();
+
+        assert!(manager.restore_session(&request).await?.is_none());
+
+        Ok(())
+    }
+}

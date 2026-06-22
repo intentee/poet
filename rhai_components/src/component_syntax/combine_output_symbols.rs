@@ -22,7 +22,7 @@ fn merge_adjacent_symbols(state: &Dynamic) -> Result<Vec<OutputCombinedSymbol>, 
         Ok(array) => array,
         Err(err) => {
             return Err(
-                LexError::Runtime(format!("Invalid state array {err}")).into_err(Position::NONE),
+                LexError::Runtime(format!("Invalid state array {err}")).into_err(Position::NONE)
             );
         }
     };
@@ -255,9 +255,9 @@ mod tests {
     use super::OutputCombinedSymbol;
     use super::OutputSemanticSymbol;
     use super::OutputSymbol;
+    use super::assemble_semantic_symbols;
     use super::combine_output_symbols;
     use super::merge_adjacent_symbols;
-    use super::assemble_semantic_symbols;
 
     fn make_state(symbols: Vec<OutputSymbol>) -> Dynamic {
         Dynamic::from_array(symbols.into_iter().map(Dynamic::from).collect())
@@ -267,8 +267,10 @@ mod tests {
     fn errs_when_state_is_not_an_array() -> Result<()> {
         let state = Dynamic::from(42_i64);
 
-        assert!(combine_output_symbols(&state)
-            .is_err_and(|error| error.to_string().contains("Invalid state array")));
+        assert!(
+            combine_output_symbols(&state)
+                .is_err_and(|error| error.to_string().contains("Invalid state array"))
+        );
 
         Ok(())
     }
@@ -277,8 +279,10 @@ mod tests {
     fn errs_when_state_array_contains_non_output_symbol() -> Result<()> {
         let state = Dynamic::from_array(vec![Dynamic::from(42_i64)]);
 
-        assert!(combine_output_symbols(&state)
-            .is_err_and(|error| error.to_string().contains("Unable to cast")));
+        assert!(
+            combine_output_symbols(&state)
+                .is_err_and(|error| error.to_string().contains("Unable to cast"))
+        );
 
         Ok(())
     }
@@ -313,8 +317,10 @@ mod tests {
     fn errs_on_unexpected_tag_opening_after_unsupported_predecessor() -> Result<()> {
         let state = make_state(vec![OutputSymbol::TagLeftAnglePlusWhitespace]);
 
-        assert!(combine_output_symbols(&state)
-            .is_err_and(|error| error.to_string().contains("Unexpected tag opening")));
+        assert!(
+            combine_output_symbols(&state)
+                .is_err_and(|error| error.to_string().contains("Unexpected tag opening"))
+        );
 
         Ok(())
     }
@@ -325,8 +331,10 @@ mod tests {
             "".to_string(),
         )]);
 
-        assert!(combine_output_symbols(&state)
-            .is_err_and(|error| error.to_string().contains("Unexpected tag closing")));
+        assert!(
+            combine_output_symbols(&state)
+                .is_err_and(|error| error.to_string().contains("Unexpected tag closing"))
+        );
 
         Ok(())
     }
@@ -335,8 +343,10 @@ mod tests {
     fn errs_on_unexpected_tag_name_with_no_open_tag() -> Result<()> {
         let state = make_state(vec![OutputSymbol::TagName("d".to_string())]);
 
-        assert!(combine_output_symbols(&state)
-            .is_err_and(|error| error.to_string().contains("Unexpected tag name")));
+        assert!(
+            combine_output_symbols(&state)
+                .is_err_and(|error| error.to_string().contains("Unexpected tag name"))
+        );
 
         Ok(())
     }
@@ -345,22 +355,27 @@ mod tests {
     fn errs_on_unexpected_attribute_name_with_no_open_tag() -> Result<()> {
         let state = make_state(vec![OutputSymbol::TagAttributeName("c".to_string())]);
 
-        assert!(combine_output_symbols(&state)
-            .is_err_and(|error| error.to_string().contains("Unexpected tag attribute name")));
+        assert!(
+            combine_output_symbols(&state)
+                .is_err_and(|error| error.to_string().contains("Unexpected tag attribute name"))
+        );
 
         Ok(())
     }
 
     #[test]
-    fn errs_when_attribute_value_emitted_before_attribute_name_in_assemble_semantic_symbols() -> Result<()> {
+    fn errs_when_attribute_value_emitted_before_attribute_name_in_assemble_semantic_symbols()
+    -> Result<()> {
         let combined = vec![
             OutputCombinedSymbol::Text("x".to_string()),
             OutputCombinedSymbol::TagLeftAngle,
             OutputCombinedSymbol::TagAttributeValue(AttributeValue::Text("v".to_string())),
         ];
 
-        assert!(assemble_semantic_symbols(combined)
-            .is_err_and(|error| error.to_string().contains("Attribute value without name")));
+        assert!(
+            assemble_semantic_symbols(combined)
+                .is_err_and(|error| error.to_string().contains("Attribute value without name"))
+        );
 
         Ok(())
     }
@@ -371,8 +386,10 @@ mod tests {
             AttributeValue::Text("v".to_string()),
         )];
 
-        assert!(assemble_semantic_symbols(combined)
-            .is_err_and(|error| error.to_string().contains("Unexpected tag attribute value")));
+        assert!(
+            assemble_semantic_symbols(combined)
+                .is_err_and(|error| error.to_string().contains("Unexpected tag attribute value"))
+        );
 
         Ok(())
     }
@@ -381,8 +398,10 @@ mod tests {
     fn errs_on_unexpected_self_close_with_no_open_tag() -> Result<()> {
         let state = make_state(vec![OutputSymbol::TagSelfClose]);
 
-        assert!(combine_output_symbols(&state)
-            .is_err_and(|error| error.to_string().contains("Unexpected self-closing tag")));
+        assert!(
+            combine_output_symbols(&state)
+                .is_err_and(|error| error.to_string().contains("Unexpected self-closing tag"))
+        );
 
         Ok(())
     }
@@ -437,12 +456,14 @@ mod tests {
             OutputCombinedSymbol::Text("b".to_string()),
         ];
 
-        assert!(assemble_semantic_symbols(combined).is_ok_and(|mut semantic| {
-            let first = semantic.pop_front();
+        assert!(
+            assemble_semantic_symbols(combined).is_ok_and(|mut semantic| {
+                let first = semantic.pop_front();
 
-            matches!(first, Some(OutputSemanticSymbol::Text(text)) if text == "ab")
-                && semantic.is_empty()
-        }));
+                matches!(first, Some(OutputSemanticSymbol::Text(text)) if text == "ab")
+                    && semantic.is_empty()
+            })
+        );
 
         Ok(())
     }

@@ -418,3 +418,354 @@ pub fn eval_content_document_mdast(
 
     Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+    use std::str::FromStr;
+    use std::sync::Arc;
+
+    use esbuild_metafile::EsbuildMetaFile;
+    use indoc::indoc;
+    use rhai::Engine;
+    use rhai_components::component_syntax::component_registry::ComponentRegistry;
+    use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
+    use syntect::parsing::SyntaxDefinition;
+    use syntect::parsing::SyntaxSetBuilder;
+
+    use super::*;
+    use crate::asset_manager::AssetManager;
+    use crate::asset_path_renderer::AssetPathRenderer;
+    use crate::author_collection::AuthorCollection;
+    use crate::content_document_front_matter::ContentDocumentFrontMatter;
+    use crate::content_document_linker::ContentDocumentLinker;
+    use crate::content_document_reference::ContentDocumentReference;
+    use crate::string_to_mdast::string_to_mdast;
+
+    const ASSET_METAFILE: &str = indoc! {r#"
+        {
+            "outputs": {
+                "static/logo_ABCDEF12.png": {
+                    "imports": [],
+                    "inputs": { "logo.png": {} }
+                },
+                "static/entry_ABCDEF12.js": {
+                    "imports": [{ "path": "static/logo_ABCDEF12.png" }],
+                    "entryPoint": "logo.png",
+                    "inputs": {}
+                }
+            }
+        }
+    "#};
+
+    fn asset_manager() -> Result<AssetManager> {
+        Ok(AssetManager::from_esbuild_metafile(
+            Arc::new(EsbuildMetaFile::from_str(ASSET_METAFILE)?),
+            AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+        ))
+    }
+
+    fn linker() -> ContentDocumentLinker {
+        let mut content_document_by_basename = HashMap::new();
+
+        content_document_by_basename.insert(
+            "guide".to_string().into(),
+            ContentDocumentReference {
+                basename_path: "guide".into(),
+                front_matter: ContentDocumentFrontMatter::mock("guide"),
+                generated_page_base_path: "/".to_string(),
+            },
+        );
+
+        ContentDocumentLinker {
+            content_document_basename_by_id: Arc::new(HashMap::new()),
+            content_document_by_basename: Arc::new(content_document_by_basename),
+        }
+    }
+
+    fn context() -> Result<ContentDocumentComponentContext> {
+        Ok(ContentDocumentComponentContext {
+            asset_manager: asset_manager()?,
+            authors: Vec::new(),
+            available_authors: Arc::new(AuthorCollection::default()),
+            available_collections: Arc::new(HashSet::new()),
+            content_document_collections_ranked: Arc::new(HashMap::new()),
+            content_document_linker: linker(),
+            front_matter: ContentDocumentFrontMatter::mock("doc"),
+            is_watching: false,
+            reference: ContentDocumentReference {
+                basename_path: "doc".into(),
+                front_matter: ContentDocumentFrontMatter::mock("doc"),
+                generated_page_base_path: "/".to_string(),
+            },
+            table_of_contents: None,
+        })
+    }
+
+    fn renderer() -> Result<RhaiTemplateRenderer> {
+        RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
+            component_registry: Arc::new(ComponentRegistry::default()),
+            expression_engine: Engine::new_raw(),
+        })
+    }
+
+    fn single_token_syntax_set() -> Result<SyntaxSet> {
+        let definition = SyntaxDefinition::load_from_str(
+            indoc! {r#"
+                %YAML 1.2
+                ---
+                name: Demo
+                file_extensions: [demo]
+                scope: source.demo
+                contexts:
+                  main:
+                    - match: '\bfn\b'
+                      scope: keyword.demo
+            "#},
+            true,
+            None,
+        )?;
+        let mut builder = SyntaxSetBuilder::new();
+
+        builder.add(definition);
+
+        Ok(builder.build())
+    }
+
+    fn render_with_syntax_set(markdown: &str, syntax_set: &SyntaxSet) -> Result<String> {
+        eval_content_document_mdast(
+            &string_to_mdast(markdown)?,
+            &context()?,
+            &renderer()?,
+            syntax_set,
+        )
+    }
+
+    fn render(markdown: &str) -> Result<String> {
+        render_with_syntax_set(markdown, &SyntaxSet::new())
+    }
+
+    #[test]
+    fn renders_heading_with_generated_id() -> Result<()> {
+        assert_eq!(
+            render("## Hello World")?,
+            "<h2 id=\"hello-world\">Hello World</h2>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_paragraph_with_emphasis_and_strong() -> Result<()> {
+        assert_eq!(
+            render("*one* **two**")?,
+            "<p><em>one</em> <strong>two</strong></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_inline_code() -> Result<()> {
+        assert_eq!(render("`let x = 1`")?, "<p><code>let x = 1</code></p>");
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_strikethrough() -> Result<()> {
+        assert_eq!(render("~~gone~~")?, "<p><del>gone</del></p>");
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_blockquote() -> Result<()> {
+        assert_eq!(
+            render("> quoted")?,
+            "<blockquote><p>quoted</p></blockquote>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_unordered_list() -> Result<()> {
+        let rendered = render("- first\n- second")?;
+
+        assert!(rendered.starts_with("<ul>"));
+        assert!(rendered.ends_with("</ul>"));
+        assert!(rendered.contains("first"));
+        assert!(rendered.contains("second"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_ordered_list() -> Result<()> {
+        let rendered = render("1. first\n2. second")?;
+
+        assert!(rendered.starts_with("<ol>"));
+        assert!(rendered.ends_with("</ol>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_thematic_break() -> Result<()> {
+        assert_eq!(render("***")?, "<hr>");
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_table() -> Result<()> {
+        let rendered = render("| H1 | H2 |\n| -- | -- |\n| a | b |")?;
+
+        assert!(rendered.starts_with("<table>"));
+        assert!(rendered.ends_with("</table>"));
+        assert!(rendered.contains("<tr><td>H1</td><td>H2</td></tr>"));
+        assert!(rendered.contains("<tr><td>a</td><td>b</td></tr>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn highlights_code_block_for_known_language() -> Result<()> {
+        let rendered =
+            render_with_syntax_set("```demo\nfn main\n```", &single_token_syntax_set()?)?;
+
+        assert!(
+            rendered.starts_with("<pre class=\"code language-demo\" data-lang=\"demo\"><code>")
+        );
+        assert!(rendered.contains("<span"));
+        assert!(rendered.ends_with("</code></pre>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn escapes_code_block_for_unknown_language() -> Result<()> {
+        let rendered = render("```nosuchlang\na < b\n```")?;
+
+        assert!(rendered.contains("language-nosuchlang"));
+        assert!(!rendered.contains("<span"));
+        assert!(rendered.contains("a &lt; b"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn escapes_code_block_without_language() -> Result<()> {
+        let rendered = render("```\na < b\n```")?;
+
+        assert!(rendered.starts_with("<pre class=\"code\"><code>"));
+        assert!(rendered.contains("a &lt; b"));
+        assert!(rendered.ends_with("</code></pre>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_external_link_with_title() -> Result<()> {
+        assert_eq!(
+            render("[label](https://example.com \"Tooltip\")")?,
+            "<p><a href=\"https://example.com\" title=\"Tooltip\">label</a></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolves_internal_link_through_linker() -> Result<()> {
+        assert_eq!(
+            render("[label](guide)")?,
+            "<p><a href=\"/guide/\">label</a></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_internal_link_to_missing_document() {
+        assert!(render("[label](ghost)").is_err());
+    }
+
+    #[test]
+    fn renders_external_image() -> Result<()> {
+        assert_eq!(
+            render("![photo](https://example.com/p.png)")?,
+            "<p><img alt=\"photo\" src=\"https://example.com/p.png\"></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolves_internal_image_through_asset_manager() -> Result<()> {
+        assert_eq!(
+            render("![logo](logo.png)")?,
+            "<p><img alt=\"logo\" src=\"/static/logo_ABCDEF12.png\"></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_internal_image_for_missing_asset() {
+        assert!(render("![logo](missing.png)").is_err());
+    }
+
+    #[test]
+    fn skips_unsupported_math_node() -> Result<()> {
+        assert_eq!(render("$$\nx = 1\n$$")?, "");
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_hard_break() -> Result<()> {
+        assert!(render("first\\\nsecond")?.contains("<br>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_code_block_metadata_flags_and_pairs() -> Result<()> {
+        let rendered = render("```text highlighted label:foo\ncode\n```")?;
+
+        assert!(rendered.contains(r#"data-meta-line="highlighted label:foo""#));
+        assert!(rendered.contains(" highlighted"));
+        assert!(rendered.contains(r#"data-meta-label="foo""#));
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_on_invalid_code_block_metadata() {
+        assert!(render("```text bad:\"unterminated\ncode\n```").is_err());
+    }
+
+    #[test]
+    fn renders_external_image_with_title() -> Result<()> {
+        assert_eq!(
+            render("![photo](https://example.com/p.png \"Caption\")")?,
+            "<p><img alt=\"photo\" src=\"https://example.com/p.png\" title=\"Caption\"></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_footnote_reference() -> Result<()> {
+        let rendered = render("note[^a]\n\n[^a]: detail")?;
+
+        assert!(rendered.contains(r##"href="#footnote-a""##));
+        assert!(rendered.contains(r#"role="doc-noteref""#));
+
+        Ok(())
+    }
+}

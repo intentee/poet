@@ -10,9 +10,9 @@ use actix_web::App;
 use actix_web::HttpServer;
 use actix_web::web::Data;
 use anyhow::Result;
-use indoc::formatdoc;
 use async_trait::async_trait;
 use clap::Parser;
+use indoc::formatdoc;
 use log::info;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;

@@ -77,9 +77,7 @@ mod tests {
 
     fn build_minimal_engine() -> Engine {
         let component_registry = Arc::new(ComponentRegistry::default());
-        let evaluator_factory = EvaluatorFactory {
-            component_registry,
-        };
+        let evaluator_factory = EvaluatorFactory { component_registry };
         let mut engine = Engine::new();
 
         engine.set_fail_on_invalid_map_property(true);
@@ -229,9 +227,11 @@ mod tests {
     fn parses_mismatched_closing_tag_as_parse_error() -> Result<()> {
         let engine = build_minimal_engine();
 
-        assert!(engine
-            .compile(r#"component { <div></span> }"#)
-            .is_err_and(|error| error.to_string().contains("Mismatched closing tag")));
+        assert!(
+            engine
+                .compile(r#"component { <div></span> }"#)
+                .is_err_and(|error| error.to_string().contains("Mismatched closing tag"))
+        );
 
         Ok(())
     }
@@ -240,9 +240,11 @@ mod tests {
     fn parses_self_close_after_attribute_name_renders_self_closing_tag() -> Result<()> {
         let engine = build_minimal_engine();
 
-        assert!(engine
-            .eval::<String>(r#"component { <input checked/> }"#)
-            .is_ok_and(|rendered| rendered.contains("<input checked")));
+        assert!(
+            engine
+                .eval::<String>(r#"component { <input checked/> }"#)
+                .is_ok_and(|rendered| rendered.contains("<input checked"))
+        );
 
         Ok(())
     }

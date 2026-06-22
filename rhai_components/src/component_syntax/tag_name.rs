@@ -65,8 +65,8 @@ mod tests {
     #[test]
     fn is_void_element_recognises_all_void_names_and_rejects_normal_name() -> Result<()> {
         let void_names = [
-            "!DOCTYPE", "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
-            "meta", "param", "source", "track", "wbr",
+            "!DOCTYPE", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
+            "param", "source", "track", "wbr",
         ];
 
         for void_name in void_names {
@@ -74,7 +74,10 @@ mod tests {
                 name: void_name.to_string(),
             };
 
-            assert!(tag_name.is_void_element(), "expected {void_name} to be void");
+            assert!(
+                tag_name.is_void_element(),
+                "expected {void_name} to be void"
+            );
         }
 
         let non_void = TagName {

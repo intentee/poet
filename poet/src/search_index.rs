@@ -96,6 +96,10 @@ impl SearchIndex {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
+    use tempfile::tempdir;
+
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_authors::build_authors;
@@ -103,6 +107,7 @@ mod tests {
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
+    use crate::filesystem::Filesystem as _;
     use crate::filesystem::storage::Storage;
     use crate::search_index_query_params::SearchIndexQueryParams;
 
@@ -146,6 +151,63 @@ mod tests {
         for result in results {
             println!("{:#?}", result);
         }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn indexes_documents_and_finds_them_by_body_keyword() -> Result<()> {
+        let directory = tempdir()?;
+        let source_filesystem = Arc::new(Storage {
+            base_directory: directory.path().to_path_buf(),
+        });
+
+        source_filesystem
+            .set_file_contents(
+                Path::new("shortcodes/Layout.rhai"),
+                "fn template(context, props, content) { component { <html>{content}</html> } }",
+            )
+            .await?;
+        source_filesystem
+            .set_file_contents(
+                Path::new("content/guide.md"),
+                "+++\ndescription = \"Guide description\"\nlayout = \"Layout\"\ntitle = \"Searchable Guide\"\n+++\n\nUnique body keyword zebra.\n",
+            )
+            .await?;
+
+        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.clone()).await?;
+
+        let BuildProjectResultStub {
+            content_document_sources,
+            ..
+        } = build_project(BuildProjectParams {
+            asset_path_renderer: AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+            authors,
+            esbuild_metafile: Default::default(),
+            generated_page_base_path: "/".to_string(),
+            generate_sitemap: false,
+            is_watching: false,
+            rhai_template_renderer,
+            source_filesystem,
+        })
+        .await?;
+
+        let search_index_reader =
+            SearchIndex::create_in_memory(content_document_sources).index()?;
+
+        let results = search_index_reader.query(SearchIndexQueryParams {
+            cursor: Default::default(),
+            query: "zebra".to_string(),
+        })?;
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(
+            results[0].content_document_reference.front_matter.title,
+            "Searchable Guide"
+        );
 
         Ok(())
     }

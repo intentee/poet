@@ -135,4 +135,69 @@ mod tests {
         let serialized = serde_json::to_string(&test_struct).unwrap();
         assert_eq!(serialized, r#"{"timestamp":"2025-09-25T14:30:45+00:00"}"#);
     }
+
+    #[test]
+    fn test_serialize_none_outputs_null() {
+        let serialized = serde_json::to_string(&TestStruct { timestamp: None }).unwrap();
+
+        assert_eq!(serialized, r#"{"timestamp":null}"#);
+    }
+
+    #[test]
+    fn parses_pattern_with_time_component() -> anyhow::Result<()> {
+        let expected =
+            DateTime::parse_from_rfc3339("2025-09-25T14:30:45+00:00")?.with_timezone(&Utc);
+
+        assert_eq!(
+            deserialize_string("2025-09-25 14:30:45".to_string())?,
+            expected
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parses_rfc3339_with_offset_as_utc() -> anyhow::Result<()> {
+        let expected =
+            DateTime::parse_from_rfc3339("2025-09-25T12:30:45+00:00")?.with_timezone(&Utc);
+
+        assert_eq!(
+            deserialize_string("2025-09-25T14:30:45+02:00".to_string())?,
+            expected
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parses_rfc2822_as_utc() -> anyhow::Result<()> {
+        let expected =
+            DateTime::parse_from_rfc3339("2003-07-01T08:52:37+00:00")?.with_timezone(&Utc);
+
+        assert_eq!(
+            deserialize_string("Tue, 01 Jul 2003 10:52:37 +0200".to_string())?,
+            expected
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn errors_on_unparseable_input() {
+        assert!(deserialize_string("not a date".to_string()).is_err());
+    }
+
+    #[test]
+    fn deserializes_explicit_null_as_none() -> anyhow::Result<()> {
+        let deserialized: TestStruct = serde_json::from_str(r#"{"timestamp":null}"#)?;
+
+        assert_eq!(deserialized.timestamp, None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn deserialization_fails_for_invalid_datetime_field() {
+        assert!(serde_json::from_str::<TestStruct>(r#"{"timestamp":"not a date"}"#).is_err());
+    }
 }

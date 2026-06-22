@@ -75,7 +75,9 @@ mod tests {
 
         assert!(cast_state_to_tag_stack_node(&state).is_err_and(|boxed| {
             discriminant(boxed.as_ref()) == reference
-                && boxed.to_string().contains("Expected TagStackNode in tag state")
+                && boxed
+                    .to_string()
+                    .contains("Expected TagStackNode in tag state")
         }));
 
         Ok(())
@@ -95,9 +97,11 @@ mod tests {
             factory.create_component_evaluator(),
         );
 
-        assert!(engine
-            .eval::<String>("bad_syntax")
-            .is_err_and(|error| error.to_string().contains("Expected TagStackNode")));
+        assert!(
+            engine
+                .eval::<String>("bad_syntax")
+                .is_err_and(|error| error.to_string().contains("Expected TagStackNode"))
+        );
 
         Ok(())
     }

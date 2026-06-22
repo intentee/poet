@@ -42,3 +42,47 @@ pub async fn build_authors(source_filesystem: Arc<Storage>) -> Result<AuthorColl
         Err(anyhow!("{error_collection}"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn builds_author_collection_from_toml_files() -> Result<()> {
+        let directory = tempdir()?;
+        let storage = Storage {
+            base_directory: directory.path().to_path_buf(),
+        };
+
+        storage
+            .set_file_contents(&PathBuf::from("authors/alice.toml"), "name = \"Alice\"")
+            .await?;
+
+        let resolved = build_authors(Arc::new(storage))
+            .await?
+            .resolve(&["alice".to_string()]);
+
+        assert_eq!(resolved.found_authors.len(), 1);
+        assert_eq!(resolved.found_authors[0].data.name, "Alice");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn errors_when_an_author_file_cannot_be_parsed() -> Result<()> {
+        let directory = tempdir()?;
+        let storage = Storage {
+            base_directory: directory.path().to_path_buf(),
+        };
+
+        storage
+            .set_file_contents(&PathBuf::from("authors/broken.toml"), "unexpected = true")
+            .await?;
+
+        assert!(build_authors(Arc::new(storage)).await.is_err());
+
+        Ok(())
+    }
+}

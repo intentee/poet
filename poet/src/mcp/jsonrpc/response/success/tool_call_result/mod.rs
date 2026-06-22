@@ -133,4 +133,79 @@ mod tests {
 
         assert_eq!(serialized, serialized_correct);
     }
+
+    #[test]
+    fn try_into_value_serializes_success_structured_content() -> Result<()> {
+        let result: ToolCallResult<i32> = ToolCallResult::Success(Success {
+            content: vec![],
+            structured_content: 7,
+        });
+
+        match result.try_into_value()? {
+            ToolCallResult::Success(success) => {
+                assert_eq!(success.structured_content, Value::from(7));
+            }
+            ToolCallResult::Failure(_) => unreachable!("expected a success variant"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn try_into_value_preserves_failure() -> Result<()> {
+        let result: ToolCallResult<i32> = ToolCallResult::Failure(Failure { content: vec![] });
+
+        assert!(matches!(
+            result.try_into_value()?,
+            ToolCallResult::Failure(_)
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn deserializes_success_when_is_error_is_false() -> Result<()> {
+        let result: ToolCallResult<()> =
+            serde_json::from_str(r#"{"content":[],"isError":false,"structuredContent":null}"#)?;
+
+        assert!(matches!(result, ToolCallResult::Success(_)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn deserialization_fails_without_is_error_field() {
+        assert!(serde_json::from_str::<ToolCallResult<()>>(r#"{"content":[]}"#).is_err());
+    }
+
+    #[test]
+    fn deserialization_fails_when_is_error_is_not_a_bool() {
+        assert!(
+            serde_json::from_str::<ToolCallResult<()>>(r#"{"content":[],"isError":"yes"}"#)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn serializes_success_with_is_error_false() -> Result<()> {
+        let result: ToolCallResult<()> = ToolCallResult::Success(Success {
+            content: vec![],
+            structured_content: (),
+        });
+
+        assert!(serde_json::to_string(&result)?.contains(r#""isError":false"#));
+
+        Ok(())
+    }
+
+    #[test]
+    fn from_error_message_builds_failure_carrying_text() -> Result<()> {
+        let result: ToolCallResult<()> = ToolCallErrorMessage("boom").into();
+        let serialized = serde_json::to_string(&result)?;
+
+        assert!(serialized.contains("boom"));
+        assert!(serialized.contains(r#""isError":true"#));
+
+        Ok(())
+    }
 }

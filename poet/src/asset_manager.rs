@@ -123,3 +123,164 @@ impl CustomType for AssetManager {
             .with_fn("stylesheet", Self::rhai_stylesheet);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use indoc::indoc;
+
+    use super::*;
+    use crate::asset_path_renderer::AssetPathRenderer;
+
+    fn asset_manager(metafile_json: &str) -> Result<AssetManager, anyhow::Error> {
+        Ok(AssetManager::from_esbuild_metafile(
+            Arc::new(EsbuildMetaFile::from_str(metafile_json)?),
+            AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+        ))
+    }
+
+    #[test]
+    fn file_resolves_single_static_path() -> Result<(), anyhow::Error> {
+        let metafile = indoc! {r#"
+            {
+                "outputs": {
+                    "static/logo_ABCDEF12.png": {
+                        "imports": [],
+                        "inputs": { "logo.png": {} }
+                    },
+                    "static/entry_ABCDEF12.js": {
+                        "imports": [{ "path": "static/logo_ABCDEF12.png" }],
+                        "entryPoint": "logo.png",
+                        "inputs": {}
+                    }
+                }
+            }
+        "#};
+
+        assert_eq!(
+            asset_manager(metafile)?.file("logo.png"),
+            Ok("/static/logo_ABCDEF12.png".to_string())
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn file_fails_for_unknown_input() -> Result<(), anyhow::Error> {
+        assert_eq!(
+            asset_manager(r#"{ "outputs": {} }"#)?.file("missing.png"),
+            Err("Asset not found: 'missing.png'".to_string())
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn file_fails_when_input_resolves_to_multiple_paths() -> Result<(), anyhow::Error> {
+        let metafile = indoc! {r#"
+            {
+                "outputs": {
+                    "static/a_AAAAAAAA.png": {
+                        "imports": [],
+                        "inputs": { "img.png": {} }
+                    },
+                    "static/b_BBBBBBBB.png": {
+                        "imports": [],
+                        "inputs": { "img.png": {} }
+                    },
+                    "static/entry_CCCCCCCC.js": {
+                        "imports": [
+                            { "path": "static/a_AAAAAAAA.png" },
+                            { "path": "static/b_BBBBBBBB.png" }
+                        ],
+                        "entryPoint": "img.png",
+                        "inputs": {}
+                    }
+                }
+            }
+        "#};
+
+        assert!(asset_manager(metafile)?.file("img.png").is_err());
+
+        Ok(())
+    }
+
+    const ENTRY_METAFILE: &str = indoc! {r#"
+        {
+            "outputs": {
+                "static/logo_ABCDEF12.png": {
+                    "imports": [],
+                    "inputs": { "logo.png": {} }
+                },
+                "static/entry_ABCDEF12.js": {
+                    "imports": [{ "path": "static/logo_ABCDEF12.png" }],
+                    "entryPoint": "logo.png",
+                    "inputs": {}
+                }
+            }
+        }
+    "#};
+
+    #[test]
+    fn render_emits_tag_for_external_script() -> Result<(), anyhow::Error> {
+        let mut manager = asset_manager(r#"{ "outputs": {} }"#)?;
+
+        manager.rhai_script("https://example.com/app.js".to_string());
+
+        assert!(
+            manager
+                .rhai_render()
+                .contains("<script src=\"https://example.com/app.js\" async defer></script>")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn render_emits_tag_for_external_stylesheet() -> Result<(), anyhow::Error> {
+        let mut manager = asset_manager(r#"{ "outputs": {} }"#)?;
+
+        manager.rhai_stylesheet("https://example.com/app.css".to_string());
+
+        assert!(
+            manager
+                .rhai_render()
+                .contains("<link rel=\"stylesheet\" href=\"https://example.com/app.css\">")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn add_registers_known_input_for_rendering() -> Result<(), anyhow::Error> {
+        let mut manager = asset_manager(ENTRY_METAFILE)?;
+
+        assert!(manager.rhai_add("logo.png".to_string()).is_ok());
+        assert!(manager.rhai_render().contains("/static/entry_ABCDEF12.js"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn add_fails_for_unknown_input() -> Result<(), anyhow::Error> {
+        let mut manager = asset_manager(r#"{ "outputs": {} }"#)?;
+
+        assert!(manager.rhai_add("missing.png".to_string()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn preload_registers_known_input_for_rendering() -> Result<(), anyhow::Error> {
+        let mut manager = asset_manager(ENTRY_METAFILE)?;
+
+        manager.rhai_preload("logo.png".to_string());
+
+        assert!(manager.rhai_render().contains("/static/"));
+
+        Ok(())
+    }
+}

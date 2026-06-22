@@ -52,3 +52,75 @@ impl FilesystemHttpRouteIndex {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+    use crate::filesystem::file_entry_stub::FileEntryStub;
+
+    fn file_entry(relative_path: &str) -> Result<FileEntry> {
+        FileEntryStub {
+            contents: String::new(),
+            relative_path: PathBuf::from(relative_path),
+        }
+        .try_into()
+    }
+
+    #[test]
+    fn registers_root_index_under_empty_and_named_routes() -> Result<()> {
+        let index = FilesystemHttpRouteIndex::default();
+
+        index.register_file(file_entry("index.html")?)?;
+
+        assert_eq!(
+            index
+                .get_file_entry_for_path("")
+                .map(|entry| entry.relative_path),
+            Some(PathBuf::from("index.html"))
+        );
+        assert!(index.get_file_entry_for_path("index.html").is_some());
+
+        Ok(())
+    }
+
+    #[test]
+    fn registers_nested_index_under_directory_and_full_path() -> Result<()> {
+        let index = FilesystemHttpRouteIndex::default();
+
+        index.register_file(file_entry("docs/index.html")?)?;
+
+        assert!(index.get_file_entry_for_path("docs/index.html").is_some());
+        assert!(index.get_file_entry_for_path("docs/").is_some());
+
+        Ok(())
+    }
+
+    #[test]
+    fn registers_sitemap_under_its_own_path() -> Result<()> {
+        let index = FilesystemHttpRouteIndex::default();
+
+        index.register_file(file_entry("sitemap.xml")?)?;
+
+        assert!(index.get_file_entry_for_path("sitemap.xml").is_some());
+
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_unexpected_filename() -> Result<()> {
+        let index = FilesystemHttpRouteIndex::default();
+
+        assert!(index.register_file(file_entry("page.html")?).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn returns_none_for_unregistered_path() {
+        let index = FilesystemHttpRouteIndex::default();
+
+        assert!(index.get_file_entry_for_path("missing").is_none());
+    }
+}

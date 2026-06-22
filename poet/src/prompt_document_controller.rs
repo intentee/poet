@@ -117,9 +117,7 @@ mod tests {
     use crate::mcp::prompt_message::PromptMessage;
     use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
 
-    #[tokio::test]
-    async fn test_convert_to_prompt_messages() -> Result<()> {
-        let name: String = "help-me-finish-task".to_string();
+    fn build_controller() -> Result<PromptDocumentController> {
         let contents: String = indoc! {r#"
         +++
         description = "test prompt description"
@@ -146,21 +144,40 @@ mod tests {
 
         let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
 
-        let prompt_controller =
-            build_prompt_document_controller(BuildPromptDocumentControllerParams {
-                asset_path_renderer: AssetPathRenderer {
-                    base_path: "https://example.com".to_string(),
-                },
-                content_document_linker: Default::default(),
-                esbuild_metafile: Default::default(),
-                file: FileEntryStub {
-                    contents,
-                    relative_path: PathBuf::from("prompts/help-me-finish-task.md"),
-                }
-                .try_into()?,
-                name: name.clone(),
-                rhai_template_renderer,
-            })?;
+        build_prompt_document_controller(BuildPromptDocumentControllerParams {
+            asset_path_renderer: AssetPathRenderer {
+                base_path: "https://example.com".to_string(),
+            },
+            content_document_linker: Default::default(),
+            esbuild_metafile: Default::default(),
+            file: FileEntryStub {
+                contents,
+                relative_path: PathBuf::from("prompts/help-me-finish-task.md"),
+            }
+            .try_into()?,
+            name: "help-me-finish-task".to_string(),
+            rhai_template_renderer,
+        })
+    }
+
+    #[test]
+    fn get_mcp_prompt_exposes_metadata_and_arguments() -> Result<()> {
+        let prompt = build_controller()?.get_mcp_prompt();
+
+        assert_eq!(prompt.name, "help-me-finish-task");
+        assert_eq!(prompt.description, "test prompt description");
+        assert_eq!(prompt.title, "Help me with finishing the task");
+        assert_eq!(prompt.arguments.len(), 1);
+        assert_eq!(prompt.arguments[0].name, "objective");
+        assert!(prompt.arguments[0].required);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_convert_to_prompt_messages() -> Result<()> {
+        let name: String = "help-me-finish-task".to_string();
+        let prompt_controller = build_controller()?;
 
         let response = prompt_controller
             .respond_to(PromptsGet {

@@ -197,7 +197,7 @@ mod tests {
             &self,
             _: ResourceReference,
         ) -> Result<Option<ResourceContentParts>> {
-            unimplemented!()
+            Ok(None)
         }
 
         async fn resource_update_notifier(
@@ -394,5 +394,77 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    fn aggregate_with_classes(classes: &[&str]) -> ResourceListAggregate {
+        classes
+            .iter()
+            .map(|class| {
+                Arc::new(TestResourceProvider {
+                    class: class.to_string(),
+                    total: 1,
+                }) as Arc<dyn ResourceProvider>
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+
+    #[test]
+    fn total_sums_every_provider_total() {
+        let aggregate: ResourceListAggregate = vec![
+            Arc::new(TestResourceProvider {
+                class: "1".to_string(),
+                total: 3,
+            }) as Arc<dyn ResourceProvider>,
+            Arc::new(TestResourceProvider {
+                class: "2".to_string(),
+                total: 2,
+            }) as Arc<dyn ResourceProvider>,
+        ]
+        .into();
+
+        assert_eq!(aggregate.total(), 5);
+    }
+
+    #[tokio::test]
+    async fn templates_list_has_one_entry_per_provider() -> Result<()> {
+        let templates = aggregate_with_classes(&["1", "2"])
+            .read_resources_templates_list()
+            .await?;
+
+        assert_eq!(templates.len(), 2);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn read_resource_contents_routes_to_matching_provider() -> Result<()> {
+        let contents = aggregate_with_classes(&["1"])
+            .read_resource_contents("foo://1/example")
+            .await?;
+
+        assert!(contents.is_none());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn read_resource_contents_errors_for_malformed_uri() {
+        assert!(
+            aggregate_with_classes(&["1"])
+                .read_resource_contents("not a uri")
+                .await
+                .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn read_resource_contents_errors_when_no_provider_handles_scheme() {
+        assert!(
+            aggregate_with_classes(&["1"])
+                .read_resource_contents("bar://1/example")
+                .await
+                .is_err()
+        );
     }
 }

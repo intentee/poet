@@ -353,7 +353,133 @@ pub fn eval_prompt_document_mdast(
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+    use std::str::FromStr as _;
+    use std::sync::Arc;
+    use std::sync::RwLock;
+
+    use esbuild_metafile::EsbuildMetaFile;
+    use rhai::Engine;
+    use rhai_components::component_syntax::component_registry::ComponentRegistry;
+    use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
+    use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
+
     use super::*;
+    use crate::asset_manager::AssetManager;
+    use crate::asset_path_renderer::AssetPathRenderer;
+    use crate::content_document_front_matter::ContentDocumentFrontMatter;
+    use crate::content_document_linker::ContentDocumentLinker;
+    use crate::content_document_reference::ContentDocumentReference;
+    use crate::mcp::content_block::ContentBlock;
+    use crate::mcp::jsonrpc::role::Role;
+    use crate::mcp::prompt_message::PromptMessage;
+    use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
+    use crate::string_to_mdast::string_to_mdast;
+
+    const ASSET_METAFILE: &str = r#"
+        {
+            "outputs": {
+                "static/logo_ABCDEF12.png": {
+                    "imports": [],
+                    "inputs": { "logo.png": {} }
+                }
+            }
+        }
+    "#;
+
+    fn asset_manager() -> Result<AssetManager> {
+        Ok(AssetManager::from_esbuild_metafile(
+            Arc::new(EsbuildMetaFile::from_str(ASSET_METAFILE)?),
+            AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+        ))
+    }
+
+    fn linker() -> ContentDocumentLinker {
+        let mut content_document_by_basename = HashMap::new();
+
+        content_document_by_basename.insert(
+            "guide".to_string().into(),
+            ContentDocumentReference {
+                basename_path: "guide".into(),
+                front_matter: ContentDocumentFrontMatter::mock("guide"),
+                generated_page_base_path: "/".to_string(),
+            },
+        );
+
+        ContentDocumentLinker {
+            content_document_basename_by_id: Arc::new(HashMap::new()),
+            content_document_by_basename: Arc::new(content_document_by_basename),
+        }
+    }
+
+    fn front_matter() -> PromptDocumentFrontMatter {
+        PromptDocumentFrontMatter {
+            arguments: HashMap::new(),
+            description: "A test prompt".to_string(),
+            title: "Test Prompt".to_string(),
+        }
+    }
+
+    fn renderer() -> Result<RhaiTemplateRenderer> {
+        RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
+            component_registry: Arc::new(ComponentRegistry::default()),
+            expression_engine: Engine::new_raw(),
+        })
+    }
+
+    fn context() -> Result<PromptDocumentComponentContext> {
+        Ok(PromptDocumentComponentContext {
+            arguments: HashMap::new(),
+            asset_manager: asset_manager()?,
+            content_document_linker: linker(),
+            current_role: None,
+            front_matter: front_matter(),
+            prompt_messages: Vec::new(),
+            unprocessed_message_chunk: Arc::new(RwLock::new(String::new())),
+        })
+    }
+
+    fn assemble_messages(markdown: &str) -> Result<Vec<PromptMessage>> {
+        let rhai_template_renderer = renderer()?;
+        let mut prompt_document_component_context = context()?;
+        let mdast = string_to_mdast(markdown)?;
+
+        eval_prompt_document_mdast(
+            EvalPromptDocumentMdastParams {
+                mdast: &mdast,
+                is_directly_in_root: false,
+                is_first_child: true,
+                is_in_top_paragraph: false,
+                rhai_template_renderer: &rhai_template_renderer,
+            },
+            &mut prompt_document_component_context,
+        )?;
+
+        Ok(prompt_document_component_context.prompt_messages)
+    }
+
+    fn render_block(markdown: &str) -> Result<String> {
+        let rhai_template_renderer = renderer()?;
+        let mut prompt_document_component_context = context()?;
+        let mdast = string_to_mdast(markdown)?;
+        let block = mdast
+            .children()
+            .and_then(|children| children.first())
+            .ok_or_else(|| anyhow!("Document has no block node"))?;
+
+        eval_prompt_document_mdast(
+            EvalPromptDocumentMdastParams {
+                mdast: block,
+                is_directly_in_root: false,
+                is_first_child: false,
+                is_in_top_paragraph: false,
+                rhai_template_renderer: &rhai_template_renderer,
+            },
+            &mut prompt_document_component_context,
+        )
+    }
 
     #[test]
     fn test_blockquotes() {
@@ -381,6 +507,166 @@ mod test {
     #[test]
     fn test_chunk_trim_empty() -> Result<()> {
         assert_eq!(trim_chunk("".to_string())?, "".to_string(),);
+
+        Ok(())
+    }
+
+    #[test]
+    fn assembles_prompt_messages_by_role() -> Result<()> {
+        let messages =
+            assemble_messages("**user**: What is the capital of France?\n\n**assistant**: Paris.")?;
+
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].role, Role::User);
+        assert_eq!(
+            messages[0].content,
+            ContentBlock::from("What is the capital of France?")
+        );
+        assert_eq!(messages[1].role, Role::Assistant);
+        assert_eq!(messages[1].content, ContentBlock::from("Paris."));
+
+        Ok(())
+    }
+
+    #[test]
+    fn errors_on_unknown_role_marker() {
+        assert!(assemble_messages("**moderator**: hello").is_err());
+    }
+
+    #[test]
+    fn renders_heading_marker() -> Result<()> {
+        assert_eq!(render_block("### Section Title")?, "###Section Title");
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_inline_formatting() -> Result<()> {
+        let rendered = render_block("*em* **bold** ~~del~~ `code`")?;
+
+        assert!(rendered.contains("*em*"));
+        assert!(rendered.contains("**bold**"));
+        assert!(rendered.contains("~~del~~"));
+        assert!(rendered.contains("`code`"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_fenced_code_block() -> Result<()> {
+        assert_eq!(
+            render_block("```rust\nlet x = 1;\n```")?,
+            "```rust\nlet x = 1;\n```"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_list_items() -> Result<()> {
+        let rendered = render_block("- first\n- second")?;
+
+        assert!(rendered.contains("- "));
+        assert!(rendered.contains("first"));
+        assert!(rendered.contains("second"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_blockquote() -> Result<()> {
+        assert!(render_block("> quoted text")?.contains("> quoted text"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolves_internal_image_and_passes_external_through() -> Result<()> {
+        assert!(render_block("![logo](logo.png)")?.contains("/static/logo_ABCDEF12.png"));
+        assert!(
+            render_block("![pic](https://cdn.example.com/a.png)")?
+                .contains("https://cdn.example.com/a.png")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolves_internal_link_and_passes_external_through() -> Result<()> {
+        assert!(render_block("[guide](guide)")?.contains("(/guide/"));
+        assert!(render_block("[site](https://example.com)")?.contains("https://example.com"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_thematic_break() -> Result<()> {
+        assert_eq!(render_block("***")?, "---");
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_table_cells() -> Result<()> {
+        let rendered = render_block("| a | b |\n| - | - |\n| 1 | 2 |")?;
+
+        assert!(rendered.contains("| a"));
+        assert!(rendered.contains("| 1"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn passes_raw_html_through_verbatim() -> Result<()> {
+        assert!(
+            render_block("<div class=\"highlight\">text</div>")?
+                .contains("<div class=\"highlight\">text</div>")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_hard_break() -> Result<()> {
+        assert!(render_block("first\\\nsecond")?.contains("  \n"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_image_with_title() -> Result<()> {
+        assert!(render_block("![logo](logo.png \"Brand\")")?.contains("\"Brand\""));
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_image_for_missing_asset() {
+        assert!(render_block("![x](missing.png)").is_err());
+    }
+
+    #[test]
+    fn renders_link_with_title() -> Result<()> {
+        assert!(render_block("[site](https://example.com \"Home\")")?.contains("\"Home\""));
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_link_to_missing_document() {
+        assert!(render_block("[x](ghost)").is_err());
+    }
+
+    #[test]
+    fn renders_mdx_expression() -> Result<()> {
+        assert_eq!(render_block(r#"{"hi"}"#)?, "hi");
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_mdx_jsx_element() -> Result<()> {
+        assert!(render_block("<div>\ntext\n</div>")?.contains("<div "));
 
         Ok(())
     }

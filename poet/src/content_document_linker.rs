@@ -51,3 +51,74 @@ impl ContentDocumentLinker {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::content_document_front_matter::ContentDocumentFrontMatter;
+
+    fn reference(basename: &str, render: bool) -> ContentDocumentReference {
+        let mut front_matter = ContentDocumentFrontMatter::mock(basename);
+
+        front_matter.render = render;
+
+        ContentDocumentReference {
+            basename_path: basename.into(),
+            front_matter,
+            generated_page_base_path: "/".to_string(),
+        }
+    }
+
+    fn linker() -> ContentDocumentLinker {
+        let mut content_document_by_basename: HashMap<
+            ContentDocumentBasename,
+            ContentDocumentReference,
+        > = HashMap::new();
+
+        content_document_by_basename.insert("guide".to_string().into(), reference("guide", true));
+        content_document_by_basename.insert("draft".to_string().into(), reference("draft", false));
+
+        let mut content_document_basename_by_id: HashMap<String, ContentDocumentBasename> =
+            HashMap::new();
+
+        content_document_basename_by_id.insert("guide-id".to_string(), "guide".to_string().into());
+
+        ContentDocumentLinker {
+            content_document_basename_by_id: Arc::new(content_document_basename_by_id),
+            content_document_by_basename: Arc::new(content_document_by_basename),
+        }
+    }
+
+    #[test]
+    fn resolve_id_returns_basename_for_known_id() {
+        assert_eq!(
+            linker().resolve_id("#guide-id"),
+            Ok("guide".to_string().into())
+        );
+    }
+
+    #[test]
+    fn resolve_id_fails_for_unknown_id() {
+        assert!(linker().resolve_id("#missing").is_err());
+    }
+
+    #[test]
+    fn resolve_id_returns_plain_path_as_basename() {
+        assert_eq!(linker().resolve_id("guide"), Ok("guide".to_string().into()));
+    }
+
+    #[test]
+    fn link_to_returns_canonical_link_for_renderable_document() {
+        assert_eq!(linker().link_to("guide"), Ok("/guide/".to_string()));
+    }
+
+    #[test]
+    fn link_to_fails_for_non_renderable_document() {
+        assert!(linker().link_to("draft").is_err());
+    }
+
+    #[test]
+    fn link_to_fails_for_missing_document() {
+        assert!(linker().link_to("ghost").is_err());
+    }
+}

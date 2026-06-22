@@ -53,6 +53,7 @@ coverage: node_modules
 	cargo llvm-cov report
 	npx rust-coverage-check target/llvm-cov.json \
 		--workspace-root $(CURDIR) \
+		--gated poet=32 \
 		--gated rhai_components=100
 
 .PHONY: coverage-clean

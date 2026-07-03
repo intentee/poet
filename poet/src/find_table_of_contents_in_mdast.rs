@@ -96,3 +96,47 @@ pub fn find_table_of_contents_in_mdast(
 
     Ok(TableOfContents { headings })
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use rhai::Engine;
+    use rhai_components::component_syntax::component_registry::ComponentRegistry;
+    use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
+    use syntect::parsing::SyntaxSet;
+
+    use super::*;
+    use crate::string_to_mdast::string_to_mdast;
+
+    #[test]
+    fn extracts_headings_with_depth_and_id() -> Result<()> {
+        let component_context = ContentDocumentComponentContext::mock();
+        let rhai_template_renderer = RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
+            component_registry: Arc::new(ComponentRegistry::default()),
+            expression_engine: Engine::new_raw(),
+        })?;
+        let syntax_set = SyntaxSet::new();
+        let mdast = string_to_mdast("# First Heading\n\nbody text\n\n## Second Heading")?;
+
+        let table_of_contents = find_table_of_contents_in_mdast(
+            &mdast,
+            &component_context,
+            &rhai_template_renderer,
+            &syntax_set,
+        )?;
+
+        assert_eq!(table_of_contents.headings.len(), 2);
+        assert!(
+            table_of_contents.headings[0]
+                .content
+                .contains("First Heading")
+        );
+        assert_eq!(table_of_contents.headings[0].depth, 1);
+        assert_eq!(table_of_contents.headings[0].id, "first-heading");
+        assert_eq!(table_of_contents.headings[1].depth, 2);
+        assert_eq!(table_of_contents.headings[1].id, "second-heading");
+
+        Ok(())
+    }
+}

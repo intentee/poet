@@ -60,7 +60,9 @@ mod tests {
         let map = make_map(&[("a", Dynamic::from(1_i64))]);
 
         assert!(clsx(map).is_err_and(|error| {
-            error.to_string().contains("Expected only boolean map values")
+            error
+                .to_string()
+                .contains("Expected only boolean map values")
         }));
 
         Ok(())

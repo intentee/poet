@@ -57,7 +57,10 @@ mod tests {
     use crate::component_syntax::component_reference::ComponentReference;
 
     fn fixtures_path() -> String {
-        format!("{}/src/component_syntax/fixtures", env!("CARGO_MANIFEST_DIR"))
+        format!(
+            "{}/src/component_syntax/fixtures",
+            env!("CARGO_MANIFEST_DIR")
+        )
     }
 
     struct TestEngineOk {
@@ -109,9 +112,11 @@ mod tests {
             registry: registry_with(&["Note"]),
         };
 
-        assert!(builder.create_engine().is_ok_and(|engine| engine
-            .eval::<String>(r#"clsx(#{ ok: true })"#)
-            .is_ok_and(|result| result == "ok")));
+        assert!(builder.create_engine().is_ok_and(|engine| {
+            engine
+                .eval::<String>(r#"clsx(#{ ok: true })"#)
+                .is_ok_and(|result| result == "ok")
+        }));
 
         Ok(())
     }
@@ -123,7 +128,9 @@ mod tests {
         };
 
         assert!(builder.create_engine().is_err_and(|error| {
-            error.to_string().contains("prepare_engine failed on purpose")
+            error
+                .to_string()
+                .contains("prepare_engine failed on purpose")
         }));
 
         Ok(())

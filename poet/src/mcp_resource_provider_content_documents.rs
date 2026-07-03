@@ -133,3 +133,112 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
         self.0.total.load(atomic::Ordering::Relaxed)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::asset_path_renderer::AssetPathRenderer;
+    use crate::build_authors::build_authors;
+    use crate::build_project::build_project;
+    use crate::build_project::build_project_params::BuildProjectParams;
+    use crate::build_project::build_project_result::BuildProjectResult;
+    use crate::compile_shortcodes::compile_shortcodes;
+    use crate::filesystem::Filesystem as _;
+    use crate::filesystem::storage::Storage;
+    use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
+
+    async fn build_result() -> Result<BuildProjectResult> {
+        let directory = tempdir()?;
+        let source_filesystem = Arc::new(Storage {
+            base_directory: directory.path().to_path_buf(),
+        });
+
+        source_filesystem
+            .set_file_contents(
+                Path::new("shortcodes/Layout.rhai"),
+                "fn template(context, props, content) { component { <html>{content}</html> } }",
+            )
+            .await?;
+        source_filesystem
+            .set_file_contents(
+                Path::new("content/guide.md"),
+                "+++\ndescription = \"Guide description\"\nlayout = \"Layout\"\ntitle = \"Guide\"\n+++\n\nbody\n",
+            )
+            .await?;
+
+        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.clone()).await?;
+
+        Ok(build_project(BuildProjectParams {
+            asset_path_renderer: AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+            authors,
+            esbuild_metafile: Default::default(),
+            generated_page_base_path: "/".to_string(),
+            generate_sitemap: false,
+            is_watching: false,
+            rhai_template_renderer,
+            source_filesystem,
+        })
+        .await?
+        .into())
+    }
+
+    fn reference(path: &str) -> ResourceReference {
+        ResourceReference {
+            class: "content".to_string(),
+            path: path.to_string(),
+            scheme: "poet".to_string(),
+            uri_string: format!("poet://content/{path}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn lists_content_documents_as_resources() -> Result<()> {
+        let provider = McpResourceProviderContentDocuments::default();
+
+        provider.0.set(Some(build_result().await?)).await;
+
+        assert_eq!(provider.total(), 1);
+
+        let resources = provider
+            .list_resources(ResourceProviderListParams {
+                limit: 10,
+                offset: 0,
+            })
+            .await?;
+
+        assert_eq!(resources.len(), 1);
+        assert_eq!(resources[0].name, "guide");
+        assert_eq!(resources[0].title, "Guide");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn reads_existing_document_and_misses_unknown_one() -> Result<()> {
+        let provider = McpResourceProviderContentDocuments::default();
+
+        provider.0.set(Some(build_result().await?)).await;
+
+        assert!(
+            provider
+                .read_resource_contents(reference("guide"))
+                .await?
+                .is_some()
+        );
+        assert!(
+            provider
+                .read_resource_contents(reference("missing"))
+                .await?
+                .is_none()
+        );
+
+        Ok(())
+    }
+}

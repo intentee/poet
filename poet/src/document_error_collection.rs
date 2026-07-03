@@ -44,3 +44,34 @@ impl fmt::Display for DocumentErrorCollection {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::anyhow;
+
+    use super::*;
+
+    #[test]
+    fn is_empty_until_an_error_is_registered() {
+        let collection = DocumentErrorCollection::default();
+
+        assert!(collection.is_empty());
+
+        collection.register_error("guide".to_string(), anyhow!("boom"));
+
+        assert!(!collection.is_empty());
+    }
+
+    #[test]
+    fn display_reports_count_and_sorts_errors_by_basename() {
+        let collection = DocumentErrorCollection::default();
+
+        collection.register_error("beta".to_string(), anyhow!("second"));
+        collection.register_error("alpha".to_string(), anyhow!("first"));
+
+        assert_eq!(
+            format!("{collection}"),
+            "Multiple errors occurred (2 total):\nalpha:\n- first\n\nbeta:\n- second\n\n"
+        );
+    }
+}

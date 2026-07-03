@@ -39,3 +39,39 @@ pub fn create_sitemap<'a>(
 
     Ok(String::from_utf8(buf)?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::content_document_front_matter::ContentDocumentFrontMatter;
+
+    fn reference(basename: &str) -> ContentDocumentReference {
+        ContentDocumentReference {
+            basename_path: basename.into(),
+            front_matter: ContentDocumentFrontMatter::mock(basename),
+            generated_page_base_path: "https://example.com/".to_string(),
+        }
+    }
+
+    #[test]
+    fn index_document_receives_high_priority() -> Result<()> {
+        let references = [reference("index")];
+        let sitemap = create_sitemap(references.iter())?;
+
+        assert!(sitemap.contains("https://example.com/"));
+        assert!(sitemap.contains("<priority>0.8</priority>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn non_index_document_receives_default_priority() -> Result<()> {
+        let references = [reference("guide")];
+        let sitemap = create_sitemap(references.iter())?;
+
+        assert!(sitemap.contains("https://example.com/guide/"));
+        assert!(sitemap.contains("<priority>0.5</priority>"));
+
+        Ok(())
+    }
+}

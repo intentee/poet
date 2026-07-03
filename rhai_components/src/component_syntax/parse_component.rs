@@ -189,7 +189,10 @@ pub fn parse_component(
                 Ok(Some(">".into()))
             }
             _ => {
-                push_to_state(state, OutputSymbol::TagAttributeName(last_symbol.to_string()));
+                push_to_state(
+                    state,
+                    OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                );
                 state.set_tag(ParserState::TagAttributeName as i32);
 
                 Ok(Some("$raw$".into()))
@@ -220,7 +223,10 @@ pub fn parse_component(
                 Ok(Some("$raw$".into()))
             }
             _ => {
-                push_to_state(state, OutputSymbol::TagAttributeName(last_symbol.to_string()));
+                push_to_state(
+                    state,
+                    OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                );
                 state.set_tag(ParserState::TagAttributeName as i32);
 
                 Ok(Some("$raw$".into()))
@@ -244,7 +250,10 @@ pub fn parse_component(
                 Ok(Some("$inner$".into()))
             }
             _ => {
-                push_to_state(state, OutputSymbol::TagAttributeName(last_symbol.to_string()));
+                push_to_state(
+                    state,
+                    OutputSymbol::TagAttributeName(last_symbol.to_string()),
+                );
                 state.set_tag(ParserState::TagContent as i32);
 
                 Ok(Some("$raw$".into()))
@@ -307,8 +316,10 @@ mod tests {
     fn errs_when_symbols_slice_is_empty() -> Result<()> {
         let mut state: Dynamic = Dynamic::UNIT;
 
-        assert!(parse_component(&[], &mut state)
-            .is_err_and(|error| error.to_string().contains("No symbols found")));
+        assert!(
+            parse_component(&[], &mut state)
+                .is_err_and(|error| error.to_string().contains("No symbols found"))
+        );
 
         Ok(())
     }
@@ -320,8 +331,10 @@ mod tests {
 
         state.set_tag(99);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_err_and(|error| error.to_string().contains("Invalid parser state")));
+        assert!(
+            parse_component(&inputs, &mut state)
+                .is_err_and(|error| error.to_string().contains("Invalid parser state"))
+        );
 
         Ok(())
     }
@@ -333,8 +346,10 @@ mod tests {
 
         state.set_tag(ParserState::BodyExpression as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_err_and(|error| error.to_string().contains("Invalid expression block end")));
+        assert!(
+            parse_component(&inputs, &mut state)
+                .is_err_and(|error| error.to_string().contains("Invalid expression block end"))
+        );
 
         Ok(())
     }
@@ -346,8 +361,10 @@ mod tests {
 
         state.set_tag(ParserState::TagContent as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_err_and(|error| error.to_string().contains("Invalid expression block start")));
+        assert!(
+            parse_component(&inputs, &mut state)
+                .is_err_and(|error| error.to_string().contains("Invalid expression block start"))
+        );
 
         Ok(())
     }
@@ -359,8 +376,10 @@ mod tests {
 
         state.set_tag(ParserState::TagSelfClose as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_err_and(|error| error.to_string().contains("Invalid self-closing tag end")));
+        assert!(
+            parse_component(&inputs, &mut state)
+                .is_err_and(|error| error.to_string().contains("Invalid self-closing tag end"))
+        );
 
         Ok(())
     }
@@ -372,8 +391,10 @@ mod tests {
 
         state.set_tag(ParserState::Body as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_err_and(|error| error.to_string().contains("Invalid state array")));
+        assert!(
+            parse_component(&inputs, &mut state)
+                .is_err_and(|error| error.to_string().contains("Invalid state array"))
+        );
 
         Ok(())
     }
@@ -385,9 +406,13 @@ mod tests {
 
         state.set_tag(ParserState::TagCloseBeforeNamePlusWhitespace as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_ok_and(|next| next.as_deref() == Some("$raw$")));
-        assert_eq!(state.tag(), ParserState::TagCloseBeforeNamePlusWhitespace as i32);
+        assert!(
+            parse_component(&inputs, &mut state).is_ok_and(|next| next.as_deref() == Some("$raw$"))
+        );
+        assert_eq!(
+            state.tag(),
+            ParserState::TagCloseBeforeNamePlusWhitespace as i32
+        );
 
         Ok(())
     }
@@ -399,8 +424,9 @@ mod tests {
 
         state.set_tag(ParserState::TagAttributeName as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_ok_and(|next| next.as_deref() == Some(">")));
+        assert!(
+            parse_component(&inputs, &mut state).is_ok_and(|next| next.as_deref() == Some(">"))
+        );
         assert_eq!(state.tag(), ParserState::TagSelfClose as i32);
 
         Ok(())
@@ -413,8 +439,9 @@ mod tests {
 
         state.set_tag(ParserState::TagAttributeValue as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_ok_and(|next| next.as_deref() == Some("$raw$")));
+        assert!(
+            parse_component(&inputs, &mut state).is_ok_and(|next| next.as_deref() == Some("$raw$"))
+        );
         assert_eq!(state.tag(), ParserState::TagContent as i32);
 
         Ok(())
@@ -440,8 +467,10 @@ mod tests {
 
         state.set_tag(ParserState::Body as i32);
 
-        assert!(parse_component(&inputs, &mut state)
-            .is_err_and(|error| error.to_string().contains("Unexpected tag name")));
+        assert!(
+            parse_component(&inputs, &mut state)
+                .is_err_and(|error| error.to_string().contains("Unexpected tag name"))
+        );
 
         Ok(())
     }

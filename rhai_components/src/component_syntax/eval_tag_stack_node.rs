@@ -158,7 +158,10 @@ mod tests {
     use crate::component_syntax::component_reference::ComponentReference;
 
     fn fixtures_path() -> String {
-        format!("{}/src/component_syntax/fixtures", env!("CARGO_MANIFEST_DIR"))
+        format!(
+            "{}/src/component_syntax/fixtures",
+            env!("CARGO_MANIFEST_DIR")
+        )
     }
 
     #[derive(Clone, Default)]
@@ -236,100 +239,115 @@ mod tests {
             "#,
         );
 
-        assert!(result
-            .is_err_and(|error| error.to_string().contains("Failed to call component function")));
-
-        Ok(())
-    }
-
-    #[test]
-    fn renders_component_with_expression_attribute() -> Result<()> {
-        assert!(render_with(
-            &["Note"],
-            r#"
-                fn template(context) {
-                    component { <Note type={"warn"}>hi</Note> }
-                }
-            "#,
-        )
-        .is_ok_and(|rendered| rendered.contains("note--warn") && rendered.contains("hi")));
-
-        Ok(())
-    }
-
-    #[test]
-    fn renders_component_with_no_value_attribute() -> Result<()> {
-        assert!(render_with(
-            &["Bare"],
-            r#"
-                fn template(context) {
-                    component { <Bare disabled>hi</Bare> }
-                }
-            "#,
-        )
-        .is_ok_and(|rendered| {
-            rendered.contains("data-disabled=\"yes\"") && rendered.contains("hi")
+        assert!(result.is_err_and(|error| {
+            error
+                .to_string()
+                .contains("Failed to call component function")
         }));
 
         Ok(())
     }
 
     #[test]
+    fn renders_component_with_expression_attribute() -> Result<()> {
+        assert!(
+            render_with(
+                &["Note"],
+                r#"
+                fn template(context) {
+                    component { <Note type={"warn"}>hi</Note> }
+                }
+            "#,
+            )
+            .is_ok_and(|rendered| rendered.contains("note--warn") && rendered.contains("hi"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_component_with_no_value_attribute() -> Result<()> {
+        assert!(
+            render_with(
+                &["Bare"],
+                r#"
+                fn template(context) {
+                    component { <Bare disabled>hi</Bare> }
+                }
+            "#,
+            )
+            .is_ok_and(|rendered| {
+                rendered.contains("data-disabled=\"yes\"") && rendered.contains("hi")
+            })
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn renders_array_body_expression_by_concatenating_items() -> Result<()> {
-        assert!(render_with(
-            &[],
-            r#"
+        assert!(
+            render_with(
+                &[],
+                r#"
                 fn template(context) {
                     component { <div>{["a", "b", "c"]}</div> }
                 }
             "#,
-        )
-        .is_ok_and(|rendered| rendered.contains("<div>abc</div>")));
+            )
+            .is_ok_and(|rendered| rendered.contains("<div>abc</div>"))
+        );
 
         Ok(())
     }
 
     #[test]
     fn returns_error_when_body_expression_evaluation_fails() -> Result<()> {
-        assert!(render_with(
-            &[],
-            r#"
+        assert!(
+            render_with(
+                &[],
+                r#"
                 fn template(context) {
                     component { <div>{nonexistent_variable}</div> }
                 }
             "#,
-        )
-        .is_err());
+            )
+            .is_err()
+        );
 
         Ok(())
     }
 
     #[test]
     fn returns_error_when_attribute_expression_evaluation_fails() -> Result<()> {
-        assert!(render_with(
-            &[],
-            r#"
+        assert!(
+            render_with(
+                &[],
+                r#"
                 fn template(context) {
                     component { <div data-x={nonexistent_variable}>hi</div> }
                 }
             "#,
-        )
-        .is_err());
+            )
+            .is_err()
+        );
 
         Ok(())
     }
 
     #[test]
     fn returns_error_when_component_attribute_expression_evaluation_fails() -> Result<()> {
-        assert!(render_with(
-            &["Bare"],
-            r#"
+        assert!(
+            render_with(
+                &["Bare"],
+                r#"
                 fn template(context) {
                     component { <Bare data-x={nonexistent_variable}>hi</Bare> }
                 }
             "#,
-        )
-        .is_err());
+            )
+            .is_err()
+        );
 
         Ok(())
     }

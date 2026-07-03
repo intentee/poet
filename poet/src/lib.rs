@@ -47,6 +47,7 @@ pub mod flexible_datetime;
 pub mod generate_sitemap;
 pub mod holder;
 pub mod is_external_link;
+pub mod is_image_path;
 pub mod is_valid_desktop_entry_string;
 pub mod mcp;
 pub mod mcp_resource_provider_content_documents;

@@ -14,9 +14,9 @@ mod tests {
 
     #[test]
     fn always_returns_runtime_error_with_stringified_message() -> Result<()> {
-        assert!(error(Dynamic::from("boom")).is_err_and(|boxed| {
-            boxed.to_string().contains("boom")
-        }));
+        assert!(
+            error(Dynamic::from("boom")).is_err_and(|boxed| { boxed.to_string().contains("boom") })
+        );
 
         Ok(())
     }

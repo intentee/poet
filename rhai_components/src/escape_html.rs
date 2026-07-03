@@ -25,10 +25,7 @@ mod tests {
 
     #[test]
     fn escapes_each_special_character_and_preserves_other() -> Result<()> {
-        assert_eq!(
-            escape_html("&<>\"'/x"),
-            "&amp;&lt;&gt;&quot;&#x27;&#x2F;x"
-        );
+        assert_eq!(escape_html("&<>\"'/x"), "&amp;&lt;&gt;&quot;&#x27;&#x2F;x");
 
         Ok(())
     }

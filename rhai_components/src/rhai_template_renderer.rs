@@ -112,7 +112,10 @@ mod tests {
     use crate::component_syntax::component_registry::ComponentRegistry;
 
     fn fixtures_path() -> String {
-        format!("{}/src/component_syntax/fixtures", env!("CARGO_MANIFEST_DIR"))
+        format!(
+            "{}/src/component_syntax/fixtures",
+            env!("CARGO_MANIFEST_DIR")
+        )
     }
 
     #[derive(Clone)]
@@ -227,7 +230,9 @@ mod tests {
             renderer
                 .render_expression(DummyContext, "not valid @ rhai!")
                 .is_err_and(|error| {
-                    error.to_string().contains("Expression failed: 'not valid @ rhai!'")
+                    error
+                        .to_string()
+                        .contains("Expression failed: 'not valid @ rhai!'")
                 })
         }));
 

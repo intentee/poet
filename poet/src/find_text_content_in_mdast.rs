@@ -48,3 +48,51 @@ pub fn find_text_content_in_mdast(mdast: &Node) -> Result<String> {
 
     Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+
+    use super::*;
+    use crate::string_to_mdast::string_to_mdast;
+
+    #[test]
+    fn concatenates_text_across_nested_inline_nodes() -> Result<()> {
+        let mdast = string_to_mdast("Hello **bold** and *italic*")?;
+
+        assert_eq!(find_text_content_in_mdast(&mdast)?, "Hello bold and italic");
+
+        Ok(())
+    }
+
+    #[test]
+    fn skips_non_text_leaf_nodes() -> Result<()> {
+        let mdast = string_to_mdast("text `code` more")?;
+
+        assert_eq!(find_text_content_in_mdast(&mdast)?, "text  more");
+
+        Ok(())
+    }
+
+    #[test]
+    fn collects_text_across_block_container_nodes() -> Result<()> {
+        let mdast = string_to_mdast(
+            "# Heading text\n\n> quote text\n\n- list text\n\n[link text](https://example.com)\n\n| cell text |\n| --- |\n| data text |",
+        )?;
+
+        let text = find_text_content_in_mdast(&mdast)?;
+
+        for fragment in [
+            "Heading text",
+            "quote text",
+            "list text",
+            "link text",
+            "cell text",
+            "data text",
+        ] {
+            assert!(text.contains(fragment), "missing fragment: {fragment}");
+        }
+
+        Ok(())
+    }
+}

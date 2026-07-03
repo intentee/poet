@@ -29,7 +29,10 @@ mod tests {
     use super::rhai_call_template_function;
 
     fn fixtures_path() -> String {
-        format!("{}/src/component_syntax/fixtures", env!("CARGO_MANIFEST_DIR"))
+        format!(
+            "{}/src/component_syntax/fixtures",
+            env!("CARGO_MANIFEST_DIR")
+        )
     }
 
     fn engine_with_fixtures() -> Engine {

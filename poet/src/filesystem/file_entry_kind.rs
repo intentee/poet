@@ -24,3 +24,18 @@ impl FileEntryKind {
         *self == Self::Shortcode
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classifies_prompt_kind_exclusively() {
+        let kind = FileEntryKind::Prompt;
+
+        assert!(kind.is_prompt());
+        assert!(!kind.is_author());
+        assert!(!kind.is_content());
+        assert!(!kind.is_shortcode());
+    }
+}

@@ -68,3 +68,72 @@ pub async fn build_prompt_document_controller_collection(
 
     Ok(prompt_controller_map.into())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::asset_path_renderer::AssetPathRenderer;
+    use crate::compile_shortcodes::compile_shortcodes;
+    use crate::filesystem::storage::Storage;
+    use crate::mcp::list_resources_cursor::ListResourcesCursor;
+
+    async fn build(prompt_files: &[(&str, &str)]) -> Result<PromptControllerCollection> {
+        let directory = tempdir()?;
+        let source_filesystem = Arc::new(Storage {
+            base_directory: directory.path().to_path_buf(),
+        });
+
+        for (relative_path, contents) in prompt_files {
+            source_filesystem
+                .set_file_contents(Path::new(relative_path), contents)
+                .await?;
+        }
+
+        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+
+        build_prompt_document_controller_collection(BuildPromptControllerCollectionParams {
+            asset_path_renderer: AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+            content_document_linker: Default::default(),
+            esbuild_metafile: Default::default(),
+            rhai_template_renderer,
+            source_filesystem,
+        })
+        .await
+    }
+
+    #[tokio::test]
+    async fn builds_a_controller_for_each_prompt_file() -> Result<()> {
+        let collection = build(&[(
+            "prompts/greet.md",
+            "+++\narguments = {}\ndescription = \"Greeting\"\ntitle = \"Greet\"\n+++\n\n**user**: hello\n",
+        )])
+        .await?;
+
+        let prompts = collection.list_mcp_prompts(ListResourcesCursor {
+            offset: 0,
+            per_page: 10,
+        });
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].name, "greet");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn aggregates_errors_from_invalid_prompt_front_matter() {
+        let outcome = build(&[(
+            "prompts/broken.md",
+            "+++\ntitle = \"Missing required fields\"\n+++\n\n**user**: hi\n",
+        )])
+        .await;
+
+        assert!(outcome.is_err());
+    }
+}

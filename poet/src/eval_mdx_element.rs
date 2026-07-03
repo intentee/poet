@@ -100,3 +100,136 @@ where
 
     Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use markdown::mdast::MdxJsxExpressionAttribute;
+    use markdown::mdast::Text;
+    use rhai::Engine;
+    use rhai::TypeBuilder;
+    use rhai_components::component_syntax::component_registry::ComponentRegistry;
+    use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
+
+    use super::*;
+
+    #[derive(Clone)]
+    struct DummyContext;
+
+    impl CustomType for DummyContext {
+        fn build(mut builder: TypeBuilder<Self>) {
+            builder.with_name("DummyContext");
+        }
+    }
+
+    fn renderer() -> Result<RhaiTemplateRenderer> {
+        RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
+            component_registry: Arc::new(ComponentRegistry::default()),
+            expression_engine: Engine::new_raw(),
+        })
+    }
+
+    fn literal_attribute(name: &str, value: &str) -> AttributeContent {
+        AttributeContent::Property(MdxJsxAttribute {
+            name: name.to_string(),
+            value: Some(AttributeValue::Literal(value.to_string())),
+        })
+    }
+
+    #[test]
+    fn renders_non_component_element_with_literal_and_boolean_attributes() -> Result<()> {
+        let rendered = eval_mdx_element(
+            &[
+                literal_attribute("class", "highlight"),
+                AttributeContent::Property(MdxJsxAttribute {
+                    name: "hidden".to_string(),
+                    value: None,
+                }),
+            ],
+            &[],
+            &DummyContext,
+            String::new(),
+            &Some("div".to_string()),
+            &renderer()?,
+        )?;
+
+        assert!(rendered.contains("<div "));
+        assert!(rendered.contains("class=\"highlight\""));
+        assert!(rendered.contains("hidden"));
+        assert!(rendered.contains("</div>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn errors_when_void_element_has_children() -> Result<()> {
+        assert!(
+            eval_mdx_element(
+                &[],
+                &[Node::Text(Text {
+                    value: "child".to_string(),
+                    position: None,
+                })],
+                &DummyContext,
+                "child".to_string(),
+                &Some("br".to_string()),
+                &renderer()?,
+            )
+            .is_err()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn errors_on_attribute_expression() -> Result<()> {
+        assert!(
+            eval_mdx_element(
+                &[AttributeContent::Expression(MdxJsxExpressionAttribute {
+                    value: "spread".to_string(),
+                    stops: Vec::new(),
+                })],
+                &[],
+                &DummyContext,
+                String::new(),
+                &Some("div".to_string()),
+                &renderer()?,
+            )
+            .is_err()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn errors_when_element_has_no_name() -> Result<()> {
+        assert!(
+            eval_mdx_element(&[], &[], &DummyContext, String::new(), &None, &renderer()?,).is_err()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn renders_attribute_with_evaluated_expression_value() -> Result<()> {
+        let rendered = eval_mdx_element(
+            &[AttributeContent::Property(MdxJsxAttribute {
+                name: "data-label".to_string(),
+                value: Some(AttributeValue::Expression(AttributeValueExpression {
+                    value: "\"hi\"".to_string(),
+                    stops: Vec::new(),
+                })),
+            })],
+            &[],
+            &DummyContext,
+            String::new(),
+            &Some("div".to_string()),
+            &renderer()?,
+        )?;
+
+        assert!(rendered.contains("data-label=\"hi\""));
+
+        Ok(())
+    }
+}

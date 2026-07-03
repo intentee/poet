@@ -52,3 +52,42 @@ impl CustomType for ContentDocumentTreeNode {
             .with_get("reference", Self::rhai_reference);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::content_document_front_matter::ContentDocumentFrontMatter;
+
+    fn node(
+        basename: &str,
+        children: LinkedList<ContentDocumentTreeNode>,
+    ) -> ContentDocumentTreeNode {
+        ContentDocumentTreeNode {
+            children,
+            collection_name: "collection".to_string(),
+            reference: ContentDocumentReference {
+                basename_path: basename.into(),
+                front_matter: ContentDocumentFrontMatter::mock(basename),
+                generated_page_base_path: "/".to_string(),
+            },
+        }
+    }
+
+    #[test]
+    fn flatten_walks_tree_in_depth_first_preorder() {
+        let mut grandchildren = LinkedList::new();
+        grandchildren.push_back(node("grandchild", LinkedList::new()));
+
+        let mut children = LinkedList::new();
+        children.push_back(node("child-a", grandchildren));
+        children.push_back(node("child-b", LinkedList::new()));
+
+        let basenames: Vec<String> = node("root", children)
+            .flatten()
+            .iter()
+            .map(|reference| reference.basename().to_string())
+            .collect();
+
+        assert_eq!(basenames, vec!["root", "child-a", "grandchild", "child-b"]);
+    }
+}

@@ -385,3 +385,331 @@ pub async fn build_project(
         Err(anyhow!("{error_collection}"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+    use std::sync::Arc;
+
+    use anyhow::Result;
+    use anyhow::anyhow;
+    use tempfile::tempdir;
+
+    use super::build_project;
+    use crate::asset_path_renderer::AssetPathRenderer;
+    use crate::build_authors::build_authors;
+    use crate::build_project::build_project_params::BuildProjectParams;
+    use crate::build_project::build_project_result_stub::BuildProjectResultStub;
+    use crate::compile_shortcodes::compile_shortcodes;
+    use crate::filesystem::Filesystem as _;
+    use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
+    use crate::filesystem::storage::Storage;
+
+    const LAYOUT_MINIMAL: &str = r#"
+fn template(context, props, content) {
+  component {
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <title>Test</title>
+      </head>
+      <body>
+        <PrimaryNavigation>nav</PrimaryNavigation>
+        {content}
+        <ul>
+          {
+            let ret = [];
+
+            for author in context.authors {
+              ret.push(component {
+                <li>{author.data.name}</li>
+              });
+            }
+
+            ret
+          }
+        </ul>
+      </body>
+    </html>
+  }
+}
+"#;
+
+    const PRIMARY_NAVIGATION: &str = r#"
+fn template(context, props, content) {
+  component {
+    <nav>{content}</nav>
+  }
+}
+"#;
+
+    async fn build(
+        files: &[(&str, &str)],
+        generate_sitemap: bool,
+    ) -> Result<BuildProjectResultStub> {
+        let directory = tempdir()?;
+        let source_filesystem = Arc::new(Storage {
+            base_directory: directory.path().to_path_buf(),
+        });
+
+        for (relative_path, contents) in files {
+            source_filesystem
+                .set_file_contents(Path::new(relative_path), contents)
+                .await?;
+        }
+
+        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.clone()).await?;
+
+        build_project(BuildProjectParams {
+            asset_path_renderer: AssetPathRenderer {
+                base_path: "/".to_string(),
+            },
+            authors,
+            esbuild_metafile: Default::default(),
+            generated_page_base_path: "/".to_string(),
+            generate_sitemap,
+            is_watching: false,
+            rhai_template_renderer,
+            source_filesystem,
+        })
+        .await
+    }
+
+    async fn read(result: &BuildProjectResultStub, relative_path: &str) -> Result<String> {
+        match result
+            .memory_filesystem
+            .read_file_contents(Path::new(relative_path))
+            .await?
+        {
+            ReadFileContentsResult::Found { contents } => Ok(contents),
+            ReadFileContentsResult::Directory => Err(anyhow!("{relative_path} is a directory")),
+            ReadFileContentsResult::NotFound => Err(anyhow!("{relative_path} was not generated")),
+        }
+    }
+
+    #[tokio::test]
+    async fn renders_content_documents_to_their_target_paths() -> Result<()> {
+        let result = build(
+            &[
+                ("shortcodes/LayoutMinimal.rhai", LAYOUT_MINIMAL),
+                ("shortcodes/PrimaryNavigation.rhai", PRIMARY_NAVIGATION),
+                ("authors/alice.toml", "name = \"Alice\""),
+                (
+                    "content/index.md",
+                    "+++\ndescription = \"Home\"\nlayout = \"LayoutMinimal\"\ntitle = \"Home\"\nauthors = [\"alice\"]\n+++\n\n# Hello\n\nBody text.\n",
+                ),
+                (
+                    "content/docs/index.md",
+                    "+++\ndescription = \"Docs\"\nlayout = \"LayoutMinimal\"\ntitle = \"Docs\"\n\n[[collection]]\nname = \"docs\"\n+++\n\nDocs index.\n",
+                ),
+                (
+                    "content/docs/page.md",
+                    "+++\ndescription = \"Page\"\nlayout = \"LayoutMinimal\"\ntitle = \"Page\"\n\n[[collection]]\nname = \"docs\"\nafter = \"docs/index\"\n+++\n\nPage body.\n",
+                ),
+            ],
+            false,
+        )
+        .await?;
+
+        let home = read(&result, "index.html").await?;
+
+        assert!(home.contains("<!DOCTYPE html>"));
+        assert!(home.contains("<nav>nav</nav>"));
+        assert!(home.contains("<li>Alice</li>"));
+
+        read(&result, "docs/index.html").await?;
+        read(&result, "docs/page/index.html").await?;
+
+        assert_eq!(result.content_document_sources.len(), 3);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn generates_sitemap_with_canonical_links_when_requested() -> Result<()> {
+        let result = build(
+            &[
+                ("shortcodes/LayoutMinimal.rhai", LAYOUT_MINIMAL),
+                ("shortcodes/PrimaryNavigation.rhai", PRIMARY_NAVIGATION),
+                (
+                    "content/index.md",
+                    "+++\ndescription = \"Home\"\nlayout = \"LayoutMinimal\"\ntitle = \"Home\"\n+++\n\nHome.\n",
+                ),
+            ],
+            true,
+        )
+        .await?;
+
+        let sitemap = read(&result, "sitemap.xml").await?;
+
+        assert!(sitemap.contains("<urlset"));
+        assert!(sitemap.contains("<loc>/</loc>"));
+
+        Ok(())
+    }
+
+    const LAYOUT_RICH: &str = r#"
+fn template(context, props, content) {
+  component {
+    <html>
+      <head><title>{context.front_matter.title}</title></head>
+      <body>
+        <p>{context.front_matter.description}</p>
+        <span>{context.reference.canonical_link}</span>
+        <span>{context.reference.basename}</span>
+        <span>reftitle:{context.reference.front_matter.title}</span>
+        <span>watching:{context.is_watching}</span>
+        <span>props:{context.front_matter.props.len()}</span>
+        <span>authors:{context.available_authors.len()}</span>
+        {if context.front_matter.render { "<i>is-rendered</i>" } else { "" }}
+        {
+          let names = "";
+
+          for author in context.authors {
+            names += "<b>" + author.basename + "=" + author.data.name + "</b>";
+          }
+
+          names
+        }
+        <ul>
+        {
+          let toc = "";
+
+          for heading in context.table_of_contents.headings {
+            toc += "<li>" + heading.id + ":" + heading.content + ":" + heading.depth + "</li>";
+          }
+
+          toc
+        }
+        </ul>
+        {
+          let docs = context.collection("docs");
+          let heading = "<h2>" + docs.name + "</h2>";
+
+          heading + render_hierarchy(docs.hierarchy, |node, level, children| {
+            "<li>" + node.reference.basename + " in " + node.collection_name + " kids " + node.children.len() + children + "</li>"
+          })
+        }
+        {content}
+      </body>
+    </html>
+  }
+}
+"#;
+
+    const LAYOUT_PLAIN: &str = r#"
+fn template(context, props, content) {
+  component {
+    <html>{content}</html>
+  }
+}
+"#;
+
+    #[tokio::test]
+    async fn rich_layout_exercises_template_accessors_and_hierarchy() -> Result<()> {
+        let result = build(
+            &[
+                ("shortcodes/LayoutRich.rhai", LAYOUT_RICH),
+                ("shortcodes/LayoutPlain.rhai", LAYOUT_PLAIN),
+                ("authors/alice.toml", "name = \"Alice\""),
+                (
+                    "content/index.md",
+                    "+++\ndescription = \"Welcome home\"\nlayout = \"LayoutRich\"\ntitle = \"Home Page\"\nauthors = [\"alice\"]\n+++\n\n# Section One\n\nHome body.\n",
+                ),
+                (
+                    "content/docs/index.md",
+                    "+++\ndescription = \"Docs\"\nlayout = \"LayoutPlain\"\ntitle = \"Docs\"\n\n[[collection]]\nname = \"docs\"\n+++\n\nDocs index.\n",
+                ),
+                (
+                    "content/docs/page.md",
+                    "+++\ndescription = \"Page\"\nlayout = \"LayoutPlain\"\ntitle = \"Page\"\n\n[[collection]]\nname = \"docs\"\nafter = \"docs/index\"\n+++\n\nPage body.\n",
+                ),
+            ],
+            false,
+        )
+        .await?;
+
+        let home = read(&result, "index.html").await?;
+
+        assert!(home.contains("<title>Home Page</title>"));
+        assert!(home.contains("Welcome home"));
+        assert!(home.contains("<i>is-rendered</i>"));
+        assert!(home.contains("reftitle:Home Page"));
+        assert!(home.contains("watching:false"));
+        assert!(home.contains("authors:1"));
+        assert!(home.contains("<b>alice=Alice</b>"));
+        assert!(home.contains("section-one:Section One:1"));
+        assert!(home.contains("<h2>docs</h2>"));
+        assert!(home.contains("in docs kids"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn renders_markdown_mdx_component_and_expression() -> Result<()> {
+        let result = build(
+            &[
+                ("shortcodes/LayoutMinimal.rhai", LAYOUT_MINIMAL),
+                ("shortcodes/PrimaryNavigation.rhai", PRIMARY_NAVIGATION),
+                (
+                    "content/index.md",
+                    "+++\ndescription = \"Home\"\nlayout = \"LayoutMinimal\"\ntitle = \"Home\"\n+++\n\nValue {40 + 2}\n\n<PrimaryNavigation>\ninner\n</PrimaryNavigation>\n",
+                ),
+            ],
+            false,
+        )
+        .await?;
+
+        let home = read(&result, "index.html").await?;
+
+        assert!(home.contains("<p>Value 42</p>"));
+        assert!(home.contains("<nav><p>inner</p></nav>"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn errors_on_duplicate_document_id() -> Result<()> {
+        let front_matter = |title: &str| {
+            format!(
+                "+++\ndescription = \"d\"\nid = \"dup\"\nlayout = \"LayoutMinimal\"\ntitle = \"{title}\"\n+++\n\nBody.\n"
+            )
+        };
+
+        let outcome = build(
+            &[
+                ("content/a.md", &front_matter("A")),
+                ("content/b.md", &front_matter("B")),
+            ],
+            false,
+        )
+        .await;
+
+        assert!(
+            outcome.is_err_and(|error| error.to_string().contains("Duplicate document id: #dup"))
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn errors_when_a_referenced_author_does_not_exist() -> Result<()> {
+        let outcome = build(
+            &[(
+                "content/a.md",
+                "+++\ndescription = \"d\"\nlayout = \"LayoutMinimal\"\ntitle = \"A\"\nauthors = [\"ghost\"]\n+++\n\nBody.\n",
+            )],
+            false,
+        )
+        .await;
+
+        assert!(
+            outcome.is_err_and(|error| {
+                error.to_string().contains("Author does not exist: 'ghost'")
+            })
+        );
+
+        Ok(())
+    }
+}

@@ -136,11 +136,15 @@ mod tests {
 
     #[test]
     fn errs_when_root_node_is_body_expression() -> Result<()> {
-        let mut root = TagStackNode::BodyExpression(ExpressionReference { expression_index: 0 });
+        let mut root = TagStackNode::BodyExpression(ExpressionReference {
+            expression_index: 0,
+        });
 
         assert!(
             combine_tag_stack(&mut root, &mut VecDeque::new(), &mut VecDeque::new()).is_err_and(
-                |error| error.to_string().contains("Cannot add child to body expression node")
+                |error| error
+                    .to_string()
+                    .contains("Cannot add child to body expression node")
             )
         );
 
@@ -152,9 +156,8 @@ mod tests {
         let mut root = TagStackNode::Text("hi".to_string());
 
         assert!(
-            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut VecDeque::new()).is_err_and(
-                |error| error.to_string().contains("Cannot add child to text node")
-            )
+            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut VecDeque::new())
+                .is_err_and(|error| error.to_string().contains("Cannot add child to text node"))
         );
 
         Ok(())
@@ -217,9 +220,7 @@ mod tests {
 
         symbols.push_back(OutputSemanticSymbol::Tag(make_tag("br", false, false)));
 
-        assert!(
-            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok()
-        );
+        assert!(combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok());
         assert!(matches!(
             &root,
             TagStackNode::Tag { children, .. }
@@ -241,9 +242,7 @@ mod tests {
 
         symbols.push_back(OutputSemanticSymbol::Text(String::new()));
 
-        assert!(
-            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok()
-        );
+        assert!(combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok());
         assert!(matches!(
             &root,
             TagStackNode::Tag { children, .. } if children.is_empty()

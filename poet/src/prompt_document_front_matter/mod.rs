@@ -72,3 +72,50 @@ impl CustomType for PromptDocumentFrontMatter {
             .with_get("title", Self::rhai_title);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn front_matter_with_argument() -> PromptDocumentFrontMatter {
+        let mut arguments = HashMap::new();
+
+        arguments.insert(
+            "topic".to_string(),
+            Argument {
+                description: "The topic".to_string(),
+                required: true,
+                title: "Topic".to_string(),
+            },
+        );
+
+        PromptDocumentFrontMatter {
+            arguments,
+            description: "description".to_string(),
+            title: "title".to_string(),
+        }
+    }
+
+    #[test]
+    fn maps_provided_input_onto_argument() -> Result<()> {
+        let mut inputs = HashMap::new();
+
+        inputs.insert("topic".to_string(), "rust".to_string());
+
+        let mapped = front_matter_with_argument().map_arguments(inputs)?;
+
+        assert_eq!(mapped["topic"].input, "rust");
+        assert_eq!(mapped["topic"].title, "Topic");
+
+        Ok(())
+    }
+
+    #[test]
+    fn fails_when_required_argument_input_is_missing() {
+        assert!(
+            front_matter_with_argument()
+                .map_arguments(HashMap::new())
+                .is_err()
+        );
+    }
+}

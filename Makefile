@@ -48,13 +48,22 @@ clippy:
 .PHONY: coverage
 coverage: node_modules
 	cargo llvm-cov clean --workspace
-	cargo llvm-cov --workspace --no-report
+	cargo llvm-cov nextest --workspace --no-report
 	cargo llvm-cov report --json --output-path target/llvm-cov.json
 	cargo llvm-cov report
 	npx rust-coverage-check target/llvm-cov.json \
 		--workspace-root $(CURDIR) \
-		--gated rhai_components \
-		--required-percent 100
+		--gated poet=80 \
+		--gated rhai_components=100
+
+.PHONY: coverage-clean
+coverage-clean:
+	cargo llvm-cov clean --workspace
+	rm -f target/llvm-cov.json
+
+.PHONY: coverage-report
+coverage-report:
+	cargo llvm-cov nextest --workspace --html
 
 .PHONY: fmt
 fmt: node_modules

@@ -152,7 +152,7 @@ pub fn eval_prompt_document_mdast(
             let src = if is_external_link(url) {
                 url
             } else {
-                &match prompt_document_component_context.asset_manager.file(url) {
+                &match prompt_document_component_context.asset_manager.image(url) {
                     Ok(src) => src,
                     Err(err) => return Err(anyhow!(err)),
                 }

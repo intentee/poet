@@ -216,7 +216,7 @@ pub fn eval_content_document_mdast(
             let src = if is_external_link(url) {
                 url
             } else {
-                &match component_context.asset_manager.file(url) {
+                &match component_context.asset_manager.image(url) {
                     Ok(src) => src,
                     Err(err) => return Err(anyhow!(err)),
                 }
@@ -447,6 +447,10 @@ mod tests {
         {
             "outputs": {
                 "static/logo_ABCDEF12.png": {
+                    "imports": [],
+                    "inputs": { "logo.png": {} }
+                },
+                "static/chunk_ABCDEF12.js": {
                     "imports": [],
                     "inputs": { "logo.png": {} }
                 },

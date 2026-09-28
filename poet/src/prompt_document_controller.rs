@@ -4,6 +4,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use markdown::mdast::Node;
+use poet_assets::asset_manager::AssetManager;
+use poet_assets::asset_path_renderer::AssetPathRenderer;
 use poet_mcp::prompt::Prompt;
 use poet_mcp::prompt_argument::PromptArgument;
 use poet_mcp::prompts_get_request::PromptsGetRequest;
@@ -11,8 +13,6 @@ use poet_mcp::prompts_get_request_params::PromptsGetRequestParams;
 use poet_mcp::prompts_get_result::PromptsGetResult;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
-use crate::asset_manager::AssetManager;
-use crate::asset_path_renderer::AssetPathRenderer;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::eval_prompt_document_mdast::eval_prompt_document_mdast;
 use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;

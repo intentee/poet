@@ -2,7 +2,7 @@
 
 RUST_LOG ?= debug
 
-POET_SOURCES := $(shell find poet/src poet_filesystem/src poet_mcp/src rhai_components/src -name '*.rs') Cargo.toml Cargo.lock poet/Cargo.toml poet_filesystem/Cargo.toml poet_mcp/Cargo.toml rhai_components/Cargo.toml
+POET_SOURCES := $(shell find poet/src poet_assets/src poet_filesystem/src poet_mcp/src rhai_components/src -name '*.rs') Cargo.toml Cargo.lock poet/Cargo.toml poet_assets/Cargo.toml poet_filesystem/Cargo.toml poet_mcp/Cargo.toml rhai_components/Cargo.toml
 
 # -----------------------------------------------------------------------------
 # Real targets
@@ -56,6 +56,7 @@ coverage: node_modules
 	npx rust-coverage-check target/llvm-cov.json \
 		--workspace-root $(CURDIR) \
 		--gated poet=80 \
+		--gated poet_assets=100 \
 		--gated poet_filesystem=100 \
 		--gated poet_mcp=100 \
 		--gated rhai_components=100

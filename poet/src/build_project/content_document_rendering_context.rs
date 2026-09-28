@@ -3,10 +3,10 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+use poet_assets::asset_path_renderer::AssetPathRenderer;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use syntect::parsing::SyntaxSet;
 
-use crate::asset_path_renderer::AssetPathRenderer;
 use crate::author::Author;
 use crate::author_collection::AuthorCollection;
 use crate::content_document::ContentDocument;

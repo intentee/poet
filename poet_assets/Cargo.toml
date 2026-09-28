@@ -1,0 +1,23 @@
+[package]
+name = "poet_assets"
+description = "Resolves, preloads and renders esbuild assets for Poet pages"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+dashmap = { workspace = true }
+esbuild-metafile = { workspace = true }
+log = { workspace = true }
+mime = { workspace = true }
+mime_guess = { workspace = true }
+poet_filesystem = { workspace = true }
+rhai = { workspace = true }
+rhai_components = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+[lints]
+workspace = true

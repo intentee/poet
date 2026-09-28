@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 
 use anyhow::Result;
+use poet_assets::asset_manager::AssetManager;
 use poet_mcp::prompt_message::PromptMessage;
 use poet_mcp::role::Role;
 use rhai::CustomType;
@@ -13,7 +14,6 @@ use rhai::EvalAltResult;
 use rhai::Map;
 use rhai::TypeBuilder;
 
-use crate::asset_manager::AssetManager;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
@@ -115,10 +115,10 @@ impl CustomType for PromptDocumentComponentContext {
 #[cfg(test)]
 mod tests {
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_mcp::content_block::ContentBlock;
 
     use super::*;
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::content_document_front_matter::ContentDocumentFrontMatter;
     use crate::content_document_reference::ContentDocumentReference;
 

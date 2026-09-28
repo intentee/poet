@@ -26,6 +26,7 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
+use poet_assets::is_external_link::is_external_link;
 use rhai_components::escape_html::escape_html;
 use rhai_components::escape_html_attribute::escape_html_attribute;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
@@ -36,7 +37,6 @@ use syntect::util::LinesWithEndings;
 
 use crate::content_document_component_context::ContentDocumentComponentContext;
 use crate::eval_mdx_element::eval_mdx_element;
-use crate::is_external_link::is_external_link;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::parse_markdown_metadata_line::metadata_line_item::MetadataLineItem;
 use crate::parse_markdown_metadata_line::parse_markdown_metadata_line;
@@ -216,10 +216,7 @@ pub fn eval_content_document_mdast(
             let src = if is_external_link(url) {
                 url
             } else {
-                &match component_context.asset_manager.image(url) {
-                    Ok(src) => src,
-                    Err(err) => return Err(anyhow!(err)),
-                }
+                &component_context.asset_manager.image(url)?
             };
 
             result.push_str(&format!("src=\"{}\"", escape_html_attribute(src)));
@@ -428,6 +425,8 @@ mod tests {
 
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
     use indoc::indoc;
+    use poet_assets::asset_manager::AssetManager;
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
     use rhai::Engine;
     use rhai_components::component_syntax::component_registry::ComponentRegistry;
     use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
@@ -435,8 +434,6 @@ mod tests {
     use syntect::parsing::SyntaxSetBuilder;
 
     use super::*;
-    use crate::asset_manager::AssetManager;
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::author_collection::AuthorCollection;
     use crate::content_document_front_matter::ContentDocumentFrontMatter;
     use crate::content_document_linker::ContentDocumentLinker;

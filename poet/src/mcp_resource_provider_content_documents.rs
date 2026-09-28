@@ -151,6 +151,7 @@ mod tests {
     use std::sync::Arc;
 
     use anyhow::Result;
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
@@ -159,7 +160,6 @@ mod tests {
     use poet_mcp::resource_reference::ResourceReference;
     use tempfile::tempdir;
 
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_authors::build_authors;
     use crate::build_project::build_project;
     use crate::build_project::build_project_params::BuildProjectParams;

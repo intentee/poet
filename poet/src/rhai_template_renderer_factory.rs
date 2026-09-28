@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use poet_assets::asset_manager::AssetManager;
 use poet_filesystem::file_entry::FileEntry;
 use poet_filesystem::filesystem_error::FilesystemError;
 use rhai::Engine;
@@ -12,7 +13,6 @@ use rhai_components::rhai_components_error::RhaiComponentsError;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
-use crate::asset_manager::AssetManager;
 use crate::author::Author;
 use crate::author_collection::AuthorCollection;
 use crate::author_data::AuthorData;

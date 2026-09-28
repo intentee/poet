@@ -1,0 +1,13 @@
+{
+    "outputs": {
+        "static/logo_ABCDEF12.png": {
+            "imports": [],
+            "inputs": { "logo.png": {} }
+        },
+        "static/entry_ABCDEF12.js": {
+            "imports": [{ "path": "static/logo_ABCDEF12.png" }],
+            "entryPoint": "app.ts",
+            "inputs": { "app.ts": {} }
+        }
+    }
+}

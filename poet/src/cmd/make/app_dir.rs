@@ -1,5 +1,6 @@
 use std::env::consts::ARCH;
 use std::os::unix::fs::PermissionsExt as _;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -8,6 +9,9 @@ use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+use poet_assets::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_to;
+use poet_assets::esbuild_metafile_path::ESBUILD_METAFILE_PATH;
+use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use poet_filesystem::filesystem::Filesystem;
 use poet_filesystem::storage::Storage;
 use tokio::fs;
@@ -20,9 +24,7 @@ use crate::cmd::handler::Handler;
 use crate::cmd::value_parser::validate_is_directory;
 use crate::cmd::value_parser::validate_is_directory_or_create;
 use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
-use crate::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_to;
 use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
-use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
 const ICON: &str = r#"<svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -138,17 +140,15 @@ impl Handler for AppDir {
         }
 
         app_dir_filesystem
-            .copy_file_from(
-                source_filesystem.as_ref(),
-                &PathBuf::from("esbuild-meta.json"),
-            )
+            .copy_file_from(source_filesystem.as_ref(), Path::new(ESBUILD_METAFILE_PATH))
             .await?;
 
         info!("Copying assets to AppDir...");
 
-        let esbuild_metafile = read_esbuild_metafile_or_default(source_filesystem.clone()).await?;
+        let esbuild_metafile = read_esbuild_metafile_or_default(source_filesystem.as_ref()).await?;
 
-        copy_esbuild_metafile_assets_to(esbuild_metafile, &app_dir_path).await?;
+        copy_esbuild_metafile_assets_to(&esbuild_metafile, &self.source_directory, &app_dir_path)
+            .await?;
 
         info!("Creating AppDir-specific metafiles...");
 

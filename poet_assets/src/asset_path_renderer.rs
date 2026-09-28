@@ -10,7 +10,7 @@ pub struct AssetPathRenderer {
 impl RendersPath for AssetPathRenderer {
     fn render_path(&self, path: &str) -> String {
         if is_external_link(path) {
-            path.to_string()
+            path.to_owned()
         } else {
             format!("{}{path}", self.base_path)
         }

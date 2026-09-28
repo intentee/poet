@@ -2,6 +2,8 @@
 resolver = "3"
 members = [
     "poet",
+    "poet_assets",
+    "poet_assets_tests",
     "poet_filesystem",
     "poet_filesystem_tests",
     "poet_mcp",
@@ -82,6 +84,7 @@ mime_guess = "2.0"
 nom = "8.0"
 notify-debouncer-full = "0.7"
 petgraph = { version = "0.8", features = ["serde", "serde_derive"] }
+poet_assets = { path = "poet_assets", version = "0.8" }
 poet_filesystem = { path = "poet_filesystem", version = "0.8" }
 poet_mcp = { path = "poet_mcp", version = "0.8" }
 rayon = "1.12"
@@ -99,4 +102,5 @@ tempfile = "3.27"
 tokio = { version = "1.53", features = ["full"] }
 tokio-util = "0.7"
 toml = "1.1"
+url = "2.5"
 uuid = { version = "1.26", features = ["rng", "serde", "v4"] }

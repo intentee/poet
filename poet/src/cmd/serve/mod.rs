@@ -14,12 +14,13 @@ use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+use poet_assets::asset_path_renderer::AssetPathRenderer;
+use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use poet_filesystem::filesystem::Filesystem;
 use poet_mcp::implementation::Implementation;
 use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
-use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_authors::build_authors;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
@@ -39,7 +40,6 @@ use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
 use crate::mcp_server_factory::McpServerFactory;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
-use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use crate::search_index::SearchIndex;
 use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
@@ -114,7 +114,7 @@ impl Handler for Serve {
         let build_project_result: BuildProjectResult = build_project(BuildProjectParams {
             asset_path_renderer: asset_path_renderer.clone(),
             authors,
-            esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.clone()).await?,
+            esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.as_ref()).await?,
             generated_page_base_path: self.public_path.clone(),
             generate_sitemap: self.sitemap,
             is_watching: false,

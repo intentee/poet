@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use poet_assets::asset_manager::AssetManager;
 use rhai::CustomType;
 use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
-use crate::asset_manager::AssetManager;
 use crate::author::Author;
 use crate::author_collection::AuthorCollection;
 use crate::content_document_collection_ranked::ContentDocumentCollectionRanked;
@@ -35,7 +35,7 @@ impl ContentDocumentComponentContext {
         Self {
             asset_manager: AssetManager::from_esbuild_metafile(
                 Arc::new(esbuild_metafile::esbuild_metafile::EsbuildMetafile::default()),
-                crate::asset_path_renderer::AssetPathRenderer {
+                poet_assets::asset_path_renderer::AssetPathRenderer {
                     base_path: "/".to_string(),
                 },
             ),
@@ -198,9 +198,9 @@ impl CustomType for ContentDocumentComponentContext {
 #[cfg(test)]
 mod tests {
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
 
     use super::*;
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::content_document_collection::ContentDocumentCollection;
     use crate::content_document_front_matter::collection_placement::CollectionPlacement;
     use crate::content_document_front_matter::collection_placement_list::CollectionPlacementList;

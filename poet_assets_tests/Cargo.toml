@@ -1,0 +1,25 @@
+[package]
+name = "poet_assets_tests"
+autotests = false
+description = "Integration tests for poet_assets"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+esbuild-metafile = { workspace = true }
+poet_assets = { workspace = true }
+poet_filesystem = { workspace = true }
+rhai = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

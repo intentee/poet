@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use notify_debouncer_full::DebouncedEvent;
 use notify_debouncer_full::notify::EventKind;
+use poet_assets::esbuild_metafile_path::ESBUILD_METAFILE_PATH;
 
 use crate::authors_source_directory::AUTHORS_SOURCE_DIRECTORY;
 use crate::cmd::watch::project_file_kind::ProjectFileKind;
@@ -46,7 +47,7 @@ impl ProjectFileClassifier {
                 source_directory,
                 CONTENT_SOURCE_DIRECTORY.name,
             )?,
-            esbuild_metafile_path: source_directory.join("esbuild-meta.json"),
+            esbuild_metafile_path: source_directory.join(ESBUILD_METAFILE_PATH),
             prompts_directory: create_watched_directory(
                 source_directory,
                 PROMPTS_SOURCE_DIRECTORY.name,
@@ -104,6 +105,7 @@ mod tests {
     use notify_debouncer_full::notify::EventKind;
     use notify_debouncer_full::notify::event::ModifyKind;
     use notify_debouncer_full::notify::event::RemoveKind;
+    use poet_assets::esbuild_metafile_path::ESBUILD_METAFILE_PATH;
     use tempfile::TempDir;
     use tempfile::tempdir;
 
@@ -133,7 +135,7 @@ mod tests {
         ProjectFileClassifier {
             authors_directory: source_directory.join(AUTHORS_SOURCE_DIRECTORY.name),
             content_directory: source_directory.join(CONTENT_SOURCE_DIRECTORY.name),
-            esbuild_metafile_path: source_directory.join("esbuild-meta.json"),
+            esbuild_metafile_path: source_directory.join(ESBUILD_METAFILE_PATH),
             prompts_directory: source_directory.join(PROMPTS_SOURCE_DIRECTORY.name),
             shortcodes_directory: source_directory.join(SHORTCODES_SOURCE_DIRECTORY.name),
         }

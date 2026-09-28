@@ -3,6 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use log::error;
+use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use poet_filesystem::storage::Storage;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
@@ -10,7 +11,6 @@ use tokio_util::sync::CancellationToken;
 use crate::cmd::service::Service;
 use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::holder::Holder as _;
-use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 
 pub struct EsbuildMetafileReader {
     pub ctrlc_notifier: CancellationToken,
@@ -23,7 +23,7 @@ pub struct EsbuildMetafileReader {
 impl Service for EsbuildMetafileReader {
     async fn run(&self) -> Result<()> {
         loop {
-            match read_esbuild_metafile_or_default(self.source_filesystem.clone()).await {
+            match read_esbuild_metafile_or_default(self.source_filesystem.as_ref()).await {
                 Ok(esbuild_metafile) => {
                     self.esbuild_metafile_holder
                         .set(Some(esbuild_metafile))

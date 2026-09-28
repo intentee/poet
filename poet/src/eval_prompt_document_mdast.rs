@@ -25,12 +25,12 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
+use poet_assets::is_external_link::is_external_link;
 use rhai_components::escape_html::escape_html;
 use rhai_components::escape_html_attribute::escape_html_attribute;
 
 use crate::eval_mdx_element::eval_mdx_element;
 use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;
-use crate::is_external_link::is_external_link;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 
 fn into_blockquote(input: String) -> String {
@@ -152,10 +152,7 @@ pub fn eval_prompt_document_mdast(
             let src = if is_external_link(url) {
                 url
             } else {
-                &match prompt_document_component_context.asset_manager.image(url) {
-                    Ok(src) => src,
-                    Err(err) => return Err(anyhow!(err)),
-                }
+                &prompt_document_component_context.asset_manager.image(url)?
             };
 
             result.push_str(&escape_html_attribute(src));
@@ -357,6 +354,8 @@ mod test {
     use std::sync::Arc;
 
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+    use poet_assets::asset_manager::AssetManager;
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_mcp::content_block::ContentBlock;
     use poet_mcp::prompt_message::PromptMessage;
     use poet_mcp::role::Role;
@@ -366,8 +365,6 @@ mod test {
     use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
     use super::*;
-    use crate::asset_manager::AssetManager;
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::content_document_front_matter::ContentDocumentFrontMatter;
     use crate::content_document_linker::ContentDocumentLinker;
     use crate::content_document_reference::ContentDocumentReference;

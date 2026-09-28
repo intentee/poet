@@ -1,0 +1,12 @@
+{
+    "outputs": {
+        "static/img_ABCDEF12.png": {
+            "imports": [],
+            "inputs": { "img.png": {} }
+        },
+        "static/img_ABCDEF12.webp": {
+            "imports": [],
+            "inputs": { "img.png": {} }
+        }
+    }
+}

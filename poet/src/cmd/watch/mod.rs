@@ -13,12 +13,12 @@ use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
+use poet_assets::asset_path_renderer::AssetPathRenderer;
 use poet_mcp::implementation::Implementation;
 use tokio_util::sync::CancellationToken;
 
 use self::watch_project_files::WatchProjectHandle;
 use self::watch_project_files::watch_project_files;
-use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;

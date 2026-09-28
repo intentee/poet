@@ -2044,6 +2044,7 @@ dependencies = [
  "nom 8.0.0",
  "notify-debouncer-full",
  "petgraph",
+ "poet_assets",
  "poet_filesystem",
  "poet_mcp",
  "rayon",
@@ -2061,6 +2062,36 @@ dependencies = [
  "tokio",
  "tokio-util",
  "toml",
+]
+
+[[package]]
+name = "poet_assets"
+version = "0.8.0"
+dependencies = [
+ "dashmap",
+ "esbuild-metafile",
+ "log",
+ "mime",
+ "mime_guess",
+ "poet_filesystem",
+ "rhai",
+ "rhai_components",
+ "thiserror",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "poet_assets_tests"
+version = "0.8.0"
+dependencies = [
+ "esbuild-metafile",
+ "poet_assets",
+ "poet_filesystem",
+ "rhai",
+ "tempfile",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

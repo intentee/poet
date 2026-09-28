@@ -79,12 +79,12 @@ pub async fn build_prompt_document_controller_collection(
 mod tests {
     use std::path::Path;
 
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_filesystem::storage::Storage;
     use poet_mcp::list_resources_cursor::ListResourcesCursor;
     use tempfile::tempdir;
 
     use super::*;
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::compile_shortcodes::compile_shortcodes;
 
     async fn build(prompt_files: &[(&str, &str)]) -> Result<PromptControllerCollection> {

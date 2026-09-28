@@ -73,12 +73,12 @@ mod tests {
     use std::path::Path;
 
     use anyhow::Result;
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use tempfile::tempdir;
 
     use super::*;
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_authors::build_authors;
     use crate::build_project::build_project;
     use crate::build_project::build_project_params::BuildProjectParams;

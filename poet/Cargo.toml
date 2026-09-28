@@ -30,6 +30,7 @@ mime_guess = { workspace = true }
 nom = { workspace = true }
 notify-debouncer-full = { workspace = true }
 petgraph = { workspace = true }
+poet_assets = { workspace = true }
 poet_filesystem = { workspace = true }
 poet_mcp = { workspace = true }
 rayon = { workspace = true }

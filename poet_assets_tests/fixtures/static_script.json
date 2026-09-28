@@ -1,0 +1,8 @@
+{
+    "outputs": {
+        "static/data_ABCDEF12.js": {
+            "imports": [],
+            "inputs": { "data.js": {} }
+        }
+    }
+}

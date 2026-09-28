@@ -14,6 +14,7 @@ use anyhow::anyhow;
 use dashmap::DashMap;
 use log::debug;
 use log::info;
+use poet_assets::asset_manager::AssetManager;
 use poet_filesystem::filesystem::Filesystem as _;
 use poet_filesystem::memory::Memory;
 use rayon::iter::IntoParallelRefIterator as _;
@@ -21,7 +22,6 @@ use rayon::iter::ParallelIterator as _;
 use rhai::Dynamic;
 use syntect::parsing::SyntaxSet;
 
-use crate::asset_manager::AssetManager;
 use crate::author_resolve_result::AuthorResolveResult;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
@@ -376,13 +376,13 @@ mod tests {
 
     use anyhow::Result;
     use anyhow::anyhow;
+    use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::read_file_contents_result::ReadFileContentsResult;
     use poet_filesystem::storage::Storage;
     use tempfile::tempdir;
 
     use super::build_project;
-    use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_authors::build_authors;
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;

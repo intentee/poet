@@ -14,6 +14,8 @@ use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+use poet_mcp::implementation::Implementation;
+use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::asset_path_renderer::AssetPathRenderer;
@@ -25,6 +27,7 @@ use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
 use crate::holder::Holder as _;
+use crate::cmd::MCP_STREAMABLE_HTTP_MOUNT_PATH;
 use crate::cmd::STATIC_FILES_PUBLIC_PATH;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
@@ -34,19 +37,12 @@ use crate::cmd::value_parser::validate_is_directory;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem::Filesystem;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
-use crate::mcp::jsonrpc::implementation::Implementation;
-use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
-use crate::mcp::resource_list_aggregate::ResourceListAggregate;
-use crate::mcp::resource_provider::ResourceProvider;
-use crate::mcp::session_manager::SessionManager;
-use crate::mcp::tool_registry::ToolRegistry;
-use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
+use crate::mcp_server_factory::McpServerFactory;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use crate::search_index::SearchIndex;
 use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
-use crate::search_tool::SearchTool;
 
 #[derive(Parser)]
 pub struct Serve {
@@ -164,28 +160,19 @@ impl Handler for Serve {
             .set(Some(build_project_result))
             .await;
 
-        let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
-            McpResourceProviderContentDocuments(build_project_result_holder.clone());
-        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
-            vec![Arc::new(mcp_resource_provider_content_documents.clone())];
-        let resource_list_aggregate: Arc<ResourceListAggregate> =
-            Arc::new(resource_list_providers.into());
-        let session_manager: SessionManager = Default::default();
-        let mut tool_registry: ToolRegistry = Default::default();
-
         let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
 
         search_index_reader_holder
             .set(Some(Arc::new(search_index_reader)))
             .await;
 
-        tool_registry.register_owned(SearchTool {
-            mcp_resource_provider_content_documents: mcp_resource_provider_content_documents
-                .clone(),
-            search_index_reader_holder: search_index_reader_holder.clone(),
-        });
-
-        let tool_registry_arc: Arc<ToolRegistry> = Arc::new(tool_registry);
+        let mcp_server = McpServerFactory {
+            build_project_result_holder,
+            prompt_controller_collection_holder,
+            search_index_reader_holder,
+            server_info,
+        }
+        .create();
 
         HttpServer::new(move || {
             App::new()
@@ -195,13 +182,8 @@ impl Handler for Serve {
                         .prefer_utf8(true),
                 )
                 .service(McpHttpServiceFactory {
-                    mount_path: "/mcp/streamable".to_string(),
-                    prompt_controller_collection_holder: prompt_controller_collection_holder
-                        .clone(),
-                    resource_list_aggregate: resource_list_aggregate.clone(),
-                    server_info: server_info.clone(),
-                    session_manager: session_manager.clone(),
-                    tool_registry: tool_registry_arc.clone(),
+                    mcp_server: mcp_server.clone(),
+                    mount_path: MCP_STREAMABLE_HTTP_MOUNT_PATH.to_owned(),
                 })
                 .configure(http_route::generated_pages::register)
         })

@@ -1,4 +1,4 @@
-use crate::mcp::jsonrpc::role::Role;
+use poet_mcp::role::Role;
 
 pub enum PendingPromptMessage {
     WithRole { chunk: String, role: Role },

@@ -9,4 +9,5 @@ mod service_manager;
 mod value_parser;
 pub mod watch;
 
+const MCP_STREAMABLE_HTTP_MOUNT_PATH: &str = "/mcp/streamable";
 const STATIC_FILES_PUBLIC_PATH: &str = "assets";

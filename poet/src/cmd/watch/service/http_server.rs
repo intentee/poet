@@ -1,6 +1,5 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use actix_files::Files;
 use actix_web::App;
@@ -9,30 +8,24 @@ use actix_web::web::Data;
 use anyhow::Result;
 use async_trait::async_trait;
 use log::error;
+use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
+use poet_mcp::mcp_server::McpServer;
 use tokio::fs::create_dir_all;
 use tokio_util::sync::CancellationToken;
 
+use crate::cmd::MCP_STREAMABLE_HTTP_MOUNT_PATH;
 use crate::cmd::STATIC_FILES_PUBLIC_PATH;
 use crate::cmd::service::Service;
 use crate::cmd::watch::app_data::AppData;
 use crate::cmd::watch::http_route;
 use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
-use crate::mcp::jsonrpc::implementation::Implementation;
-use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
-use crate::mcp::resource_list_aggregate::ResourceListAggregate;
-use crate::mcp::session_manager::SessionManager;
-use crate::mcp::tool_registry::ToolRegistry;
-use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 
 pub struct HttpServer {
     pub addr: SocketAddr,
     pub assets_directory: PathBuf,
     pub ctrlc_notifier: CancellationToken,
     pub filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder,
-    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
-    pub resource_list_aggregate: Arc<ResourceListAggregate>,
-    pub session_manager: SessionManager,
-    pub tool_registry: Arc<ToolRegistry>,
+    pub mcp_server: McpServer,
 }
 
 #[async_trait]
@@ -57,18 +50,7 @@ impl Service for HttpServer {
             });
             let assets_directory = self.assets_directory.clone();
             let ctrlc_notifier = self.ctrlc_notifier.clone();
-            let prompt_controller_collection_holder =
-                self.prompt_controller_collection_holder.clone();
-            let resource_list_aggregate = self.resource_list_aggregate.clone();
-            let session_manager = self.session_manager.clone();
-            let tool_registry = self.tool_registry.clone();
-
-            let server_info = Implementation {
-                description: None,
-                name: "poet".to_string(),
-                title: Some("Poet".to_string()),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-            };
+            let mcp_server = self.mcp_server.clone();
 
             if let Err(err) = ActixHttpServer::new(move || {
                 App::new()
@@ -78,13 +60,8 @@ impl Service for HttpServer {
                             .prefer_utf8(true),
                     )
                     .service(McpHttpServiceFactory {
-                        mount_path: "/mcp/streamable".to_string(),
-                        prompt_controller_collection_holder: prompt_controller_collection_holder
-                            .clone(),
-                        resource_list_aggregate: resource_list_aggregate.clone(),
-                        server_info: server_info.clone(),
-                        session_manager: session_manager.clone(),
-                        tool_registry: tool_registry.clone(),
+                        mcp_server: mcp_server.clone(),
+                        mount_path: MCP_STREAMABLE_HTTP_MOUNT_PATH.to_owned(),
                     })
                     .configure(http_route::live_reload::register)
                     .configure(http_route::generated_pages::register)

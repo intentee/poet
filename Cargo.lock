@@ -2026,9 +2026,7 @@ dependencies = [
  "actix-web",
  "actix-ws",
  "anyhow",
- "async-stream",
  "async-trait",
- "base64 0.23.1",
  "blake3",
  "chrono",
  "clap",
@@ -2037,9 +2035,7 @@ dependencies = [
  "env_logger",
  "esbuild-metafile",
  "freedesktop_entry_parser",
- "futures-core",
  "futures-util",
- "http 1.5.0",
  "indoc",
  "itertools 0.15.0",
  "log",
@@ -2049,6 +2045,7 @@ dependencies = [
  "nom 8.0.0",
  "notify-debouncer-full",
  "petgraph",
+ "poet_mcp",
  "rayon",
  "rhai",
  "rhai_components",
@@ -2060,10 +2057,52 @@ dependencies = [
  "syntect",
  "tantivy",
  "tempfile",
+ "thiserror",
  "tokio",
  "tokio-util",
  "toml",
+]
+
+[[package]]
+name = "poet_mcp"
+version = "0.8.0"
+dependencies = [
+ "actix-web",
+ "async-stream",
+ "async-trait",
+ "base64 0.23.1",
+ "dashmap",
+ "futures-core",
+ "futures-util",
+ "http 1.5.0",
+ "log",
+ "mime",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-util",
  "uuid",
+]
+
+[[package]]
+name = "poet_mcp_tests"
+version = "0.8.0"
+dependencies = [
+ "actix-http",
+ "actix-web",
+ "async-trait",
+ "base64 0.23.1",
+ "futures-util",
+ "mime",
+ "poet_mcp",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]

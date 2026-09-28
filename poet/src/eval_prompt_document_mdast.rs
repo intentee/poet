@@ -299,8 +299,7 @@ pub fn eval_prompt_document_mdast(
             )?;
 
             if is_first_child && is_in_top_paragraph {
-                prompt_document_component_context
-                    .switch_role_to(potential_role_name.try_into()?)?;
+                prompt_document_component_context.switch_role_to(potential_role_name.parse()?)?;
             } else {
                 result.push_str("**");
                 result.push_str(potential_role_name);
@@ -358,6 +357,9 @@ mod test {
     use std::sync::Arc;
 
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+    use poet_mcp::content_block::ContentBlock;
+    use poet_mcp::prompt_message::PromptMessage;
+    use poet_mcp::role::Role;
     use rhai::Engine;
     use rhai_components::component_syntax::component_registry::ComponentRegistry;
     use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
@@ -369,9 +371,6 @@ mod test {
     use crate::content_document_front_matter::ContentDocumentFrontMatter;
     use crate::content_document_linker::ContentDocumentLinker;
     use crate::content_document_reference::ContentDocumentReference;
-    use crate::mcp::content_block::ContentBlock;
-    use crate::mcp::jsonrpc::role::Role;
-    use crate::mcp::prompt_message::PromptMessage;
     use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
     use crate::string_to_mdast::string_to_mdast;
 

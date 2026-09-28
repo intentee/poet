@@ -2,9 +2,9 @@ use std::mem::take;
 
 use anyhow::Result;
 use anyhow::anyhow;
+use poet_mcp::prompt_message::PromptMessage;
+use poet_mcp::role::Role;
 
-use crate::mcp::jsonrpc::role::Role;
-use crate::mcp::prompt_message::PromptMessage;
 use crate::pending_prompt_message::PendingPromptMessage;
 
 #[derive(Default)]
@@ -52,11 +52,11 @@ impl PromptMessageAccumulator {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use poet_mcp::content_block::ContentBlock;
+    use poet_mcp::prompt_message::PromptMessage;
+    use poet_mcp::role::Role;
 
     use super::PromptMessageAccumulator;
-    use crate::mcp::content_block::ContentBlock;
-    use crate::mcp::jsonrpc::role::Role;
-    use crate::mcp::prompt_message::PromptMessage;
 
     #[test]
     fn flush_fails_when_chunk_present_without_role() {

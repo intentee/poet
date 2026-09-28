@@ -12,7 +12,6 @@ use tantivy::schema::Value as _;
 
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_source::ContentDocumentSource;
-use crate::mcp::list_resources_cursor::ListResourcesCursor;
 use crate::search_index_fields::SearchIndexFields;
 use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;
@@ -28,7 +27,8 @@ impl SearchIndexReader {
     pub fn query(
         &self,
         SearchIndexQueryParams {
-            cursor: ListResourcesCursor { offset, per_page },
+            offset,
+            per_page,
             query,
         }: SearchIndexQueryParams,
     ) -> Result<Vec<SearchIndexFoundDocument>> {

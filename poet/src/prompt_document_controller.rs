@@ -4,6 +4,11 @@ use anyhow::Result;
 use async_trait::async_trait;
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use markdown::mdast::Node;
+use poet_mcp::prompt::Prompt;
+use poet_mcp::prompt_argument::PromptArgument;
+use poet_mcp::prompts_get_request::PromptsGetRequest;
+use poet_mcp::prompts_get_request_params::PromptsGetRequestParams;
+use poet_mcp::prompts_get_result::PromptsGetResult;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::asset_manager::AssetManager;
@@ -11,12 +16,7 @@ use crate::asset_path_renderer::AssetPathRenderer;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::eval_prompt_document_mdast::eval_prompt_document_mdast;
 use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;
-use crate::mcp::jsonrpc::request::prompts_get::PromptsGet;
-use crate::mcp::jsonrpc::request::prompts_get::PromptsGetParams;
-use crate::mcp::jsonrpc::response::success::prompts_get_result::PromptsGetResult;
-use crate::mcp::prompt::Prompt;
-use crate::mcp::prompt::PromptArgument;
-use crate::mcp::prompt_controller::PromptController;
+use crate::prompt_controller::PromptController;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument::Argument;
@@ -64,10 +64,10 @@ impl PromptController for PromptDocumentController {
 
     async fn respond_to(
         &self,
-        PromptsGet {
-            params: PromptsGetParams { arguments, .. },
+        PromptsGetRequest {
+            params: PromptsGetRequestParams { arguments, .. },
             ..
-        }: PromptsGet,
+        }: PromptsGetRequest,
     ) -> Result<PromptsGetResult> {
         let mut prompt_document_component_context = PromptDocumentComponentContext {
             arguments: self.front_matter.map_arguments(arguments)?,
@@ -105,14 +105,15 @@ mod tests {
     use std::path::PathBuf;
 
     use indoc::indoc;
+    use poet_mcp::jsonrpc_version::JSONRPC_VERSION;
+    use poet_mcp::prompt_message::PromptMessage;
+    use poet_mcp::request_id::RequestId;
+    use poet_mcp::role::Role;
 
     use super::*;
     use crate::build_prompt_document_controller::build_prompt_document_controller;
     use crate::build_prompt_document_controller_params::BuildPromptDocumentControllerParams;
     use crate::filesystem::file_entry_stub::FileEntryStub;
-    use crate::mcp::jsonrpc::JSONRPC_VERSION;
-    use crate::mcp::jsonrpc::role::Role;
-    use crate::mcp::prompt_message::PromptMessage;
     use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
 
     fn build_controller() -> Result<PromptDocumentController> {
@@ -178,10 +179,10 @@ mod tests {
         let prompt_controller = build_controller()?;
 
         let response = prompt_controller
-            .respond_to(PromptsGet {
-                id: "1".into(),
+            .respond_to(PromptsGetRequest {
+                id: RequestId::String("1".to_owned()),
                 jsonrpc: JSONRPC_VERSION.to_string(),
-                params: PromptsGetParams {
+                params: PromptsGetRequestParams {
                     arguments: {
                         let mut arguments: HashMap<String, String> = Default::default();
 

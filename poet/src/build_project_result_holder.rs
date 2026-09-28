@@ -2,14 +2,13 @@ use std::sync::Arc;
 use std::sync::atomic;
 use std::sync::atomic::AtomicUsize;
 
-use anyhow::Result;
-use anyhow::anyhow;
 use async_trait::async_trait;
 use tokio::sync::Notify;
 use tokio::sync::RwLock;
 
 use crate::build_project::build_project_result::BuildProjectResult;
 use crate::holder::Holder;
+use crate::poet_error::PoetError;
 
 #[derive(Clone, Default)]
 pub struct BuildProjectResultHolder {
@@ -19,10 +18,10 @@ pub struct BuildProjectResultHolder {
 }
 
 impl BuildProjectResultHolder {
-    pub async fn must_get_build_project_result(&self) -> Result<BuildProjectResult> {
-        self.get().await.ok_or_else(|| {
-            anyhow!("Server is still starting up, or there are no successful builds yet")
-        })
+    pub async fn must_get_build_project_result(&self) -> Result<BuildProjectResult, PoetError> {
+        self.get()
+            .await
+            .ok_or(PoetError::BuildProjectResultNotReady)
     }
 }
 

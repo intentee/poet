@@ -1,5 +1,13 @@
-use anyhow::Result;
 use async_trait::async_trait;
+use poet_mcp::content_block::ContentBlock;
+use poet_mcp::provider_error::ProviderError;
+use poet_mcp::resource_link::ResourceLink;
+use poet_mcp::resource_provider::ResourceProvider as _;
+use poet_mcp::tool_call_error_message::ToolCallErrorMessage;
+use poet_mcp::tool_call_result::ToolCallResult;
+use poet_mcp::tool_call_success::ToolCallSuccess;
+use poet_mcp::tool_provider::ToolProvider;
+use poet_mcp::tool_responder::ToolResponder;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
@@ -7,19 +15,13 @@ use tokio::task::spawn_blocking;
 
 use crate::content_document_front_matter::ContentDocumentFrontMatter;
 use crate::content_document_reference::ContentDocumentReference;
-use crate::holder::Holder;
-use crate::mcp::content_block::ContentBlock;
-use crate::mcp::content_block::resource_link::ResourceLink;
-use crate::mcp::jsonrpc::response::success::tool_call_result::ToolCallResult;
-use crate::mcp::jsonrpc::response::success::tool_call_result::success::Success;
-use crate::mcp::resource_provider::ResourceProvider as _;
-use crate::mcp::tool_call_error_message::ToolCallErrorMessage;
-use crate::mcp::tool_provider::ToolProvider;
-use crate::mcp::tool_responder::ToolResponder;
+use crate::holder::Holder as _;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
+
+const SEARCH_RESULTS_PER_PAGE: usize = 20;
 
 #[derive(Deserialize, JsonSchema, Serialize)]
 pub struct SearchToolProviderInput {
@@ -34,12 +36,38 @@ pub struct SearchTool {
     pub search_index_reader_holder: SearchIndexReaderHolder,
 }
 
+impl SearchTool {
+    fn resource_link(
+        &self,
+        SearchIndexFoundDocument {
+            content_document_reference:
+                content_document_reference @ ContentDocumentReference {
+                    front_matter:
+                        ContentDocumentFrontMatter {
+                            description, title, ..
+                        },
+                    ..
+                },
+        }: &SearchIndexFoundDocument,
+    ) -> ContentBlock {
+        ContentBlock::ResourceLink(ResourceLink {
+            description: Some(description.clone()),
+            mime_type: Some("text/markdown".to_owned()),
+            name: title.clone(),
+            title: Some(title.clone()),
+            uri: self
+                .mcp_resource_provider_content_documents
+                .resource_uri(&content_document_reference.basename().to_string()),
+        })
+    }
+}
+
 impl ToolProvider for SearchTool {
     type Input = SearchToolProviderInput;
     type Output = SearchToolProviderOutput;
 
     fn name(&self) -> String {
-        "search".to_string()
+        "search".to_owned()
     }
 }
 
@@ -48,51 +76,29 @@ impl ToolResponder<Self> for SearchTool {
     async fn respond(
         &self,
         SearchToolProviderInput { query }: SearchToolProviderInput,
-    ) -> Result<ToolCallResult<SearchToolProviderOutput>> {
-        match self
-            .search_index_reader_holder
-            .get()
-            .await {
-            Some(search_index_reader) => {
-                let search_index_found_documents: Vec<SearchIndexFoundDocument> = spawn_blocking(move || {
-                        search_index_reader.query(SearchIndexQueryParams {
-                            cursor: Default::default(),
-                            query,
-                        })
-                    })
-                    .await??;
+    ) -> Result<ToolCallResult<SearchToolProviderOutput>, ProviderError> {
+        let Some(search_index_reader) = self.search_index_reader_holder.get().await else {
+            return Ok(ToolCallErrorMessage(
+                "Search index is not ready yet. There are no successful builds yet, or the server needs more time to start.",
+            )
+            .into());
+        };
+        let search_index_found_documents = spawn_blocking(move || {
+            search_index_reader.query(SearchIndexQueryParams {
+                offset: 0,
+                per_page: SEARCH_RESULTS_PER_PAGE,
+                query,
+            })
+        })
+        .await??;
 
-                Ok(ToolCallResult::Success(Success {
-                    content: search_index_found_documents
-                        .iter()
-                        .map(|SearchIndexFoundDocument {
-                            content_document_reference: content_document_reference @ ContentDocumentReference {
-                                front_matter: ContentDocumentFrontMatter {
-                                    description,
-                                    title,
-                                    ..
-                                },
-                                ..
-                            }
-                        }| ContentBlock::ResourceLink(ResourceLink {
-                            description: Some(description.to_string()),
-                            mime_type: Some("text/markdown".to_string()),
-                            name: title.to_string(),
-                            title: Some(title.to_string()),
-                            uri: self.mcp_resource_provider_content_documents.resource_uri(&content_document_reference.basename().to_string()),
-                        }))
-                        .collect()
-                    ,
-                    structured_content: SearchToolProviderOutput {
-                    }
-                }))
-            },
-            None => Ok(
-                ToolCallErrorMessage(
-                    "Search index is not ready yet. There are no successful builds yet, or the server needs more time to start."
-                ).into(),
-            ),
-        }
+        Ok(ToolCallResult::Success(ToolCallSuccess {
+            content: search_index_found_documents
+                .iter()
+                .map(|search_index_found_document| self.resource_link(search_index_found_document))
+                .collect(),
+            structured_content: SearchToolProviderOutput {},
+        }))
     }
 }
 
@@ -101,9 +107,14 @@ mod tests {
     use std::path::Path;
     use std::sync::Arc;
 
+    use anyhow::Result;
+    use poet_mcp::provider_error::ProviderError;
+    use poet_mcp::tool_call_result::ToolCallResult;
+    use poet_mcp::tool_call_success::ToolCallSuccess;
+    use poet_mcp::tool_provider::ToolProvider as _;
+    use poet_mcp::tool_responder::ToolResponder as _;
     use tempfile::tempdir;
 
-    use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_authors::build_authors;
     use crate::build_project::build_project;
@@ -112,7 +123,11 @@ mod tests {
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::Filesystem as _;
     use crate::filesystem::storage::Storage;
+    use crate::holder::Holder as _;
     use crate::search_index::SearchIndex;
+    use crate::search_index_reader_holder::SearchIndexReaderHolder;
+    use crate::search_tool::SearchTool;
+    use crate::search_tool::SearchToolProviderInput;
 
     fn empty_search_tool() -> SearchTool {
         SearchTool {
@@ -180,7 +195,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn responds_with_failure_when_index_not_ready() -> Result<()> {
+    async fn responds_with_failure_when_index_not_ready() -> Result<(), ProviderError> {
         let result = empty_search_tool()
             .respond(SearchToolProviderInput {
                 query: "anything".to_string(),
@@ -193,7 +208,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn responds_with_resource_links_for_matches() -> Result<()> {
+    async fn responds_with_resource_links_for_matches() -> Result<(), ProviderError> {
         let result = search_tool_with_index()
             .await?
             .respond(SearchToolProviderInput {
@@ -201,10 +216,10 @@ mod tests {
             })
             .await?;
 
-        match result {
-            ToolCallResult::Success(success) => assert_eq!(success.content.len(), 1),
-            ToolCallResult::Failure(_) => unreachable!("expected a successful search result"),
-        }
+        assert!(matches!(
+            result,
+            ToolCallResult::Success(ToolCallSuccess { content, .. }) if content.len() == 1
+        ));
 
         Ok(())
     }

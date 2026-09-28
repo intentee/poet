@@ -17,10 +17,6 @@ use crate::cmd::service::Service;
 use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;
-use crate::mcp::jsonrpc::JSONRPC_VERSION;
-use crate::mcp::jsonrpc::notification::resources_list_changed::ResourcesListChanged;
-use crate::mcp::jsonrpc::server_to_client_notification::ServerToClientNotification;
-use crate::mcp::session_manager::SessionManager;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
 pub struct ProjectBuilder {
@@ -32,7 +28,6 @@ pub struct ProjectBuilder {
     pub on_author_file_changed: Arc<Notify>,
     pub on_content_file_changed: Arc<Notify>,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
-    pub session_manager: SessionManager,
     pub generate_sitemap: bool,
     pub source_filesystem: Arc<Storage>,
 }
@@ -89,18 +84,6 @@ impl ProjectBuilder {
                         },
                     ))
                     .await;
-
-                if let Err(err) = self
-                    .session_manager
-                    .broadcast(ServerToClientNotification::ResourcesListChanged(
-                        ResourcesListChanged {
-                            jsonrpc: JSONRPC_VERSION.to_string(),
-                        },
-                    ))
-                    .await
-                {
-                    error!("Failed to notify MCP sessions: {err:#?}");
-                }
 
                 info!("Build successful");
             }

@@ -2,6 +2,8 @@
 resolver = "3"
 members = [
     "poet",
+    "poet_mcp",
+    "poet_mcp_tests",
     "rhai_components",
     "rhai_components_tests",
 ]
@@ -51,6 +53,7 @@ unwrap_used = "deny"
 
 [workspace.dependencies]
 actix-files = "0.7"
+actix-http = "3.18"
 actix-web = "4.15"
 actix-ws = "0.4"
 anyhow = { version = "1.0", features = ["backtrace"] }
@@ -77,6 +80,7 @@ mime_guess = "2.0"
 nom = "8.0"
 notify-debouncer-full = "0.7"
 petgraph = { version = "0.8", features = ["serde", "serde_derive"] }
+poet_mcp = { path = "poet_mcp", version = "0.8" }
 rayon = "1.12"
 rhai = { version = "1.26", features = ["internals", "metadata", "no_closure", "serde", "serde_json", "sync"] }
 rhai_components = { path = "rhai_components", version = "0.6" }

@@ -13,6 +13,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
+use poet_mcp::implementation::Implementation;
 use tokio_util::sync::CancellationToken;
 
 use self::watch_project_files::WatchProjectHandle;
@@ -29,18 +30,15 @@ use crate::cmd::watch::service::filesystem_http_route_index_builder::FilesystemH
 use crate::cmd::watch::service::http_server::HttpServer;
 use crate::cmd::watch::service::project_builder::ProjectBuilder;
 use crate::cmd::watch::service::prompt_controller_collection_builder::PromptControllerCollectionBuilder;
+use crate::cmd::watch::service::resources_list_changed_broadcaster::ResourcesListChangedBroadcaster;
 use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
-use crate::mcp::resource_provider::ResourceProvider;
-use crate::mcp::session_manager::SessionManager;
-use crate::mcp::tool_registry::ToolRegistry;
-use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
+use crate::mcp_server_factory::McpServerFactory;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
-use crate::search_tool::SearchTool;
 
 #[derive(Parser)]
 pub struct Watch {
@@ -87,23 +85,23 @@ impl Handler for Watch {
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
         let esbuild_metafile_holder: EsbuildMetafileHolder = Default::default();
         let filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder = Default::default();
-        let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
-            McpResourceProviderContentDocuments(build_project_result_holder.clone());
         let prompt_controller_collection_holder: PromptControllerCollectionHolder =
             Default::default();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
-        let resource_list_providers: Vec<Arc<dyn ResourceProvider>> =
-            vec![Arc::new(mcp_resource_provider_content_documents.clone())];
         let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
-        let session_manager: SessionManager = Default::default();
-        let mut tool_registry: ToolRegistry = Default::default();
-
-        tool_registry.register_owned(SearchTool {
-            mcp_resource_provider_content_documents: mcp_resource_provider_content_documents
-                .clone(),
+        let mcp_server = McpServerFactory {
+            build_project_result_holder: build_project_result_holder.clone(),
+            prompt_controller_collection_holder: prompt_controller_collection_holder.clone(),
             search_index_reader_holder: search_index_reader_holder.clone(),
-        });
+            server_info: Implementation {
+                description: None,
+                name: "poet".to_owned(),
+                title: Some("Poet".to_owned()),
+                version: env!("CARGO_PKG_VERSION").to_owned(),
+            },
+        }
+        .create();
 
         let mut service_manager: ServiceManager = Default::default();
 
@@ -125,10 +123,7 @@ impl Handler for Watch {
             assets_directory: self.assets_directory(),
             ctrlc_notifier: ctrlc_notifier.clone(),
             filesystem_http_route_index_holder,
-            prompt_controller_collection_holder: prompt_controller_collection_holder.clone(),
-            resource_list_aggregate: Arc::new(resource_list_providers.into()),
-            session_manager: session_manager.clone(),
-            tool_registry: Arc::new(tool_registry),
+            mcp_server: mcp_server.clone(),
         }));
 
         service_manager.register_service(Arc::new(ProjectBuilder {
@@ -140,7 +135,6 @@ impl Handler for Watch {
             on_author_file_changed,
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
-            session_manager,
             generate_sitemap: self.sitemap,
             source_filesystem: source_filesystem.clone(),
         }));
@@ -154,6 +148,12 @@ impl Handler for Watch {
             prompt_controller_collection_holder,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             source_filesystem: source_filesystem.clone(),
+        }));
+
+        service_manager.register_service(Arc::new(ResourcesListChangedBroadcaster {
+            build_project_result_holder: build_project_result_holder.clone(),
+            ctrlc_notifier: ctrlc_notifier.clone(),
+            session_manager: mcp_server.session_manager,
         }));
 
         service_manager.register_service(Arc::new(SearchIndexBuilder {

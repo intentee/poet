@@ -5,6 +5,8 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 
 use anyhow::Result;
+use poet_mcp::prompt_message::PromptMessage;
+use poet_mcp::role::Role;
 use rhai::CustomType;
 use rhai::Dynamic;
 use rhai::EvalAltResult;
@@ -13,8 +15,6 @@ use rhai::TypeBuilder;
 
 use crate::asset_manager::AssetManager;
 use crate::content_document_linker::ContentDocumentLinker;
-use crate::mcp::jsonrpc::role::Role;
-use crate::mcp::prompt_message::PromptMessage;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
 use crate::prompt_message_accumulator::PromptMessageAccumulator;
@@ -76,7 +76,7 @@ impl PromptDocumentComponentContext {
     }
 
     fn rhai_switch_role_to(&mut self, role_string: String) -> Result<(), Box<EvalAltResult>> {
-        let role: Role = match role_string.clone().try_into() {
+        let role: Role = match role_string.parse() {
             Ok(role) => role,
             Err(err) => {
                 return Err(Box::new(EvalAltResult::ErrorSystem(
@@ -115,12 +115,12 @@ impl CustomType for PromptDocumentComponentContext {
 #[cfg(test)]
 mod tests {
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+    use poet_mcp::content_block::ContentBlock;
 
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::content_document_front_matter::ContentDocumentFrontMatter;
     use crate::content_document_reference::ContentDocumentReference;
-    use crate::mcp::content_block::ContentBlock;
 
     fn linker() -> ContentDocumentLinker {
         let mut content_document_by_basename = HashMap::new();

@@ -16,8 +16,8 @@ use crate::build_prompt_document_controller_params::BuildPromptDocumentControlle
 use crate::build_timer::BuildTimer;
 use crate::document_error_collection::DocumentErrorCollection;
 use crate::filesystem::Filesystem as _;
-use crate::mcp::prompt_controller::PromptController;
-use crate::mcp::prompt_controller_collection::PromptControllerCollection;
+use crate::prompt_controller::PromptController;
+use crate::prompt_controller_collection::PromptControllerCollection;
 
 pub async fn build_prompt_document_controller_collection(
     BuildPromptControllerCollectionParams {
@@ -73,13 +73,13 @@ pub async fn build_prompt_document_controller_collection(
 mod tests {
     use std::path::Path;
 
+    use poet_mcp::list_resources_cursor::ListResourcesCursor;
     use tempfile::tempdir;
 
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::storage::Storage;
-    use crate::mcp::list_resources_cursor::ListResourcesCursor;
 
     async fn build(prompt_files: &[(&str, &str)]) -> Result<PromptControllerCollection> {
         let directory = tempdir()?;

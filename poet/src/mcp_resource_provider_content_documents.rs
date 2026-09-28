@@ -2,8 +2,15 @@ use std::sync::Arc;
 use std::sync::atomic;
 
 use actix_web::rt;
-use anyhow::Result;
 use async_trait::async_trait;
+use poet_mcp::provider_error::ProviderError;
+use poet_mcp::resource::Resource;
+use poet_mcp::resource_content::ResourceContent;
+use poet_mcp::resource_provider::ResourceProvider;
+use poet_mcp::resource_provider_list_params::ResourceProviderListParams;
+use poet_mcp::resource_reference::ResourceReference;
+use poet_mcp::resource_template_provider::ResourceTemplateProvider;
+use poet_mcp::text_resource_content::TextResourceContent;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
@@ -11,21 +18,14 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::holder::Holder as _;
-use crate::mcp::resource::Resource;
-use crate::mcp::resource_content::ResourceContent;
-use crate::mcp::resource_content::TextResourceContent;
-use crate::mcp::resource_content_parts::ResourceContentParts;
-use crate::mcp::resource_provider::ResourceProvider;
-use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
-use crate::mcp::resource_reference::ResourceReference;
-use crate::mcp::resource_template_provider::ResourceTemplateProvider;
 
 #[derive(Clone, Default)]
-pub struct McpResourceProviderContentDocuments(pub BuildProjectResultHolder);
+pub struct McpResourceProviderContentDocuments {
+    pub build_project_result_holder: BuildProjectResultHolder,
+}
 
 impl McpResourceProviderContentDocuments {
     fn is_updated_by(
-        &self,
         resource_reference: &ResourceReference,
         build_project_result: &BuildProjectResult,
     ) -> bool {
@@ -42,15 +42,15 @@ impl McpResourceProviderContentDocuments {
 
 impl ResourceTemplateProvider for McpResourceProviderContentDocuments {
     fn mime_type(&self) -> String {
-        "text/markdown".to_string()
+        "text/markdown".to_owned()
     }
 
     fn resource_class(&self) -> String {
-        "content".to_string()
+        "content".to_owned()
     }
 
     fn resource_scheme(&self) -> String {
-        "poet".to_string()
+        "poet".to_owned()
     }
 }
 
@@ -59,9 +59,9 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
     async fn list_resources(
         &self,
         ResourceProviderListParams { limit, offset }: ResourceProviderListParams,
-    ) -> Result<Vec<Resource>> {
+    ) -> Result<Vec<Resource>, ProviderError> {
         Ok(self
-            .0
+            .build_project_result_holder
             .must_get_build_project_result()
             .await?
             .content_document_sources
@@ -77,12 +77,8 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
                         .reference
                         .front_matter
                         .description
-                        .to_owned(),
-                    title: content_document_source
-                        .reference
-                        .front_matter
-                        .title
-                        .to_owned(),
+                        .clone(),
+                    title: content_document_source.reference.front_matter.title.clone(),
                     uri: self.resource_uri(&basename_string),
                     name: basename_string,
                 }
@@ -95,75 +91,83 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
         ResourceReference {
             path, uri_string, ..
         }: ResourceReference,
-    ) -> Result<Option<ResourceContentParts>> {
+    ) -> Result<Option<Vec<ResourceContent>>, ProviderError> {
         let basename: ContentDocumentBasename = path.into();
-        let build_project_result = self.0.must_get_build_project_result().await?;
+        let build_project_result = self
+            .build_project_result_holder
+            .must_get_build_project_result()
+            .await?;
 
-        match build_project_result.content_document_sources.get(&basename) {
-            Some(content_document_source) => Ok(Some(ResourceContentParts {
-                parts: vec![ResourceContent::Text(TextResourceContent {
+        Ok(build_project_result
+            .content_document_sources
+            .get(&basename)
+            .map(|content_document_source| {
+                vec![ResourceContent::Text(TextResourceContent {
                     mime_type: self.mime_type(),
                     text: content_document_source.file_entry.contents.clone(),
-                    uri: uri_string.clone(),
-                })],
-                title: content_document_source.reference.front_matter.title.clone(),
-                uri: uri_string.clone(),
-            })),
-            None => Ok(None),
-        }
+                    uri: uri_string,
+                })]
+            }))
     }
 
-    async fn resource_update_notifier(
+    fn resource_update_notifier(
         self: Arc<Self>,
         cancellation_token: CancellationToken,
         resource_reference: ResourceReference,
-    ) -> Result<Option<Arc<Notify>>> {
-        let build_project_result_holder = self.0.clone();
-        let build_update_notifier = self.0.update_notifier.clone();
-        let resource_update_notifier: Arc<Notify> = Default::default();
-
-        let resource_update_notifier_clone = resource_update_notifier.clone();
-        let this = self.clone();
+    ) -> Arc<Notify> {
+        let build_project_result_holder = self.build_project_result_holder.clone();
+        let build_update_notifier = self.build_project_result_holder.update_notifier.clone();
+        let resource_update_notifier: Arc<Notify> = Arc::default();
+        let notified_resource_update_notifier = resource_update_notifier.clone();
 
         rt::spawn(async move {
             loop {
                 tokio::select! {
-                    _ = cancellation_token.cancelled() => break,
-                    _ = build_update_notifier.notified() => {
+                    () = cancellation_token.cancelled() => break,
+                    () = build_update_notifier.notified() => {
                         if let Some(build_project_result) = build_project_result_holder.get().await
-                            && this.is_updated_by(&resource_reference, &build_project_result)
+                            && Self::is_updated_by(&resource_reference, &build_project_result)
                         {
-                            resource_update_notifier_clone.notify_waiters();
+                            notified_resource_update_notifier.notify_waiters();
                         }
                     }
                 }
             }
         });
 
-        Ok(Some(resource_update_notifier))
+        resource_update_notifier
     }
 
     fn total(&self) -> usize {
-        self.0.total.load(atomic::Ordering::Relaxed)
+        self.build_project_result_holder
+            .total
+            .load(atomic::Ordering::Relaxed)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::Path;
+    use std::sync::Arc;
 
+    use anyhow::Result;
+    use poet_mcp::provider_error::ProviderError;
+    use poet_mcp::resource_provider::ResourceProvider as _;
+    use poet_mcp::resource_provider_list_params::ResourceProviderListParams;
+    use poet_mcp::resource_reference::ResourceReference;
     use tempfile::tempdir;
 
-    use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::build_authors::build_authors;
     use crate::build_project::build_project;
     use crate::build_project::build_project_params::BuildProjectParams;
+    use crate::build_project::build_project_result::BuildProjectResult;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::Filesystem as _;
     use crate::filesystem::storage::Storage;
-    use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
+    use crate::holder::Holder as _;
+    use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 
     async fn build_stub(body: &str) -> Result<BuildProjectResultStub> {
         let directory = tempdir()?;
@@ -214,10 +218,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn lists_content_documents_as_resources() -> Result<()> {
+    async fn lists_content_documents_as_resources() -> Result<(), ProviderError> {
         let provider = McpResourceProviderContentDocuments::default();
 
-        provider.0.set(Some(build_stub("body").await?.into())).await;
+        provider
+            .build_project_result_holder
+            .set(Some(build_stub("body").await?.into()))
+            .await;
 
         assert_eq!(provider.total(), 1);
 
@@ -236,10 +243,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reads_existing_document_and_misses_unknown_one() -> Result<()> {
+    async fn reads_existing_document_and_misses_unknown_one() -> Result<(), ProviderError> {
         let provider = McpResourceProviderContentDocuments::default();
 
-        provider.0.set(Some(build_stub("body").await?.into())).await;
+        provider
+            .build_project_result_holder
+            .set(Some(build_stub("body").await?.into()))
+            .await;
 
         assert!(
             provider
@@ -258,14 +268,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn changed_subscribed_document_updates_its_resource() -> Result<()> {
-        let provider = McpResourceProviderContentDocuments::default();
+    async fn changed_subscribed_document_updates_its_resource() -> Result<(), ProviderError> {
         let previous_build: BuildProjectResult = build_stub("body").await?.into();
         let changed_build = build_stub("changed body")
             .await?
             .changed_compared_to(previous_build);
 
-        assert!(provider.is_updated_by(&reference("guide"), &changed_build));
+        assert!(McpResourceProviderContentDocuments::is_updated_by(
+            &reference("guide"),
+            &changed_build
+        ));
 
         Ok(())
     }

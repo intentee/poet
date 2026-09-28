@@ -111,50 +111,6 @@ mod tests {
     use crate::filesystem::storage::Storage;
     use crate::search_index_query_params::SearchIndexQueryParams;
 
-    async fn do_build_project() -> Result<BuildProjectResultStub> {
-        let public_path: String = "https://example.com".to_string();
-        let source_filesystem = Arc::new(Storage {
-            base_directory: env!("CARGO_MANIFEST_DIR").into(),
-        });
-        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
-        let authors = build_authors(source_filesystem.clone()).await?;
-
-        build_project(BuildProjectParams {
-            asset_path_renderer: AssetPathRenderer {
-                base_path: public_path.clone(),
-            },
-            authors,
-            esbuild_metafile: Default::default(),
-            generated_page_base_path: public_path,
-            generate_sitemap: false,
-            is_watching: false,
-            rhai_template_renderer,
-            source_filesystem,
-        })
-        .await
-    }
-
-    #[tokio::test]
-    async fn test_index_is_searchable() -> Result<()> {
-        let BuildProjectResultStub {
-            content_document_sources,
-            ..
-        } = do_build_project().await?;
-        let search_index = SearchIndex::create_in_memory(content_document_sources);
-        let search_index_reader: SearchIndexReader = search_index.index()?;
-
-        let results = search_index_reader.query(SearchIndexQueryParams {
-            cursor: Default::default(),
-            query: "test".to_string(),
-        })?;
-
-        for result in results {
-            println!("{:#?}", result);
-        }
-
-        Ok(())
-    }
-
     async fn search_index_reader_for_guide(
         front_matter_description: &str,
     ) -> Result<SearchIndexReader> {
@@ -204,7 +160,8 @@ mod tests {
     fn found_titles(search_index_reader: &SearchIndexReader, query: &str) -> Result<Vec<String>> {
         Ok(search_index_reader
             .query(SearchIndexQueryParams {
-                cursor: Default::default(),
+                offset: 0,
+                per_page: search_index_reader.content_document_sources.len(),
                 query: query.to_string(),
             })?
             .into_iter()

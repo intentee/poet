@@ -5,7 +5,7 @@ use poet_assets::asset_path_renderer::AssetPathRenderer;
 use poet_filesystem::storage::Storage;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
-use crate::content_document_linker::ContentDocumentLinker;
+use poet_content::content_document_linker::ContentDocumentLinker;
 
 pub struct BuildPromptControllerCollectionParams {
     pub asset_path_renderer: AssetPathRenderer,

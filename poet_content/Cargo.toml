@@ -1,54 +1,35 @@
 [package]
-description = "Static site generator with optional MCP server and LLM SEO optimizations"
+name = "poet_content"
+description = "Builds Poet content documents, authors, collections and sitemaps"
 edition.workspace = true
-homepage.workspace = true
 license.workspace = true
-name = "poet"
 repository.workspace = true
 version.workspace = true
 
 [dependencies]
-actix-files = { workspace = true }
-actix-web = { workspace = true }
-actix-ws = { workspace = true }
 anyhow = { workspace = true }
-async-trait = { workspace = true }
 chrono = { workspace = true }
-clap = { workspace = true }
-ctrlc = { workspace = true }
 dashmap = { workspace = true }
-env_logger = { workspace = true }
 esbuild-metafile = { workspace = true }
-freedesktop_entry_parser = { workspace = true }
-futures-util = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
 markdown = { workspace = true }
-mime = { workspace = true }
-mime_guess = { workspace = true }
 nom = { workspace = true }
-notify-debouncer-full = { workspace = true }
 petgraph = { workspace = true }
 poet_assets = { workspace = true }
-poet_content = { workspace = true }
 poet_filesystem = { workspace = true }
-poet_mcp = { workspace = true }
 poet_mdx = { workspace = true }
 rayon = { workspace = true }
 rhai = { workspace = true }
 rhai_components = { workspace = true }
-schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sitemap-rs = { workspace = true }
 slug = { workspace = true }
 syntect = { workspace = true }
-tantivy = { workspace = true }
-thiserror = { workspace = true }
-tokio = { workspace = true }
-tokio-util = { workspace = true }
 toml = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+tokio = { workspace = true }

@@ -4,6 +4,8 @@ use std::sync::RwLock;
 
 use anyhow::Result;
 use anyhow::anyhow;
+use poet_content::content_document_basename::ContentDocumentBasename;
+use poet_content::content_document_source::ContentDocumentSource;
 use rayon::iter::IntoParallelRefIterator as _;
 use rayon::iter::ParallelIterator as _;
 use tantivy::Index;
@@ -12,8 +14,6 @@ use tantivy::IndexWriter;
 use tantivy::ReloadPolicy;
 
 use crate::anyhow_error_aggregate::AnyhowErrorAggregate;
-use crate::content_document_basename::ContentDocumentBasename;
-use crate::content_document_source::ContentDocumentSource;
 use crate::mdast_to_tantivy_document::mdast_to_tantivy_document;
 use crate::search_index_fields::SearchIndexFields;
 use crate::search_index_reader::SearchIndexReader;
@@ -99,15 +99,15 @@ mod tests {
     use std::path::Path;
 
     use poet_assets::asset_path_renderer::AssetPathRenderer;
+    use poet_content::build_authors::build_authors;
+    use poet_content::build_project::build_project;
+    use poet_content::build_project::build_project_params::BuildProjectParams;
+    use poet_content::build_project::build_project_result_stub::BuildProjectResultStub;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use tempfile::tempdir;
 
     use super::*;
-    use crate::build_authors::build_authors;
-    use crate::build_project::build_project;
-    use crate::build_project::build_project_params::BuildProjectParams;
-    use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_poet_shortcodes::compile_poet_shortcodes;
     use crate::search_index_query_params::SearchIndexQueryParams;
 

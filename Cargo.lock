@@ -2045,6 +2045,7 @@ dependencies = [
  "notify-debouncer-full",
  "petgraph",
  "poet_assets",
+ "poet_content",
  "poet_filesystem",
  "poet_mcp",
  "poet_mdx",
@@ -2093,6 +2094,36 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "poet_content"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "dashmap",
+ "esbuild-metafile",
+ "indoc",
+ "itertools 0.15.0",
+ "log",
+ "markdown",
+ "nom 8.0.0",
+ "petgraph",
+ "poet_assets",
+ "poet_filesystem",
+ "poet_mdx",
+ "rayon",
+ "rhai",
+ "rhai_components",
+ "serde",
+ "serde_json",
+ "sitemap-rs",
+ "slug",
+ "syntect",
+ "tempfile",
+ "tokio",
+ "toml",
 ]
 
 [[package]]

@@ -6,6 +6,7 @@ use std::sync::MutexGuard;
 
 use anyhow::Result;
 use poet_assets::asset_manager::AssetManager;
+use poet_content::content_document_linker::ContentDocumentLinker;
 use poet_mcp::prompt_message::PromptMessage;
 use poet_mcp::role::Role;
 use rhai::CustomType;
@@ -14,7 +15,6 @@ use rhai::EvalAltResult;
 use rhai::Map;
 use rhai::TypeBuilder;
 
-use crate::content_document_linker::ContentDocumentLinker;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
 use crate::prompt_message_accumulator::PromptMessageAccumulator;
@@ -116,32 +116,34 @@ impl CustomType for PromptDocumentComponentContext {
 mod tests {
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
     use poet_assets::asset_path_renderer::AssetPathRenderer;
+    use poet_content::content_document_front_matter::ContentDocumentFrontMatter;
+    use poet_content::content_document_reference::ContentDocumentReference;
     use poet_mcp::content_block::ContentBlock;
 
     use super::*;
-    use crate::content_document_front_matter::ContentDocumentFrontMatter;
-    use crate::content_document_reference::ContentDocumentReference;
 
-    fn linker() -> ContentDocumentLinker {
+    fn linker() -> Result<ContentDocumentLinker> {
         let mut content_document_by_basename = HashMap::new();
 
         content_document_by_basename.insert(
             "guide".to_string().into(),
             ContentDocumentReference {
                 basename_path: "guide".into(),
-                front_matter: ContentDocumentFrontMatter::mock("guide"),
+                front_matter: toml::from_str::<ContentDocumentFrontMatter>(
+                    "description = \"\"\nlayout = \"SomeLayout\"\ntitle = \"guide\"",
+                )?,
                 generated_page_base_path: "/".to_string(),
             },
         );
 
-        ContentDocumentLinker {
+        Ok(ContentDocumentLinker {
             content_document_basename_by_id: Arc::new(HashMap::new()),
             content_document_by_basename: Arc::new(content_document_by_basename),
-        }
+        })
     }
 
-    fn context() -> PromptDocumentComponentContext {
-        PromptDocumentComponentContext {
+    fn context() -> Result<PromptDocumentComponentContext> {
+        Ok(PromptDocumentComponentContext {
             arguments: HashMap::new(),
             asset_manager: AssetManager::from_esbuild_metafile(
                 Arc::new(EsbuildMetafile::default()),
@@ -149,19 +151,19 @@ mod tests {
                     base_path: "/".to_string(),
                 },
             ),
-            content_document_linker: linker(),
+            content_document_linker: linker()?,
             front_matter: PromptDocumentFrontMatter {
                 arguments: HashMap::new(),
                 description: "description".to_string(),
                 title: "title".to_string(),
             },
             prompt_message_accumulator: Default::default(),
-        }
+        })
     }
 
     #[test]
     fn rhai_append_adds_chunk_to_current_message() -> Result<()> {
-        let mut context = context();
+        let mut context = context()?;
 
         context.switch_role_to(Role::User)?;
         context.rhai_append_to_message("piece".to_string());
@@ -180,7 +182,7 @@ mod tests {
 
     #[test]
     fn rhai_link_resolves_internal_path() -> Result<()> {
-        let mut context = context();
+        let mut context = context()?;
 
         assert_eq!(context.rhai_link_to("guide")?, "/guide/");
 
@@ -188,15 +190,17 @@ mod tests {
     }
 
     #[test]
-    fn rhai_link_fails_for_unknown_path() {
-        let mut context = context();
+    fn rhai_link_fails_for_unknown_path() -> Result<()> {
+        let mut context = context()?;
 
         assert!(context.rhai_link_to("ghost").is_err());
+
+        Ok(())
     }
 
     #[test]
     fn rhai_switch_role_accepts_known_role() -> Result<()> {
-        let mut context = context();
+        let mut context = context()?;
 
         context.rhai_switch_role_to("assistant".to_string())?;
         context.append_to_message("answer");
@@ -214,19 +218,21 @@ mod tests {
     }
 
     #[test]
-    fn rhai_switch_role_rejects_unknown_role() {
-        let mut context = context();
+    fn rhai_switch_role_rejects_unknown_role() -> Result<()> {
+        let mut context = context()?;
 
         assert!(
             context
                 .rhai_switch_role_to("moderator".to_string())
                 .is_err()
         );
+
+        Ok(())
     }
 
     #[test]
     fn rhai_switch_role_fails_when_orphan_chunk_cannot_flush() -> Result<()> {
-        let mut context = context();
+        let mut context = context()?;
 
         context.append_to_message("orphan");
 

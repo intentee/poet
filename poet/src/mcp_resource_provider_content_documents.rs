@@ -3,6 +3,8 @@ use std::sync::atomic;
 
 use actix_web::rt;
 use async_trait::async_trait;
+use poet_content::build_project::build_project_result::BuildProjectResult;
+use poet_content::content_document_basename::ContentDocumentBasename;
 use poet_mcp::provider_error::ProviderError;
 use poet_mcp::resource::Resource;
 use poet_mcp::resource_content::ResourceContent;
@@ -14,9 +16,7 @@ use poet_mcp::text_resource_content::TextResourceContent;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
-use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project_result_holder::BuildProjectResultHolder;
-use crate::content_document_basename::ContentDocumentBasename;
 use crate::holder::Holder as _;
 
 #[derive(Clone, Default)]
@@ -152,6 +152,11 @@ mod tests {
 
     use anyhow::Result;
     use poet_assets::asset_path_renderer::AssetPathRenderer;
+    use poet_content::build_authors::build_authors;
+    use poet_content::build_project::build_project;
+    use poet_content::build_project::build_project_params::BuildProjectParams;
+    use poet_content::build_project::build_project_result::BuildProjectResult;
+    use poet_content::build_project::build_project_result_stub::BuildProjectResultStub;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
@@ -160,11 +165,6 @@ mod tests {
     use poet_mcp::resource_reference::ResourceReference;
     use tempfile::tempdir;
 
-    use crate::build_authors::build_authors;
-    use crate::build_project::build_project;
-    use crate::build_project::build_project_params::BuildProjectParams;
-    use crate::build_project::build_project_result::BuildProjectResult;
-    use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_poet_shortcodes::compile_poet_shortcodes;
     use crate::holder::Holder as _;
     use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;

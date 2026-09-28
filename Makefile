@@ -2,7 +2,7 @@
 
 RUST_LOG ?= debug
 
-POET_SOURCES := $(shell find poet/src poet_assets/src poet_filesystem/src poet_mcp/src poet_mdx/src rhai_components/src -name '*.rs') Cargo.toml Cargo.lock poet/Cargo.toml poet_assets/Cargo.toml poet_filesystem/Cargo.toml poet_mcp/Cargo.toml poet_mdx/Cargo.toml rhai_components/Cargo.toml
+POET_SOURCES := $(shell find poet/src poet_assets/src poet_content/src poet_filesystem/src poet_mcp/src poet_mdx/src rhai_components/src -name '*.rs') Cargo.toml Cargo.lock poet/Cargo.toml poet_assets/Cargo.toml poet_content/Cargo.toml poet_filesystem/Cargo.toml poet_mcp/Cargo.toml poet_mdx/Cargo.toml rhai_components/Cargo.toml
 
 # -----------------------------------------------------------------------------
 # Real targets

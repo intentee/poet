@@ -386,7 +386,10 @@ mod tests {
     use crate::build_authors::build_authors;
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
-    use crate::compile_poet_shortcodes::compile_poet_shortcodes;
+    use poet_mdx::compile_shortcodes::compile_shortcodes;
+    use poet_mdx::compile_shortcodes_params::CompileShortcodesParams;
+
+    use crate::register_content_rhai_types::register_content_rhai_types;
 
     const LAYOUT_MINIMAL: &str = r#"
 fn template(context, props, content) {
@@ -441,7 +444,11 @@ fn template(context, props, content) {
                 .await?;
         }
 
-        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
+        let rhai_template_renderer = compile_shortcodes(CompileShortcodesParams {
+            register_rhai_types: register_content_rhai_types,
+            source_filesystem: &source_filesystem,
+        })
+        .await?;
         let authors = build_authors(source_filesystem.clone()).await?;
 
         build_project(BuildProjectParams {

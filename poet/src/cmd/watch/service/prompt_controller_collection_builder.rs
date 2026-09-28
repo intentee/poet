@@ -5,11 +5,11 @@ use async_trait::async_trait;
 use log::debug;
 use log::error;
 use poet_assets::asset_path_renderer::AssetPathRenderer;
+use poet_content::build_project::build_project_result::BuildProjectResult;
 use poet_filesystem::storage::Storage;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
-use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;

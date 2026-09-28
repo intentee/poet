@@ -4,6 +4,7 @@ members = [
     "poet",
     "poet_assets",
     "poet_assets_tests",
+    "poet_content",
     "poet_filesystem",
     "poet_filesystem_tests",
     "poet_mcp",
@@ -87,6 +88,7 @@ nom = "8.0"
 notify-debouncer-full = "0.7"
 petgraph = { version = "0.8", features = ["serde", "serde_derive"] }
 poet_assets = { path = "poet_assets", version = "0.8" }
+poet_content = { path = "poet_content", version = "0.8" }
 poet_filesystem = { path = "poet_filesystem", version = "0.8" }
 poet_mcp = { path = "poet_mcp", version = "0.8" }
 poet_mdx = { path = "poet_mdx", version = "0.8" }

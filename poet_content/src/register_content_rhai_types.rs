@@ -1,3 +1,4 @@
+use poet_assets::register_asset_rhai_types::register_asset_rhai_types;
 use rhai::Engine;
 
 use crate::author::Author;
@@ -14,6 +15,7 @@ use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
 pub fn register_content_rhai_types(engine: &mut Engine) {
+    register_asset_rhai_types(engine);
     engine.build_type::<Author>();
     engine.build_type::<AuthorCollection>();
     engine.build_type::<AuthorData>();

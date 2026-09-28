@@ -333,6 +333,9 @@ mod test {
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
     use poet_assets::asset_manager::AssetManager;
     use poet_assets::asset_path_renderer::AssetPathRenderer;
+    use poet_content::content_document_front_matter::ContentDocumentFrontMatter;
+    use poet_content::content_document_linker::ContentDocumentLinker;
+    use poet_content::content_document_reference::ContentDocumentReference;
     use poet_mcp::content_block::ContentBlock;
     use poet_mcp::prompt_message::PromptMessage;
     use poet_mcp::role::Role;
@@ -343,9 +346,6 @@ mod test {
     use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
     use super::*;
-    use crate::content_document_front_matter::ContentDocumentFrontMatter;
-    use crate::content_document_linker::ContentDocumentLinker;
-    use crate::content_document_reference::ContentDocumentReference;
     use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 
     const ASSET_METAFILE: &str = r#"
@@ -368,22 +368,24 @@ mod test {
         ))
     }
 
-    fn linker() -> ContentDocumentLinker {
+    fn linker() -> Result<ContentDocumentLinker> {
         let mut content_document_by_basename = HashMap::new();
 
         content_document_by_basename.insert(
             "guide".to_string().into(),
             ContentDocumentReference {
                 basename_path: "guide".into(),
-                front_matter: ContentDocumentFrontMatter::mock("guide"),
+                front_matter: toml::from_str::<ContentDocumentFrontMatter>(
+                    "description = \"\"\nlayout = \"SomeLayout\"\ntitle = \"guide\"",
+                )?,
                 generated_page_base_path: "/".to_string(),
             },
         );
 
-        ContentDocumentLinker {
+        Ok(ContentDocumentLinker {
             content_document_basename_by_id: Arc::new(HashMap::new()),
             content_document_by_basename: Arc::new(content_document_by_basename),
-        }
+        })
     }
 
     fn front_matter() -> PromptDocumentFrontMatter {
@@ -409,7 +411,7 @@ mod test {
         Ok(PromptDocumentComponentContext {
             arguments: HashMap::new(),
             asset_manager: asset_manager()?,
-            content_document_linker: linker(),
+            content_document_linker: linker()?,
             front_matter: front_matter(),
             prompt_message_accumulator: Default::default(),
         })

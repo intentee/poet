@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use anyhow::anyhow;
+use poet_content::content_document_basename::ContentDocumentBasename;
+use poet_content::content_document_source::ContentDocumentSource;
 use tantivy::Index;
 use tantivy::IndexReader;
 use tantivy::TantivyDocument;
@@ -10,8 +12,6 @@ use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::schema::Value as _;
 
-use crate::content_document_basename::ContentDocumentBasename;
-use crate::content_document_source::ContentDocumentSource;
 use crate::search_index_fields::SearchIndexFields;
 use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;

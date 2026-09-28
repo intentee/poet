@@ -1,4 +1,4 @@
-use crate::content_document_reference::ContentDocumentReference;
+use poet_content::content_document_reference::ContentDocumentReference;
 
 #[derive(Clone, Debug)]
 pub struct SearchIndexFoundDocument {

@@ -1,4 +1,6 @@
 use async_trait::async_trait;
+use poet_content::content_document_front_matter::ContentDocumentFrontMatter;
+use poet_content::content_document_reference::ContentDocumentReference;
 use poet_mcp::content_block::ContentBlock;
 use poet_mcp::provider_error::ProviderError;
 use poet_mcp::resource_link::ResourceLink;
@@ -13,8 +15,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use tokio::task::spawn_blocking;
 
-use crate::content_document_front_matter::ContentDocumentFrontMatter;
-use crate::content_document_reference::ContentDocumentReference;
 use crate::holder::Holder as _;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 use crate::search_index_found_document::SearchIndexFoundDocument;
@@ -109,6 +109,10 @@ mod tests {
 
     use anyhow::Result;
     use poet_assets::asset_path_renderer::AssetPathRenderer;
+    use poet_content::build_authors::build_authors;
+    use poet_content::build_project::build_project;
+    use poet_content::build_project::build_project_params::BuildProjectParams;
+    use poet_content::build_project::build_project_result_stub::BuildProjectResultStub;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
@@ -118,10 +122,6 @@ mod tests {
     use poet_mcp::tool_responder::ToolResponder as _;
     use tempfile::tempdir;
 
-    use crate::build_authors::build_authors;
-    use crate::build_project::build_project;
-    use crate::build_project::build_project_params::BuildProjectParams;
-    use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_poet_shortcodes::compile_poet_shortcodes;
     use crate::holder::Holder as _;
     use crate::search_index::SearchIndex;

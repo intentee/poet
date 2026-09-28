@@ -25,11 +25,11 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
-use poet_assets::is_external_link::is_external_link;
+use poet_mdx::eval_mdx_element::eval_mdx_element;
+use poet_mdx::warn_about_unsupported_mdast_node::warn_about_unsupported_mdast_node;
 use rhai_components::escape_html::escape_html;
 use rhai_components::escape_html_attribute::escape_html_attribute;
 
-use crate::eval_mdx_element::eval_mdx_element;
 use crate::eval_prompt_document_mdast_params::EvalPromptDocumentMdastParams;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 
@@ -104,9 +104,6 @@ pub fn eval_prompt_document_mdast(
             result.push_str(&escape_html(value));
             result.push_str("\n```");
         }
-        Node::Definition(node) => {
-            warn!("Definitions are not supported: {node:?}");
-        }
         Node::Delete(Delete { children, .. }) => {
             result.push_str("~~");
             result.push_str(&eval_prompt_document_children(
@@ -124,12 +121,6 @@ pub fn eval_prompt_document_mdast(
                 prompt_document_component_context,
             )?);
             result.push('*');
-        }
-        Node::FootnoteDefinition(node) => {
-            warn!("Footnote definitions are not supported: {node:?}");
-        }
-        Node::FootnoteReference(node) => {
-            warn!("Footnote references are not supported: {node:?}");
         }
         Node::Heading(Heading {
             children, depth, ..
@@ -149,13 +140,11 @@ pub fn eval_prompt_document_mdast(
         }) => {
             result.push_str(&format!("![{}](", escape_html_attribute(alt)));
 
-            let src = if is_external_link(url) {
-                url
-            } else {
-                &prompt_document_component_context.asset_manager.image(url)?
-            };
+            let src = prompt_document_component_context
+                .asset_manager
+                .image_source(url)?;
 
-            result.push_str(&escape_html_attribute(src));
+            result.push_str(&escape_html_attribute(&src));
 
             if let Some(title) = title {
                 result.push_str(&format!(" \"{}\"", escape_html_attribute(title)));
@@ -163,14 +152,8 @@ pub fn eval_prompt_document_mdast(
 
             result.push(')');
         }
-        Node::ImageReference(node) => {
-            warn!("Image references are not supported: {node:?}");
-        }
         Node::InlineCode(InlineCode { value, .. }) => {
             result.push_str(&format!("`{}`", escape_html_attribute(value)));
-        }
-        Node::InlineMath(node) => {
-            warn!("Inline math expressions are not supported: {node:?}");
         }
         Node::Link(Link {
             children,
@@ -187,17 +170,10 @@ pub fn eval_prompt_document_mdast(
                 )?
             ));
 
-            let link = if is_external_link(url) {
-                url.clone()
-            } else {
-                match prompt_document_component_context
-                    .content_document_linker
-                    .link_to(url)
-                {
-                    Ok(link) => link,
-                    Err(err) => return Err(anyhow!(err)),
-                }
-            };
+            let link = prompt_document_component_context
+                .content_document_linker
+                .resolve_link(url)
+                .map_err(|link_error| anyhow!(link_error))?;
 
             result.push_str(&format!("({link}"));
 
@@ -206,9 +182,6 @@ pub fn eval_prompt_document_mdast(
             }
 
             result.push(')');
-        }
-        Node::LinkReference(node) => {
-            warn!("Link references are not supported: {node:?}");
         }
         Node::List(List { children, .. }) => {
             result.push('\n');
@@ -228,12 +201,6 @@ pub fn eval_prompt_document_mdast(
                 params.regular_element(),
                 prompt_document_component_context,
             )?);
-        }
-        Node::Math(node) => {
-            warn!("Math expressions are not supported: {node:?}");
-        }
-        Node::MdxjsEsm(node) => {
-            warn!("MDX ESM expressions are not supported: {node:?}");
         }
         Node::MdxFlowExpression(MdxFlowExpression { value, .. })
         | Node::MdxTextExpression(MdxTextExpression { value, .. }) => {
@@ -266,7 +233,7 @@ pub fn eval_prompt_document_mdast(
                 children,
                 prompt_document_component_context,
                 evaluated_children,
-                name,
+                name.as_ref(),
                 rhai_template_renderer,
             )?);
         }
@@ -335,6 +302,16 @@ pub fn eval_prompt_document_mdast(
         Node::Toml(_) => {
             // ignore frontmatter during this pass
         }
+        unsupported_node @ (Node::Definition(_)
+        | Node::FootnoteDefinition(_)
+        | Node::FootnoteReference(_)
+        | Node::ImageReference(_)
+        | Node::InlineMath(_)
+        | Node::LinkReference(_)
+        | Node::Math(_)
+        | Node::MdxjsEsm(_)) => {
+            warn_about_unsupported_mdast_node(unsupported_node);
+        }
         Node::Yaml(node) => {
             warn!("YAML front-matter is not supported, use TOML instead: {node:?}");
         }
@@ -359,6 +336,7 @@ mod test {
     use poet_mcp::content_block::ContentBlock;
     use poet_mcp::prompt_message::PromptMessage;
     use poet_mcp::role::Role;
+    use poet_mdx::string_to_mdast::string_to_mdast;
     use rhai::Engine;
     use rhai_components::component_syntax::component_registry::ComponentRegistry;
     use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
@@ -369,7 +347,6 @@ mod test {
     use crate::content_document_linker::ContentDocumentLinker;
     use crate::content_document_reference::ContentDocumentReference;
     use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
-    use crate::string_to_mdast::string_to_mdast;
 
     const ASSET_METAFILE: &str = r#"
         {

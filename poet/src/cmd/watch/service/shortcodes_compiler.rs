@@ -8,7 +8,7 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::cmd::service::Service;
-use crate::compile_shortcodes::compile_shortcodes;
+use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 use crate::holder::Holder as _;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 
@@ -21,7 +21,7 @@ pub struct ShortcodesCompiler {
 
 impl ShortcodesCompiler {
     async fn do_compile_shortcodes(&self) {
-        match compile_shortcodes(self.source_filesystem.clone()).await {
+        match compile_poet_shortcodes(&self.source_filesystem).await {
             Ok(rhai_template_renderer) => {
                 self.rhai_template_renderer_holder
                     .set(Some(rhai_template_renderer))

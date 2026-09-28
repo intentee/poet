@@ -20,6 +20,7 @@ use poet_filesystem::filesystem::Filesystem;
 use poet_mcp::implementation::Implementation;
 use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
 
+use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::build_authors::build_authors;
 use crate::build_project::build_project;
@@ -36,7 +37,6 @@ use crate::cmd::handler::Handler;
 use crate::cmd::serve::app_data::AppData;
 use crate::cmd::value_parser::parse_socket_addr;
 use crate::cmd::value_parser::validate_is_directory;
-use crate::compile_shortcodes::compile_shortcodes;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
 use crate::mcp_server_factory::McpServerFactory;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
@@ -75,7 +75,7 @@ impl Handler for Serve {
             base_path: self.public_path.clone(),
         };
         let source_filesystem = self.source_filesystem();
-        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
         let app_dir_desktop_entry = AppDirDesktopEntry::parse(
             &source_filesystem
                 .read_file_contents_string(&PathBuf::from(format!(

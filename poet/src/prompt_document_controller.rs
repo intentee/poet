@@ -107,6 +107,7 @@ mod tests {
     use indoc::indoc;
     use poet_filesystem::file_entry::FileEntry;
     use poet_filesystem::file_entry_stub::FileEntryStub;
+    use poet_filesystem::storage::Storage;
     use poet_mcp::jsonrpc_version::JSONRPC_VERSION;
     use poet_mcp::prompt_message::PromptMessage;
     use poet_mcp::request_id::RequestId;
@@ -115,9 +116,9 @@ mod tests {
     use super::*;
     use crate::build_prompt_document_controller::build_prompt_document_controller;
     use crate::build_prompt_document_controller_params::BuildPromptDocumentControllerParams;
-    use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
+    use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 
-    fn build_controller() -> Result<PromptDocumentController> {
+    async fn build_controller() -> Result<PromptDocumentController> {
         let contents: String = indoc! {r#"
         +++
         description = "test prompt description"
@@ -137,10 +138,10 @@ mod tests {
         "#}
         .to_string();
 
-        let rhai_template_factory =
-            RhaiTemplateRendererFactory::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")));
-
-        let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
+        let rhai_template_renderer = compile_poet_shortcodes(&Storage {
+            base_directory: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+        })
+        .await?;
 
         build_prompt_document_controller(BuildPromptDocumentControllerParams {
             asset_path_renderer: AssetPathRenderer {
@@ -157,9 +158,9 @@ mod tests {
         })
     }
 
-    #[test]
-    fn get_mcp_prompt_exposes_metadata_and_arguments() -> Result<()> {
-        let prompt = build_controller()?.get_mcp_prompt();
+    #[tokio::test]
+    async fn get_mcp_prompt_exposes_metadata_and_arguments() -> Result<()> {
+        let prompt = build_controller().await?.get_mcp_prompt();
 
         assert_eq!(prompt.name, "help-me-finish-task");
         assert_eq!(prompt.description, "test prompt description");
@@ -174,7 +175,7 @@ mod tests {
     #[tokio::test]
     async fn test_convert_to_prompt_messages() -> Result<()> {
         let name: String = "help-me-finish-task".to_string();
-        let prompt_controller = build_controller()?;
+        let prompt_controller = build_controller().await?;
 
         let response = prompt_controller
             .respond_to(PromptsGetRequest {

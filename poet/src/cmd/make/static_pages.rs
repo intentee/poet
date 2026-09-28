@@ -17,7 +17,7 @@ use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
 use crate::cmd::value_parser::validate_is_directory;
 use crate::cmd::value_parser::validate_is_directory_or_create;
-use crate::compile_shortcodes::compile_shortcodes;
+use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 
 #[derive(Parser)]
 pub struct StaticPages {
@@ -44,7 +44,7 @@ impl BuildsProject for StaticPages {
 impl Handler for StaticPages {
     async fn handle(&self) -> Result<()> {
         let source_filesystem = self.source_filesystem();
-        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
         let authors = build_authors(source_filesystem.clone()).await?;
 
         let BuildProjectResultStub {

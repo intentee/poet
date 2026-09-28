@@ -17,6 +17,9 @@ use log::info;
 use poet_assets::asset_manager::AssetManager;
 use poet_filesystem::filesystem::Filesystem as _;
 use poet_filesystem::memory::Memory;
+use poet_mdx::build_timer::BuildTimer;
+use poet_mdx::find_front_matter_in_mdast::find_front_matter_in_mdast;
+use poet_mdx::string_to_mdast::string_to_mdast;
 use rayon::iter::IntoParallelRefIterator as _;
 use rayon::iter::ParallelIterator as _;
 use rhai::Dynamic;
@@ -26,7 +29,6 @@ use crate::author_resolve_result::AuthorResolveResult;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::build_project::content_document_rendering_context::ContentDocumentRenderingContext;
-use crate::build_timer::BuildTimer;
 use crate::content_document::ContentDocument;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_collection::ContentDocumentCollection;
@@ -40,10 +42,8 @@ use crate::content_document_source::ContentDocumentSource;
 use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
 use crate::document_error_collection::DocumentErrorCollection;
 use crate::eval_content_document_mdast::eval_content_document_mdast;
-use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
 use crate::generate_sitemap::create_sitemap;
-use crate::string_to_mdast::string_to_mdast;
 
 fn render_document<'render>(
     ContentDocumentRenderingContext {
@@ -386,7 +386,7 @@ mod tests {
     use crate::build_authors::build_authors;
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
-    use crate::compile_shortcodes::compile_shortcodes;
+    use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 
     const LAYOUT_MINIMAL: &str = r#"
 fn template(context, props, content) {
@@ -441,7 +441,7 @@ fn template(context, props, content) {
                 .await?;
         }
 
-        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
         let authors = build_authors(source_filesystem.clone()).await?;
 
         build_project(BuildProjectParams {

@@ -26,7 +26,8 @@ use markdown::mdast::TableCell;
 use markdown::mdast::TableRow;
 use markdown::mdast::Text;
 use markdown::mdast::ThematicBreak;
-use poet_assets::is_external_link::is_external_link;
+use poet_mdx::eval_mdx_element::eval_mdx_element;
+use poet_mdx::warn_about_unsupported_mdast_node::warn_about_unsupported_mdast_node;
 use rhai_components::escape_html::escape_html;
 use rhai_components::escape_html_attribute::escape_html_attribute;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
@@ -36,7 +37,6 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
 use crate::content_document_component_context::ContentDocumentComponentContext;
-use crate::eval_mdx_element::eval_mdx_element;
 use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::parse_markdown_metadata_line::metadata_line_item::MetadataLineItem;
 use crate::parse_markdown_metadata_line::parse_markdown_metadata_line;
@@ -148,9 +148,6 @@ pub fn eval_content_document_mdast(
 
             result.push_str("</code></pre>");
         }
-        Node::Definition(node) => {
-            warn!("Definitions are not supported: {node:?}");
-        }
         Node::Delete(Delete { children, .. }) => {
             result.push_str("<del>");
             result.push_str(&eval_content_document_children(
@@ -170,9 +167,6 @@ pub fn eval_content_document_mdast(
                 syntax_set,
             )?);
             result.push_str("</em>");
-        }
-        Node::FootnoteDefinition(node) => {
-            warn!("Footnote definitions are not supported: {node:?}");
         }
         Node::FootnoteReference(FootnoteReference {
             identifier, label, ..
@@ -195,7 +189,7 @@ pub fn eval_content_document_mdast(
             result.push_str(&format!(
                 "<{} id=\"{}\">",
                 tag,
-                escape_html_attribute(&mdast_children_to_heading_id(children)?)
+                escape_html_attribute(&mdast_children_to_heading_id(children))
             ));
             result.push_str(&eval_content_document_children(
                 children,
@@ -213,13 +207,9 @@ pub fn eval_content_document_mdast(
         }) => {
             result.push_str(&format!("<img alt=\"{}\" ", escape_html_attribute(alt)));
 
-            let src = if is_external_link(url) {
-                url
-            } else {
-                &component_context.asset_manager.image(url)?
-            };
+            let src = component_context.asset_manager.image_source(url)?;
 
-            result.push_str(&format!("src=\"{}\"", escape_html_attribute(src)));
+            result.push_str(&format!("src=\"{}\"", escape_html_attribute(&src)));
 
             if let Some(title) = title {
                 result.push_str(&format!(" title=\"{}\"", escape_html_attribute(title)));
@@ -227,14 +217,8 @@ pub fn eval_content_document_mdast(
 
             result.push('>');
         }
-        Node::ImageReference(node) => {
-            warn!("Image references are not supported: {node:?}");
-        }
         Node::InlineCode(InlineCode { value, .. }) => {
             result.push_str(&format!("<code>{}</code>", escape_html(value)));
-        }
-        Node::InlineMath(node) => {
-            warn!("Inline math expressions are not supported: {node:?}");
         }
         Node::Link(Link {
             children,
@@ -242,14 +226,10 @@ pub fn eval_content_document_mdast(
             url,
             ..
         }) => {
-            let link = if is_external_link(url) {
-                url.clone()
-            } else {
-                match component_context.content_document_linker.link_to(url) {
-                    Ok(link) => link,
-                    Err(err) => return Err(anyhow!(err)),
-                }
-            };
+            let link = component_context
+                .content_document_linker
+                .resolve_link(url)
+                .map_err(|link_error| anyhow!(link_error))?;
 
             result.push_str(&format!("<a href=\"{}\"", escape_html_attribute(&link)));
 
@@ -265,9 +245,6 @@ pub fn eval_content_document_mdast(
                 syntax_set,
             )?);
             result.push_str("</a>");
-        }
-        Node::LinkReference(node) => {
-            warn!("Link references are not supported: {node:?}");
         }
         Node::List(List {
             children, ordered, ..
@@ -301,12 +278,6 @@ pub fn eval_content_document_mdast(
             )?);
             result.push_str("</li>");
         }
-        Node::Math(node) => {
-            warn!("Math expressions are not supported: {node:?}");
-        }
-        Node::MdxjsEsm(node) => {
-            warn!("MDX ESM expressions are not supported: {node:?}");
-        }
         Node::MdxFlowExpression(MdxFlowExpression { value, .. })
         | Node::MdxTextExpression(MdxTextExpression { value, .. }) => {
             result.push_str(
@@ -337,7 +308,7 @@ pub fn eval_content_document_mdast(
                     rhai_template_renderer,
                     syntax_set,
                 )?,
-                name,
+                name.as_ref(),
                 rhai_template_renderer,
             )?);
         }
@@ -408,6 +379,15 @@ pub fn eval_content_document_mdast(
         Node::Toml(_) => {
             // ignore frontmatter during this pass
         }
+        unsupported_node @ (Node::Definition(_)
+        | Node::FootnoteDefinition(_)
+        | Node::ImageReference(_)
+        | Node::InlineMath(_)
+        | Node::LinkReference(_)
+        | Node::Math(_)
+        | Node::MdxjsEsm(_)) => {
+            warn_about_unsupported_mdast_node(unsupported_node);
+        }
         Node::Yaml(node) => {
             warn!("YAML front-matter is not supported, use TOML instead: {node:?}");
         }
@@ -427,6 +407,7 @@ mod tests {
     use indoc::indoc;
     use poet_assets::asset_manager::AssetManager;
     use poet_assets::asset_path_renderer::AssetPathRenderer;
+    use poet_mdx::string_to_mdast::string_to_mdast;
     use rhai::Engine;
     use rhai_components::component_syntax::component_registry::ComponentRegistry;
     use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
@@ -438,7 +419,6 @@ mod tests {
     use crate::content_document_front_matter::ContentDocumentFrontMatter;
     use crate::content_document_linker::ContentDocumentLinker;
     use crate::content_document_reference::ContentDocumentReference;
-    use crate::string_to_mdast::string_to_mdast;
 
     const ASSET_METAFILE: &str = indoc! {r#"
         {
@@ -554,6 +534,16 @@ mod tests {
         assert_eq!(
             render("## Hello World")?,
             "<h2 id=\"hello-world\">Hello World</h2>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn omits_unsupported_link_definition() -> Result<()> {
+        assert_eq!(
+            render("Text\n\n[reference]: https://example.com")?,
+            "<p>Text</p>"
         );
 
         Ok(())

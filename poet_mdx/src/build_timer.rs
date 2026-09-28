@@ -16,9 +16,8 @@ impl Default for BuildTimer {
 
 impl Drop for BuildTimer {
     fn drop(&mut self) {
-        info!(
-            "Finished in {} milliseconds",
-            self.started_at.elapsed().as_millis()
-        )
+        let elapsed_milliseconds = self.started_at.elapsed().as_millis();
+
+        info!("Finished in {elapsed_milliseconds} milliseconds");
     }
 }

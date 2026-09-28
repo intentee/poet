@@ -11,4 +11,5 @@ pub mod external_asset_collection;
 pub mod is_external_link;
 pub mod is_image_path;
 pub mod read_esbuild_metafile_or_default;
+pub mod register_asset_rhai_types;
 pub mod static_asset_resolver;

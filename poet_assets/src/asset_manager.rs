@@ -11,6 +11,7 @@ use crate::asset_path_renderer::AssetPathRenderer;
 use crate::asset_preloader::AssetPreloader;
 use crate::external_asset::ExternalAsset;
 use crate::external_asset_collection::ExternalAssetCollection;
+use crate::is_external_link::is_external_link;
 use crate::static_asset_resolver::StaticAssetResolver;
 
 #[derive(Clone)]
@@ -40,6 +41,14 @@ impl AssetManager {
     pub fn file(&self, input_path: &str) -> Result<String, AssetError> {
         self.static_asset_resolver
             .file(&self.asset_input_resolver.resolve(input_path)?)
+    }
+
+    pub fn image_source(&self, image_url: &str) -> Result<String, AssetError> {
+        if is_external_link(image_url) {
+            Ok(image_url.to_owned())
+        } else {
+            self.image(image_url)
+        }
     }
 
     pub fn image(&self, input_path: &str) -> Result<String, AssetError> {

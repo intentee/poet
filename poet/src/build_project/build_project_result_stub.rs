@@ -82,7 +82,7 @@ mod tests {
     use crate::build_authors::build_authors;
     use crate::build_project::build_project;
     use crate::build_project::build_project_params::BuildProjectParams;
-    use crate::compile_shortcodes::compile_shortcodes;
+    use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 
     async fn build_stub(body: &str) -> Result<BuildProjectResultStub> {
         let directory = tempdir()?;
@@ -105,7 +105,7 @@ mod tests {
             )
             .await?;
 
-        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
         let authors = build_authors(source_filesystem.clone()).await?;
 
         build_project(BuildProjectParams {

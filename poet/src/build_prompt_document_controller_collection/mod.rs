@@ -7,13 +7,13 @@ use anyhow::anyhow;
 use dashmap::DashMap;
 use log::info;
 use poet_filesystem::filesystem::Filesystem as _;
+use poet_mdx::build_timer::BuildTimer;
 use rayon::iter::IntoParallelIterator as _;
 use rayon::iter::ParallelIterator as _;
 
 use crate::build_prompt_document_controller::build_prompt_document_controller;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
 use crate::build_prompt_document_controller_params::BuildPromptDocumentControllerParams;
-use crate::build_timer::BuildTimer;
 use crate::document_error_collection::DocumentErrorCollection;
 use crate::prompt_controller::PromptController;
 use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
@@ -85,7 +85,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::compile_shortcodes::compile_shortcodes;
+    use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 
     async fn build(prompt_files: &[(&str, &str)]) -> Result<PromptControllerCollection> {
         let directory = tempdir()?;
@@ -99,7 +99,7 @@ mod tests {
                 .await?;
         }
 
-        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
 
         build_prompt_document_controller_collection(BuildPromptControllerCollectionParams {
             asset_path_renderer: AssetPathRenderer {

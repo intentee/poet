@@ -108,7 +108,7 @@ mod tests {
     use crate::build_project::build_project;
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
-    use crate::compile_shortcodes::compile_shortcodes;
+    use crate::compile_poet_shortcodes::compile_poet_shortcodes;
     use crate::search_index_query_params::SearchIndexQueryParams;
 
     async fn search_index_reader_for_guide(
@@ -134,7 +134,7 @@ mod tests {
             )
             .await?;
 
-        let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
         let authors = build_authors(source_filesystem.clone()).await?;
 
         let BuildProjectResultStub {

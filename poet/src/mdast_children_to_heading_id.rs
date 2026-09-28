@@ -1,22 +1,19 @@
-use anyhow::Result;
 use markdown::mdast::Node;
 use slug::slugify;
 
-use crate::find_text_content_in_mdast::find_text_content_in_mdast;
+use poet_mdx::find_text_content_in_mdast::find_text_content_in_mdast;
 
-pub fn mdast_children_to_heading_id(children: &Vec<Node>) -> Result<String> {
-    let mut inner_text = String::new();
-
-    for child in children {
-        inner_text.push_str(&find_text_content_in_mdast(child)?);
-    }
-
-    Ok(slugify(inner_text))
+pub fn mdast_children_to_heading_id(children: &[Node]) -> String {
+    slugify(
+        children
+            .iter()
+            .map(find_text_content_in_mdast)
+            .collect::<String>(),
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
     use markdown::mdast::Text;
 
     use super::*;
@@ -34,12 +31,10 @@ mod tests {
     }
 
     #[test]
-    fn concatenates_child_text_before_slugifying() -> Result<()> {
+    fn concatenates_child_text_before_slugifying() {
         assert_eq!(
-            mdast_children_to_heading_id(&text_nodes(&["Hello ", "World"]))?,
+            mdast_children_to_heading_id(&text_nodes(&["Hello ", "World"])),
             "hello-world"
         );
-
-        Ok(())
     }
 }

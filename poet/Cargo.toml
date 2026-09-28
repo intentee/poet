@@ -33,6 +33,7 @@ petgraph = { workspace = true }
 poet_assets = { workspace = true }
 poet_filesystem = { workspace = true }
 poet_mcp = { workspace = true }
+poet_mdx = { workspace = true }
 rayon = { workspace = true }
 rhai = { workspace = true }
 rhai_components = { workspace = true }

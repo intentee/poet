@@ -1,12 +1,12 @@
-use anyhow::Result;
-use anyhow::anyhow;
 use markdown::Constructs;
 use markdown::ParseOptions;
 use markdown::mdast::Node;
 use markdown::to_mdast;
 
-pub fn string_to_mdast(contents: &str) -> Result<Node> {
-    match to_mdast(
+use crate::mdx_error::MdxError;
+
+pub fn string_to_mdast(contents: &str) -> Result<Node, MdxError> {
+    to_mdast(
         contents,
         &ParseOptions {
             constructs: Constructs {
@@ -24,8 +24,6 @@ pub fn string_to_mdast(contents: &str) -> Result<Node> {
             },
             ..ParseOptions::default()
         },
-    ) {
-        Ok(node) => Ok(node),
-        Err(message) => Err(anyhow!("Failed to parse file contents: {message:?}")),
-    }
+    )
+    .map_err(|message| MdxError::ParseMarkdown { message })
 }

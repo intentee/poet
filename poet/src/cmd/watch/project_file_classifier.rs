@@ -7,12 +7,12 @@ use anyhow::Result;
 use notify_debouncer_full::DebouncedEvent;
 use notify_debouncer_full::notify::EventKind;
 use poet_assets::esbuild_metafile_path::ESBUILD_METAFILE_PATH;
+use poet_mdx::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
 use crate::authors_source_directory::AUTHORS_SOURCE_DIRECTORY;
 use crate::cmd::watch::project_file_kind::ProjectFileKind;
 use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
 use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
-use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
 fn is_temp_file(path: &Path) -> bool {
     let path_string = path.to_string_lossy();
@@ -106,6 +106,7 @@ mod tests {
     use notify_debouncer_full::notify::event::ModifyKind;
     use notify_debouncer_full::notify::event::RemoveKind;
     use poet_assets::esbuild_metafile_path::ESBUILD_METAFILE_PATH;
+    use poet_mdx::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
     use tempfile::TempDir;
     use tempfile::tempdir;
 
@@ -114,7 +115,6 @@ mod tests {
     use crate::cmd::watch::project_file_kind::ProjectFileKind;
     use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
     use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
-    use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
     fn project_directory() -> Result<TempDir> {
         let project_directory = tempdir()?;

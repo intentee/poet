@@ -2047,6 +2047,7 @@ dependencies = [
  "poet_assets",
  "poet_filesystem",
  "poet_mcp",
+ "poet_mdx",
  "rayon",
  "rhai",
  "rhai_components",
@@ -2155,6 +2156,35 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-util",
+]
+
+[[package]]
+name = "poet_mdx"
+version = "0.8.0"
+dependencies = [
+ "log",
+ "markdown",
+ "poet_filesystem",
+ "rhai",
+ "rhai_components",
+ "serde",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
+name = "poet_mdx_tests"
+version = "0.8.0"
+dependencies = [
+ "markdown",
+ "poet_filesystem",
+ "poet_mdx",
+ "rhai",
+ "rhai_components",
+ "serde",
+ "tempfile",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

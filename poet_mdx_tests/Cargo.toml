@@ -1,0 +1,27 @@
+[package]
+name = "poet_mdx_tests"
+autotests = false
+description = "Integration tests for poet_mdx"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+markdown = { workspace = true }
+poet_filesystem = { workspace = true }
+poet_mdx = { workspace = true }
+rhai = { workspace = true }
+rhai_components = { workspace = true }
+serde = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

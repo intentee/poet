@@ -1,20 +1,8 @@
 use anyhow::Result;
-use markdown::mdast::Blockquote;
-use markdown::mdast::Delete;
-use markdown::mdast::Emphasis;
 use markdown::mdast::Heading as MdastHeading;
-use markdown::mdast::Link;
-use markdown::mdast::List;
-use markdown::mdast::ListItem;
-use markdown::mdast::MdxJsxFlowElement;
-use markdown::mdast::MdxJsxTextElement;
 use markdown::mdast::Node;
 use markdown::mdast::Paragraph;
-use markdown::mdast::Root;
-use markdown::mdast::Strong;
-use markdown::mdast::Table;
-use markdown::mdast::TableCell;
-use markdown::mdast::TableRow;
+use poet_mdx::mdast_container_children::mdast_container_children;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use syntect::parsing::SyntaxSet;
 
@@ -24,6 +12,26 @@ use crate::mdast_children_to_heading_id::mdast_children_to_heading_id;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
+fn find_headings_in_children(
+    children: &[Node],
+    component_context: &ContentDocumentComponentContext,
+    headings: &mut Vec<Heading>,
+    rhai_template_renderer: &RhaiTemplateRenderer,
+    syntax_set: &SyntaxSet,
+) -> Result<()> {
+    for child in children {
+        find_headings_in_mdast(
+            child,
+            component_context,
+            headings,
+            rhai_template_renderer,
+            syntax_set,
+        )?;
+    }
+
+    Ok(())
+}
+
 fn find_headings_in_mdast(
     mdast: &Node,
     component_context: &ContentDocumentComponentContext,
@@ -32,32 +40,13 @@ fn find_headings_in_mdast(
     syntax_set: &SyntaxSet,
 ) -> Result<()> {
     match mdast {
-        Node::Blockquote(Blockquote { children, .. })
-        | Node::Delete(Delete { children, .. })
-        | Node::Emphasis(Emphasis { children, .. })
-        | Node::Link(Link { children, .. })
-        | Node::List(List { children, .. })
-        | Node::ListItem(ListItem { children, .. })
-        | Node::MdxJsxFlowElement(MdxJsxFlowElement { children, .. })
-        | Node::MdxJsxTextElement(MdxJsxTextElement { children, .. })
-        | Node::Paragraph(Paragraph { children, .. })
-        | Node::Root(Root { children, .. })
-        | Node::Strong(Strong { children, .. })
-        | Node::Table(Table { children, .. })
-        | Node::TableCell(TableCell { children, .. })
-        | Node::TableRow(TableRow { children, .. }) => {
-            for child in children {
-                find_headings_in_mdast(
-                    child,
-                    component_context,
-                    headings,
-                    rhai_template_renderer,
-                    syntax_set,
-                )?;
-            }
-
-            Ok(())
-        }
+        Node::Paragraph(Paragraph { children, .. }) => find_headings_in_children(
+            children,
+            component_context,
+            headings,
+            rhai_template_renderer,
+            syntax_set,
+        ),
         Node::Heading(MdastHeading {
             children, depth, ..
         }) => {
@@ -69,12 +58,18 @@ fn find_headings_in_mdast(
                     syntax_set,
                 )?,
                 depth: *depth as i64,
-                id: mdast_children_to_heading_id(children)?,
+                id: mdast_children_to_heading_id(children),
             });
 
             Ok(())
         }
-        _ => Ok(()),
+        other_node => find_headings_in_children(
+            mdast_container_children(other_node).map_or(&[], Vec::as_slice),
+            component_context,
+            headings,
+            rhai_template_renderer,
+            syntax_set,
+        ),
     }
 }
 
@@ -101,13 +96,13 @@ pub fn find_table_of_contents_in_mdast(
 mod tests {
     use std::sync::Arc;
 
+    use poet_mdx::string_to_mdast::string_to_mdast;
     use rhai::Engine;
     use rhai_components::component_syntax::component_registry::ComponentRegistry;
     use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
     use syntect::parsing::SyntaxSet;
 
     use super::*;
-    use crate::string_to_mdast::string_to_mdast;
 
     #[test]
     fn extracts_headings_with_depth_and_id() -> Result<()> {

@@ -14,6 +14,7 @@ use poet_assets::esbuild_metafile_path::ESBUILD_METAFILE_PATH;
 use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use poet_filesystem::filesystem::Filesystem;
 use poet_filesystem::storage::Storage;
+use poet_mdx::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 use tokio::fs;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
@@ -25,7 +26,6 @@ use crate::cmd::value_parser::validate_is_directory;
 use crate::cmd::value_parser::validate_is_directory_or_create;
 use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
 use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
-use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
 const ICON: &str = r#"<svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="10" height="10" fill="black"/>

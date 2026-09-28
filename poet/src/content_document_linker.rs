@@ -1,3 +1,4 @@
+use poet_assets::is_external_link::is_external_link;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -12,6 +13,14 @@ pub struct ContentDocumentLinker {
 }
 
 impl ContentDocumentLinker {
+    pub fn resolve_link(&self, url: &str) -> Result<String, String> {
+        if is_external_link(url) {
+            Ok(url.to_owned())
+        } else {
+            self.link_to(url)
+        }
+    }
+
     pub fn link_to(&self, path: &str) -> Result<String, String> {
         let basename = self.resolve_id(path)?;
 

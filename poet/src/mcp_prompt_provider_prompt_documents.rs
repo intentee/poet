@@ -7,24 +7,24 @@ use poet_mcp::prompt_provider::PromptProvider;
 use poet_mcp::prompts_get_request::PromptsGetRequest;
 use poet_mcp::prompts_get_result::PromptsGetResult;
 use poet_mcp::provider_error::ProviderError;
+use poet_prompt::prompt_document_controller_collection::PromptDocumentControllerCollection;
 
 use crate::holder::Holder as _;
 use crate::poet_error::PoetError;
-use crate::prompt_controller_collection::PromptControllerCollection;
-use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
+use crate::prompt_document_controller_collection_holder::PromptDocumentControllerCollectionHolder;
 
 pub struct McpPromptProviderPromptDocuments {
-    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
+    pub prompt_document_controller_collection_holder: PromptDocumentControllerCollectionHolder,
 }
 
 impl McpPromptProviderPromptDocuments {
-    async fn prompt_controller_collection(
+    async fn prompt_document_controller_collection(
         &self,
-    ) -> Result<Arc<PromptControllerCollection>, PoetError> {
-        self.prompt_controller_collection_holder
+    ) -> Result<Arc<PromptDocumentControllerCollection>, PoetError> {
+        self.prompt_document_controller_collection_holder
             .get()
             .await
-            .ok_or(PoetError::PromptControllerCollectionNotReady)
+            .ok_or(PoetError::PromptDocumentControllerCollectionNotReady)
     }
 }
 
@@ -34,13 +34,16 @@ impl PromptProvider for McpPromptProviderPromptDocuments {
         &self,
         request: PromptsGetRequest,
     ) -> Result<Option<PromptsGetResult>, ProviderError> {
-        let prompt_controller_collection = self.prompt_controller_collection().await?;
-        let Some(prompt_controller) = prompt_controller_collection.0.get(&request.params.name)
+        let prompt_document_controller_collection =
+            self.prompt_document_controller_collection().await?;
+        let Some(prompt_document_controller) = prompt_document_controller_collection
+            .prompt_document_controllers
+            .get(&request.params.name)
         else {
             return Ok(None);
         };
 
-        Ok(Some(prompt_controller.respond_to(request).await?))
+        Ok(Some(prompt_document_controller.respond_to(request)?))
     }
 
     async fn list_prompts(
@@ -48,7 +51,7 @@ impl PromptProvider for McpPromptProviderPromptDocuments {
         cursor: ListResourcesCursor,
     ) -> Result<Vec<Prompt>, ProviderError> {
         Ok(self
-            .prompt_controller_collection()
+            .prompt_document_controller_collection()
             .await?
             .list_mcp_prompts(cursor))
     }

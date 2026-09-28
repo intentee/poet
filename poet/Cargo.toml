@@ -35,6 +35,7 @@ poet_content = { workspace = true }
 poet_filesystem = { workspace = true }
 poet_mcp = { workspace = true }
 poet_mdx = { workspace = true }
+poet_prompt = { workspace = true }
 poet_search = { workspace = true }
 rayon = { workspace = true }
 rhai = { workspace = true }

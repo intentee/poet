@@ -23,15 +23,14 @@ use poet_content::build_project_result::BuildProjectResult;
 use poet_filesystem::filesystem::Filesystem;
 use poet_mcp::implementation::Implementation;
 use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
+use poet_prompt::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
+use poet_prompt::build_prompt_document_controller_collection_params::BuildPromptDocumentControllerCollectionParams;
+use poet_prompt::prompt_rendering_context::PromptRenderingContext;
 use poet_search::search_index::SearchIndex;
 use poet_search::search_index_reader::SearchIndexReader;
 
-use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::build_project_result_holder::BuildProjectResultHolder;
-use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
-use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
-use crate::holder::Holder as _;
 use crate::cmd::MCP_STREAMABLE_HTTP_MOUNT_PATH;
 use crate::cmd::STATIC_FILES_PUBLIC_PATH;
 use crate::cmd::builds_project::BuildsProject;
@@ -39,9 +38,11 @@ use crate::cmd::handler::Handler;
 use crate::cmd::serve::app_data::AppData;
 use crate::cmd::value_parser::parse_socket_addr;
 use crate::cmd::value_parser::validate_is_directory;
+use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
+use crate::holder::Holder as _;
 use crate::mcp_server_factory::McpServerFactory;
-use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
+use crate::prompt_document_controller_collection_holder::PromptDocumentControllerCollectionHolder;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 #[derive(Parser)]
@@ -124,21 +125,24 @@ impl Handler for Serve {
         .await?
         .into();
 
-        let prompt_controller_collection =
-            build_prompt_document_controller_collection(BuildPromptControllerCollectionParams {
-                asset_path_renderer: asset_path_renderer.clone(),
-                content_document_linker: build_project_result.content_document_linker.clone(),
-                esbuild_metafile: build_project_result.esbuild_metafile.clone(),
-                rhai_template_renderer,
-                source_filesystem: source_filesystem.clone(),
-            })
-            .await?;
+        let prompt_document_controller_collection = build_prompt_document_controller_collection(
+            BuildPromptDocumentControllerCollectionParams {
+                rendering_context: PromptRenderingContext {
+                    asset_path_renderer: asset_path_renderer.clone(),
+                    content_document_linker: build_project_result.content_document_linker.clone(),
+                    esbuild_metafile: build_project_result.esbuild_metafile.clone(),
+                    rhai_template_renderer,
+                },
+                source_filesystem: source_filesystem.as_ref(),
+            },
+        )
+        .await?;
 
-        let prompt_controller_collection_holder: PromptControllerCollectionHolder =
+        let prompt_document_controller_collection_holder: PromptDocumentControllerCollectionHolder =
             Default::default();
 
-        prompt_controller_collection_holder
-            .set(Some(Arc::new(prompt_controller_collection)))
+        prompt_document_controller_collection_holder
+            .set(Some(Arc::new(prompt_document_controller_collection)))
             .await;
 
         let app_data = Data::new(AppData {
@@ -165,7 +169,7 @@ impl Handler for Serve {
 
         let mcp_server = McpServerFactory {
             build_project_result_holder,
-            prompt_controller_collection_holder,
+            prompt_document_controller_collection_holder,
             search_index_reader_holder,
             server_info,
         }

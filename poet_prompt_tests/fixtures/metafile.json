@@ -1,0 +1,8 @@
+{
+  "outputs": {
+    "static/logo_ABCDEF12.png": {
+      "imports": [],
+      "inputs": { "logo.png": {} }
+    }
+  }
+}

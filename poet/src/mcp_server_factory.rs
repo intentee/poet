@@ -9,13 +9,13 @@ use poet_mcp::tool_registry::ToolRegistry;
 use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::mcp_prompt_provider_prompt_documents::McpPromptProviderPromptDocuments;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
-use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
+use crate::prompt_document_controller_collection_holder::PromptDocumentControllerCollectionHolder;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 use crate::search_tool::SearchTool;
 
 pub struct McpServerFactory {
     pub build_project_result_holder: BuildProjectResultHolder,
-    pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
+    pub prompt_document_controller_collection_holder: PromptDocumentControllerCollectionHolder,
     pub search_index_reader_holder: SearchIndexReaderHolder,
     pub server_info: Implementation,
 }
@@ -36,7 +36,8 @@ impl McpServerFactory {
 
         McpServer {
             prompt_provider: Arc::new(McpPromptProviderPromptDocuments {
-                prompt_controller_collection_holder: self.prompt_controller_collection_holder,
+                prompt_document_controller_collection_holder: self
+                    .prompt_document_controller_collection_holder,
             }),
             resource_list_aggregate: Arc::new(resource_providers.into()),
             server_info: self.server_info,

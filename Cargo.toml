@@ -12,6 +12,8 @@ members = [
     "poet_mcp_tests",
     "poet_mdx",
     "poet_mdx_tests",
+    "poet_prompt",
+    "poet_prompt_tests",
     "poet_search",
     "poet_search_tests",
     "rhai_components",
@@ -96,6 +98,8 @@ poet_content_tests = { path = "poet_content_tests" }
 poet_filesystem = { path = "poet_filesystem", version = "0.8" }
 poet_mcp = { path = "poet_mcp", version = "0.8" }
 poet_mdx = { path = "poet_mdx", version = "0.8" }
+poet_prompt = { path = "poet_prompt", version = "0.8" }
+poet_prompt_tests = { path = "poet_prompt_tests" }
 poet_search = { path = "poet_search", version = "0.8" }
 poet_search_tests = { path = "poet_search_tests" }
 rayon = "1.12"

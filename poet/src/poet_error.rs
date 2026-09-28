@@ -7,5 +7,5 @@ pub enum PoetError {
     #[error(
         "Prompts are not ready yet. The server is still starting up, or there are no successful prompt builds yet"
     )]
-    PromptControllerCollectionNotReady,
+    PromptDocumentControllerCollectionNotReady,
 }

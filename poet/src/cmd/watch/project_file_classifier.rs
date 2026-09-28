@@ -10,9 +10,9 @@ use poet_assets::esbuild_metafile_path::ESBUILD_METAFILE_PATH;
 use poet_content::authors_source_directory::AUTHORS_SOURCE_DIRECTORY;
 use poet_content::content_source_directory::CONTENT_SOURCE_DIRECTORY;
 use poet_mdx::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
+use poet_prompt::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
 
 use crate::cmd::watch::project_file_kind::ProjectFileKind;
-use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
 
 fn is_temp_file(path: &Path) -> bool {
     let path_string = path.to_string_lossy();
@@ -109,12 +109,12 @@ mod tests {
     use poet_content::authors_source_directory::AUTHORS_SOURCE_DIRECTORY;
     use poet_content::content_source_directory::CONTENT_SOURCE_DIRECTORY;
     use poet_mdx::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
+    use poet_prompt::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
     use tempfile::TempDir;
     use tempfile::tempdir;
 
     use super::ProjectFileClassifier;
     use crate::cmd::watch::project_file_kind::ProjectFileKind;
-    use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
 
     fn project_directory() -> Result<TempDir> {
         let project_directory = tempdir()?;

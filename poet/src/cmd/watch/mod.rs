@@ -29,14 +29,14 @@ use crate::cmd::watch::service::esbuild_metafile_reader::EsbuildMetafileReader;
 use crate::cmd::watch::service::filesystem_http_route_index_builder::FilesystemHttpRouteIndexBuilder;
 use crate::cmd::watch::service::http_server::HttpServer;
 use crate::cmd::watch::service::project_builder::ProjectBuilder;
-use crate::cmd::watch::service::prompt_controller_collection_builder::PromptControllerCollectionBuilder;
+use crate::cmd::watch::service::prompt_document_controller_collection_builder::PromptDocumentControllerCollectionBuilder;
 use crate::cmd::watch::service::resources_list_changed_broadcaster::ResourcesListChangedBroadcaster;
 use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
 use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
 use crate::mcp_server_factory::McpServerFactory;
-use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
+use crate::prompt_document_controller_collection_holder::PromptDocumentControllerCollectionHolder;
 use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
@@ -85,14 +85,15 @@ impl Handler for Watch {
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
         let esbuild_metafile_holder: EsbuildMetafileHolder = Default::default();
         let filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder = Default::default();
-        let prompt_controller_collection_holder: PromptControllerCollectionHolder =
+        let prompt_document_controller_collection_holder: PromptDocumentControllerCollectionHolder =
             Default::default();
         let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
         let source_filesystem = self.source_filesystem();
         let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
         let mcp_server = McpServerFactory {
             build_project_result_holder: build_project_result_holder.clone(),
-            prompt_controller_collection_holder: prompt_controller_collection_holder.clone(),
+            prompt_document_controller_collection_holder:
+                prompt_document_controller_collection_holder.clone(),
             search_index_reader_holder: search_index_reader_holder.clone(),
             server_info: Implementation {
                 description: None,
@@ -139,13 +140,13 @@ impl Handler for Watch {
             source_filesystem: source_filesystem.clone(),
         }));
 
-        service_manager.register_service(Arc::new(PromptControllerCollectionBuilder {
+        service_manager.register_service(Arc::new(PromptDocumentControllerCollectionBuilder {
             asset_path_renderer,
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
             esbuild_metafile_holder,
             on_prompt_file_changed,
-            prompt_controller_collection_holder,
+            prompt_document_controller_collection_holder,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             source_filesystem: source_filesystem.clone(),
         }));

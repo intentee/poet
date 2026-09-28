@@ -2049,6 +2049,7 @@ dependencies = [
  "poet_filesystem",
  "poet_mcp",
  "poet_mdx",
+ "poet_prompt",
  "poet_search",
  "poet_search_tests",
  "rayon",
@@ -2232,6 +2233,45 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "poet_prompt"
+version = "0.8.0"
+dependencies = [
+ "dashmap",
+ "esbuild-metafile",
+ "log",
+ "markdown",
+ "poet_assets",
+ "poet_content",
+ "poet_filesystem",
+ "poet_mcp",
+ "poet_mdx",
+ "rayon",
+ "rhai",
+ "rhai_components",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "poet_prompt_tests"
+version = "0.8.0"
+dependencies = [
+ "esbuild-metafile",
+ "poet_assets",
+ "poet_content",
+ "poet_content_tests",
+ "poet_filesystem",
+ "poet_mcp",
+ "poet_mdx",
+ "poet_prompt",
+ "rhai",
+ "rhai_components",
+ "thiserror",
+ "tokio",
+ "toml",
 ]
 
 [[package]]

@@ -7,7 +7,7 @@ use log::error;
 use tokio_util::sync::CancellationToken;
 
 use crate::build_project::build_project_result::BuildProjectResult;
-use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::service::Service;
 use crate::holder::Holder as _;
 use crate::search_index::SearchIndex;

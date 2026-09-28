@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_project::build_project_result::BuildProjectResult;
-use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
 use crate::cmd::service::Service;

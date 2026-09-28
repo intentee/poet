@@ -49,6 +49,25 @@ impl BuildProjectResultStub {
     }
 }
 
+impl From<BuildProjectResultStub> for BuildProjectResult {
+    fn from(
+        BuildProjectResultStub {
+            content_document_linker,
+            content_document_sources,
+            esbuild_metafile,
+            memory_filesystem,
+        }: BuildProjectResultStub,
+    ) -> Self {
+        Self {
+            changed_since_last_build: vec![],
+            content_document_linker,
+            content_document_sources,
+            esbuild_metafile,
+            memory_filesystem,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;

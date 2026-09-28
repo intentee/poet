@@ -5,6 +5,49 @@ members = [
     "rhai_components",
 ]
 
+[workspace.package]
+edition = "2024"
+homepage = "https://poet.intentee.com/"
+license = "Apache-2.0"
+repository = "https://github.com/intentee/poet"
+version = "0.8.0"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+allow_attributes = "deny"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+dbg_macro = "deny"
+error_impl_error = "allow"
+expect_used = "deny"
+future_not_send = "allow"
+infinite_loop = "deny"
+literal_string_with_formatting_args = "allow"
+missing_docs_in_private_items = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+needless_pass_by_value = "allow"
+panic = "deny"
+print_stderr = "deny"
+print_stdout = "deny"
+rc_mutex = "deny"
+rest_pat_in_fully_bound_structs = "deny"
+self_named_module_files = "deny"
+significant_drop_tightening = "allow"
+str_to_string = "deny"
+tests_outside_test_module = "allow"
+todo = "deny"
+too_many_arguments = "allow"
+too_many_lines = "allow"
+unimplemented = "deny"
+unwrap_used = "deny"
+
 [workspace.dependencies]
 actix-files = "0.7"
 actix-web = "4.15"
@@ -35,6 +78,7 @@ notify-debouncer-full = "0.7"
 petgraph = { version = "0.8", features = ["serde", "serde_derive"] }
 rayon = "1.12"
 rhai = { version = "1.26", features = ["internals", "metadata", "no_closure", "serde", "serde_json", "sync"] }
+rhai_components = { path = "rhai_components", version = "0.5" }
 schemars = "1.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -42,6 +86,7 @@ sitemap-rs = "0.7"
 slug = "0.1"
 syntect = "5.3"
 tantivy = "0.26"
+thiserror = "2.0"
 tempfile = "3.27"
 tokio = { version = "1.53", features = ["full"] }
 tokio-util = "0.7"

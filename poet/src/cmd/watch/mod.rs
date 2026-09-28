@@ -18,7 +18,7 @@ use tokio_util::sync::CancellationToken;
 use self::watch_project_files::WatchProjectHandle;
 use self::watch_project_files::watch_project_files;
 use crate::asset_path_renderer::AssetPathRenderer;
-use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
 use crate::cmd::service_manager::ServiceManager;

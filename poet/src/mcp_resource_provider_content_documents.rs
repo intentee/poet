@@ -8,7 +8,7 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::build_project::build_project_result::BuildProjectResult;
-use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::holder::Holder as _;
 use crate::mcp::resource::Resource;

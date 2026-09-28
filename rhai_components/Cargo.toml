@@ -1,10 +1,10 @@
 [package]
 description = "JSX-like syntax extension for Rhai"
-license = "Apache-2.0"
+edition.workspace = true
+license.workspace = true
 name = "rhai_components"
-repository = "https://github.com/intentee/poet"
+repository.workspace = true
 version = "0.5.12"
-edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }

@@ -1,6 +1,5 @@
 pub mod build_project_params;
 pub mod build_project_result;
-pub mod build_project_result_holder;
 pub mod build_project_result_stub;
 mod content_document_rendering_context;
 

@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 
-use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_source::ContentDocumentSource;
@@ -16,23 +15,4 @@ pub struct BuildProjectResult {
     pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
     pub esbuild_metafile: Arc<EsbuildMetafile>,
     pub memory_filesystem: Arc<Memory>,
-}
-
-impl From<BuildProjectResultStub> for BuildProjectResult {
-    fn from(
-        BuildProjectResultStub {
-            content_document_linker,
-            content_document_sources,
-            esbuild_metafile,
-            memory_filesystem,
-        }: BuildProjectResultStub,
-    ) -> Self {
-        Self {
-            changed_since_last_build: vec![],
-            content_document_linker,
-            content_document_sources,
-            esbuild_metafile,
-            memory_filesystem,
-        }
-    }
 }

@@ -21,7 +21,7 @@ use crate::build_authors::build_authors;
 use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result::BuildProjectResult;
-use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
+use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
 use crate::holder::Holder as _;

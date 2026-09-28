@@ -3,7 +3,7 @@ use std::sync::atomic;
 
 use actix_web::rt;
 use async_trait::async_trait;
-use poet_content::build_project::build_project_result::BuildProjectResult;
+use poet_content::build_project_result::BuildProjectResult;
 use poet_content::content_document_basename::ContentDocumentBasename;
 use poet_mcp::provider_error::ProviderError;
 use poet_mcp::resource::Resource;
@@ -29,7 +29,7 @@ impl McpResourceProviderContentDocuments {
         resource_reference: &ResourceReference,
         build_project_result: &BuildProjectResult,
     ) -> bool {
-        let subscribed_basename: ContentDocumentBasename = resource_reference.path.clone().into();
+        let subscribed_basename = ContentDocumentBasename(resource_reference.path.clone());
 
         build_project_result
             .changed_since_last_build
@@ -92,7 +92,7 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
             path, uri_string, ..
         }: ResourceReference,
     ) -> Result<Option<Vec<ResourceContent>>, ProviderError> {
-        let basename: ContentDocumentBasename = path.into();
+        let basename = ContentDocumentBasename(path);
         let build_project_result = self
             .build_project_result_holder
             .must_get_build_project_result()
@@ -154,9 +154,9 @@ mod tests {
     use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_content::build_authors::build_authors;
     use poet_content::build_project::build_project;
-    use poet_content::build_project::build_project_params::BuildProjectParams;
-    use poet_content::build_project::build_project_result::BuildProjectResult;
-    use poet_content::build_project::build_project_result_stub::BuildProjectResultStub;
+    use poet_content::build_project_params::BuildProjectParams;
+    use poet_content::build_project_result::BuildProjectResult;
+    use poet_content::build_project_result_stub::BuildProjectResultStub;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
@@ -191,9 +191,9 @@ mod tests {
             .await?;
 
         let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
-        let authors = build_authors(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.as_ref()).await?;
 
-        build_project(BuildProjectParams {
+        Ok(build_project(BuildProjectParams {
             asset_path_renderer: AssetPathRenderer {
                 base_path: "/".to_string(),
             },
@@ -203,9 +203,9 @@ mod tests {
             generate_sitemap: false,
             is_watching: false,
             rhai_template_renderer,
-            source_filesystem,
+            source_filesystem: source_filesystem.as_ref(),
         })
-        .await
+        .await?)
     }
 
     fn reference(path: &str) -> ResourceReference {
@@ -272,7 +272,7 @@ mod tests {
         let previous_build: BuildProjectResult = build_stub("body").await?.into();
         let changed_build = build_stub("changed body")
             .await?
-            .changed_compared_to(previous_build);
+            .changed_compared_to(&previous_build);
 
         assert!(McpResourceProviderContentDocuments::is_updated_by(
             &reference("guide"),

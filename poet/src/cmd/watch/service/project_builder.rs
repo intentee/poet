@@ -8,7 +8,7 @@ use log::info;
 use poet_assets::asset_path_renderer::AssetPathRenderer;
 use poet_content::build_authors::build_authors;
 use poet_content::build_project::build_project;
-use poet_content::build_project::build_project_params::BuildProjectParams;
+use poet_content::build_project_params::BuildProjectParams;
 use poet_filesystem::storage::Storage;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
@@ -52,7 +52,7 @@ impl ProjectBuilder {
             }
         };
 
-        let authors = match build_authors(self.source_filesystem.clone()).await {
+        let authors = match build_authors(self.source_filesystem.as_ref()).await {
             Ok(authors) => authors,
             Err(err) => {
                 error!("Failed to build authors: {err:#}");
@@ -68,7 +68,7 @@ impl ProjectBuilder {
             generate_sitemap: self.generate_sitemap,
             is_watching: true,
             rhai_template_renderer,
-            source_filesystem: self.source_filesystem.clone(),
+            source_filesystem: self.source_filesystem.as_ref(),
         })
         .await
         {
@@ -78,7 +78,7 @@ impl ProjectBuilder {
                         if let Some(old_build_project_result) =
                             self.build_project_result_holder.get().await
                         {
-                            build_project_result_stub.changed_compared_to(old_build_project_result)
+                            build_project_result_stub.changed_compared_to(&old_build_project_result)
                         } else {
                             build_project_result_stub.into()
                         },

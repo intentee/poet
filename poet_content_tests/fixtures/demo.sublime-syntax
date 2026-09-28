@@ -1,0 +1,9 @@
+%YAML 1.2
+---
+name: Demo
+file_extensions: [demo]
+scope: source.demo
+contexts:
+  main:
+    - match: '\bfn\b'
+      scope: keyword.demo

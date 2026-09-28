@@ -101,8 +101,8 @@ mod tests {
     use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_content::build_authors::build_authors;
     use poet_content::build_project::build_project;
-    use poet_content::build_project::build_project_params::BuildProjectParams;
-    use poet_content::build_project::build_project_result_stub::BuildProjectResultStub;
+    use poet_content::build_project_params::BuildProjectParams;
+    use poet_content::build_project_result_stub::BuildProjectResultStub;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use tempfile::tempdir;
@@ -135,7 +135,7 @@ mod tests {
             .await?;
 
         let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
-        let authors = build_authors(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.as_ref()).await?;
 
         let BuildProjectResultStub {
             content_document_sources,
@@ -150,7 +150,7 @@ mod tests {
             generate_sitemap: false,
             is_watching: false,
             rhai_template_renderer,
-            source_filesystem,
+            source_filesystem: source_filesystem.as_ref(),
         })
         .await?;
 
@@ -165,7 +165,13 @@ mod tests {
                 query: query.to_string(),
             })?
             .into_iter()
-            .map(|found_document| found_document.content_document_reference.front_matter.title)
+            .map(|found_document| {
+                found_document
+                    .content_document_reference
+                    .front_matter
+                    .title
+                    .clone()
+            })
             .collect())
     }
 

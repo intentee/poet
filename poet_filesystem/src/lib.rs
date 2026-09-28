@@ -6,4 +6,5 @@ pub mod filesystem_error;
 pub mod memory;
 pub mod read_file_contents_result;
 pub mod source_directory;
+pub mod source_file;
 pub mod storage;

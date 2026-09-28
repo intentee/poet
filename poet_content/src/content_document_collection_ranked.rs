@@ -1,23 +1,23 @@
-use anyhow::Result;
 use rhai::CustomType;
 use rhai::TypeBuilder;
 
 use crate::content_document_collection::ContentDocumentCollection;
 use crate::content_document_hierarchy::ContentDocumentHierarchy;
+use crate::content_error::ContentError;
 
 #[derive(Clone)]
 pub struct ContentDocumentCollectionRanked {
-    pub name: String,
     pub hierarchy: ContentDocumentHierarchy,
+    pub name: String,
 }
 
 impl ContentDocumentCollectionRanked {
-    fn rhai_name(&mut self) -> String {
-        self.name.clone()
-    }
-
     fn rhai_hierarchy(&mut self) -> ContentDocumentHierarchy {
         self.hierarchy.clone()
+    }
+
+    fn rhai_name(&mut self) -> String {
+        self.name.clone()
     }
 }
 
@@ -30,13 +30,13 @@ impl CustomType for ContentDocumentCollectionRanked {
     }
 }
 
-impl TryFrom<ContentDocumentCollection> for ContentDocumentCollectionRanked {
-    type Error = anyhow::Error;
+impl TryFrom<&ContentDocumentCollection> for ContentDocumentCollectionRanked {
+    type Error = ContentError;
 
-    fn try_from(collection: ContentDocumentCollection) -> Result<Self> {
+    fn try_from(collection: &ContentDocumentCollection) -> Result<Self, Self::Error> {
         Ok(Self {
             hierarchy: ContentDocumentHierarchy::from(collection.build_hierarchy()?),
-            name: collection.name,
+            name: collection.name.clone(),
         })
     }
 }

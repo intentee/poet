@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use poet_content::content_document_front_matter::ContentDocumentFrontMatter;
 use poet_content::content_document_reference::ContentDocumentReference;
 use poet_mcp::content_block::ContentBlock;
 use poet_mcp::provider_error::ProviderError;
@@ -41,20 +40,14 @@ impl SearchTool {
         &self,
         SearchIndexFoundDocument {
             content_document_reference:
-                content_document_reference @ ContentDocumentReference {
-                    front_matter:
-                        ContentDocumentFrontMatter {
-                            description, title, ..
-                        },
-                    ..
-                },
+                content_document_reference @ ContentDocumentReference { front_matter, .. },
         }: &SearchIndexFoundDocument,
     ) -> ContentBlock {
         ContentBlock::ResourceLink(ResourceLink {
-            description: Some(description.clone()),
+            description: Some(front_matter.description.clone()),
             mime_type: Some("text/markdown".to_owned()),
-            name: title.clone(),
-            title: Some(title.clone()),
+            name: front_matter.title.clone(),
+            title: Some(front_matter.title.clone()),
             uri: self
                 .mcp_resource_provider_content_documents
                 .resource_uri(&content_document_reference.basename().to_string()),
@@ -111,8 +104,8 @@ mod tests {
     use poet_assets::asset_path_renderer::AssetPathRenderer;
     use poet_content::build_authors::build_authors;
     use poet_content::build_project::build_project;
-    use poet_content::build_project::build_project_params::BuildProjectParams;
-    use poet_content::build_project::build_project_result_stub::BuildProjectResultStub;
+    use poet_content::build_project_params::BuildProjectParams;
+    use poet_content::build_project_result_stub::BuildProjectResultStub;
     use poet_filesystem::filesystem::Filesystem as _;
     use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
@@ -156,7 +149,7 @@ mod tests {
             .await?;
 
         let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
-        let authors = build_authors(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.as_ref()).await?;
 
         let BuildProjectResultStub {
             content_document_sources,
@@ -171,7 +164,7 @@ mod tests {
             generate_sitemap: false,
             is_watching: false,
             rhai_template_renderer,
-            source_filesystem,
+            source_filesystem: source_filesystem.as_ref(),
         })
         .await?;
 

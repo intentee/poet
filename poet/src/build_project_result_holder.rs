@@ -3,7 +3,7 @@ use std::sync::atomic;
 use std::sync::atomic::AtomicUsize;
 
 use async_trait::async_trait;
-use poet_content::build_project::build_project_result::BuildProjectResult;
+use poet_content::build_project_result::BuildProjectResult;
 use tokio::sync::Notify;
 use tokio::sync::RwLock;
 

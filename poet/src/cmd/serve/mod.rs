@@ -18,8 +18,8 @@ use poet_assets::asset_path_renderer::AssetPathRenderer;
 use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use poet_content::build_authors::build_authors;
 use poet_content::build_project::build_project;
-use poet_content::build_project::build_project_params::BuildProjectParams;
-use poet_content::build_project::build_project_result::BuildProjectResult;
+use poet_content::build_project_params::BuildProjectParams;
+use poet_content::build_project_result::BuildProjectResult;
 use poet_filesystem::filesystem::Filesystem;
 use poet_mcp::implementation::Implementation;
 use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
@@ -109,7 +109,7 @@ impl Handler for Serve {
             version: app_dir_desktop_entry.site_version.clone(),
         };
 
-        let authors = build_authors(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.as_ref()).await?;
 
         let build_project_result: BuildProjectResult = build_project(BuildProjectParams {
             asset_path_renderer: asset_path_renderer.clone(),
@@ -119,7 +119,7 @@ impl Handler for Serve {
             generate_sitemap: self.sitemap,
             is_watching: false,
             rhai_template_renderer: rhai_template_renderer.clone(),
-            source_filesystem: source_filesystem.clone(),
+            source_filesystem: source_filesystem.as_ref(),
         })
         .await?
         .into();

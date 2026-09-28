@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use log::debug;
 use log::error;
 use poet_assets::asset_path_renderer::AssetPathRenderer;
-use poet_content::build_project::build_project_result::BuildProjectResult;
+use poet_content::build_project_result::BuildProjectResult;
 use poet_filesystem::storage::Storage;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;

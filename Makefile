@@ -75,6 +75,7 @@ coverage: node_modules
 		--workspace-root $(CURDIR) \
 		--gated poet=80 \
 		--gated poet_assets=100 \
+		--gated poet_content=100 \
 		--gated poet_filesystem=100 \
 		--gated poet_mcp=100 \
 		--gated poet_mdx=100 \

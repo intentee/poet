@@ -1,6 +1,5 @@
 use std::io;
 use std::path::PathBuf;
-use std::path::StripPrefixError;
 
 use thiserror::Error;
 
@@ -11,13 +10,6 @@ pub enum FilesystemError {
         path: PathBuf,
         #[source]
         source: io::Error,
-    },
-    #[error("'{relative_path}' is not inside '{directory}'")]
-    FileOutsideDirectory {
-        directory: PathBuf,
-        relative_path: PathBuf,
-        #[source]
-        source: StripPrefixError,
     },
     #[error("'{path}' is a directory, not a file")]
     FileIsDirectory { path: PathBuf },

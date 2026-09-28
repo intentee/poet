@@ -7,13 +7,14 @@ use crate::file_entry::FileEntry;
 use crate::filesystem_error::FilesystemError;
 use crate::read_file_contents_result::ReadFileContentsResult;
 use crate::source_directory::SourceDirectory;
+use crate::source_file::SourceFile;
 
 #[async_trait]
 pub trait Filesystem: Send + Sync {
     async fn read_source_files(
         &self,
         source_directory: &SourceDirectory,
-    ) -> Result<Vec<FileEntry>, FilesystemError>;
+    ) -> Result<Vec<SourceFile>, FilesystemError>;
 
     async fn read_file_contents(
         &self,
@@ -37,9 +38,13 @@ pub trait Filesystem: Send + Sync {
         other: &TFilesystem,
         source_directory: &SourceDirectory,
     ) -> Result<(), FilesystemError> {
-        for FileEntry {
-            contents,
-            relative_path,
+        for SourceFile {
+            file_entry:
+                FileEntry {
+                    contents,
+                    relative_path,
+                    ..
+                },
             ..
         } in other.read_source_files(source_directory).await?
         {

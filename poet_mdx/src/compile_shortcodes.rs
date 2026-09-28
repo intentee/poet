@@ -32,7 +32,7 @@ pub async fn compile_shortcodes(
     {
         component_registry.register_component(ComponentReference {
             name: shortcode_file
-                .stem_in(&SHORTCODES_SOURCE_DIRECTORY)
+                .stem_name()
                 .map_err(MdxError::ResolveShortcodeName)?,
         });
     }

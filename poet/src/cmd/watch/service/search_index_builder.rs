@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
 use log::error;
-use poet_content::build_project::build_project_result::BuildProjectResult;
+use poet_content::build_project_result::BuildProjectResult;
 use tokio_util::sync::CancellationToken;
 
 use crate::build_project_result_holder::BuildProjectResultHolder;

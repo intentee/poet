@@ -7,6 +7,8 @@ pub mod build_prompt_document_controller_collection;
 pub mod build_prompt_document_controller_params;
 pub mod cmd;
 pub mod compile_poet_shortcodes;
+pub mod document_error;
+pub mod document_error_collection;
 pub mod esbuild_metafile_holder;
 pub mod eval_prompt_document_mdast;
 pub mod eval_prompt_document_mdast_params;

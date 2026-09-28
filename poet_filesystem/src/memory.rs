@@ -11,6 +11,7 @@ use crate::filesystem::Filesystem;
 use crate::filesystem_error::FilesystemError;
 use crate::read_file_contents_result::ReadFileContentsResult;
 use crate::source_directory::SourceDirectory;
+use crate::source_file::SourceFile;
 
 #[derive(Default)]
 pub struct Memory {
@@ -63,13 +64,24 @@ impl Filesystem for Memory {
             file_extension,
             name,
         }: &SourceDirectory,
-    ) -> Result<Vec<FileEntry>, FilesystemError> {
+    ) -> Result<Vec<SourceFile>, FilesystemError> {
         Ok(self
             .file_entries()
             .into_iter()
             .filter(|FileEntry { relative_path, .. }| {
-                relative_path.starts_with(name)
-                    && relative_path.extension() == Some(OsStr::new(file_extension))
+                relative_path.extension() == Some(OsStr::new(file_extension))
+            })
+            .filter_map(|file_entry| {
+                let stem_path = file_entry
+                    .relative_path
+                    .strip_prefix(name)
+                    .ok()?
+                    .with_extension("");
+
+                Some(SourceFile {
+                    file_entry,
+                    stem_path,
+                })
             })
             .collect())
     }

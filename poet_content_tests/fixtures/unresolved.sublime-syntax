@@ -1,0 +1,9 @@
+%YAML 1.2
+---
+name: Unresolved
+file_extensions: [unresolved]
+scope: source.unresolved
+contexts:
+  main:
+    - match: 'x'
+      push: nonexistent

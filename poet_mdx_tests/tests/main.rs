@@ -1,4 +1,7 @@
 mod concatenates_text_across_nested_containers;
+mod document_error_collection_is_empty_until_error_is_registered;
+mod document_error_collection_lists_error_chains_sorted_by_basename;
+mod document_error_collection_lists_errors_sorted_by_basename;
 mod evaluates_expression_attribute;
 mod extracts_toml_front_matter;
 mod finds_no_front_matter_in_document_without_it;

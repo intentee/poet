@@ -2,12 +2,13 @@ pub mod build_prompt_document_controller_collection_params;
 
 use std::sync::Arc;
 
+use crate::document_error_collection::DocumentErrorCollection;
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
 use log::info;
-use poet_content::document_error_collection::DocumentErrorCollection;
 use poet_filesystem::filesystem::Filesystem as _;
+use poet_filesystem::source_file::SourceFile;
 use poet_mdx::build_timer::BuildTimer;
 use rayon::iter::IntoParallelIterator as _;
 use rayon::iter::ParallelIterator as _;
@@ -38,35 +39,30 @@ pub async fn build_prompt_document_controller_collection(
         .read_source_files(&PROMPTS_SOURCE_DIRECTORY)
         .await?
         .into_par_iter()
-        .for_each(|file| {
-            let name = match file.stem_path_in(&PROMPTS_SOURCE_DIRECTORY) {
-                Ok(stem_path) => stem_path.display().to_string(),
-                Err(filesystem_error) => {
-                    error_collection.register_error(
-                        file.relative_path.display().to_string(),
-                        filesystem_error.into(),
-                    );
+        .for_each(
+            |SourceFile {
+                 file_entry,
+                 stem_path,
+             }| {
+                let name = stem_path.display().to_string();
 
-                    return;
+                match build_prompt_document_controller(BuildPromptDocumentControllerParams {
+                    asset_path_renderer: asset_path_renderer.clone(),
+                    content_document_linker: content_document_linker.clone(),
+                    esbuild_metafile: esbuild_metafile.clone(),
+                    file: file_entry,
+                    name: name.clone(),
+                    rhai_template_renderer: rhai_template_renderer.clone(),
+                }) {
+                    Ok(prompt_document_controller) => {
+                        prompt_controller_map.insert(name, Arc::new(prompt_document_controller));
+                    }
+                    Err(err) => {
+                        error_collection.register_error(name, err);
+                    }
                 }
-            };
-
-            match build_prompt_document_controller(BuildPromptDocumentControllerParams {
-                asset_path_renderer: asset_path_renderer.clone(),
-                content_document_linker: content_document_linker.clone(),
-                esbuild_metafile: esbuild_metafile.clone(),
-                file,
-                name: name.clone(),
-                rhai_template_renderer: rhai_template_renderer.clone(),
-            }) {
-                Ok(prompt_document_controller) => {
-                    prompt_controller_map.insert(name, Arc::new(prompt_document_controller));
-                }
-                Err(err) => {
-                    error_collection.register_error(name, err);
-                }
-            }
-        });
+            },
+        );
 
     if !error_collection.is_empty() {
         return Err(anyhow!("{error_collection}"));

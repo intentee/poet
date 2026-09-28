@@ -7,6 +7,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+dashmap = { workspace = true }
 log = { workspace = true }
 markdown = { workspace = true }
 poet_filesystem = { workspace = true }

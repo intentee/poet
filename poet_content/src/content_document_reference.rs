@@ -1,105 +1,80 @@
-use std::cmp::Ordering;
-use std::hash::Hash;
-use std::hash::Hasher;
 use std::path::PathBuf;
+use std::sync::Arc;
 
-use anyhow::Result;
 use rhai::CustomType;
-use rhai::EvalAltResult;
 use rhai::TypeBuilder;
 
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_front_matter::ContentDocumentFrontMatter;
 
+const INDEX_DOCUMENT_NAME: &str = "index";
+
 #[derive(Clone, Debug)]
 pub struct ContentDocumentReference {
     pub basename_path: PathBuf,
-    pub front_matter: ContentDocumentFrontMatter,
+    pub front_matter: Arc<ContentDocumentFrontMatter>,
     pub generated_page_base_path: String,
 }
 
 impl ContentDocumentReference {
+    #[must_use]
     pub fn basename(&self) -> ContentDocumentBasename {
-        self.basename_path.clone().into()
+        ContentDocumentBasename::from(self.basename_path.as_path())
     }
 
-    pub fn canonical_link(&self) -> Result<String, String> {
-        Ok(format!(
-            "{}{}",
-            self.generated_page_base_path,
-            self.basename_link_stem()?
-        )
-        .to_string())
+    #[must_use]
+    pub fn basename_last_stem(&self) -> String {
+        self.page_directory()
+            .file_name()
+            .map_or_else(String::new, |file_name| {
+                file_name.to_string_lossy().into_owned()
+            })
     }
 
-    /// Starts without leading slash
-    pub fn target_file_relative_path(&self) -> Result<PathBuf, String> {
-        Ok(format!("{}index.html", self.basename_link_stem()?).into())
+    #[must_use]
+    pub fn canonical_link(&self) -> String {
+        format!("{}{}", self.generated_page_base_path, self.link_stem())
     }
 
-    fn basename_link_stem(&self) -> Result<String, String> {
-        if self.basename_path.ends_with("index") {
-            if let Some(parent) = self.basename_path.parent() {
-                let parent_str = parent.display().to_string();
+    #[must_use]
+    pub fn target_file_relative_path(&self) -> PathBuf {
+        self.page_directory().join("index.html")
+    }
 
-                if parent_str.is_empty() {
-                    Ok("".into())
-                } else {
-                    Ok(format!("{}/", parent_str))
-                }
-            } else {
-                Ok("".into())
-            }
+    fn link_stem(&self) -> String {
+        let page_directory = self.page_directory();
+
+        if page_directory.as_os_str().is_empty() {
+            String::new()
         } else {
-            let parent = match self.basename_path.parent() {
-                Some(parent) => parent.display().to_string(),
-                None => {
-                    return Err(format!(
-                        "Unable to get parent path for {}",
-                        self.basename_path.display()
-                    ));
-                }
-            };
-            let file_stem = match self.basename_path.file_stem() {
-                Some(file_stem) => file_stem.display().to_string(),
-                None => {
-                    return Err(format!(
-                        "Unable to get file stem path for {}",
-                        self.basename_path.display()
-                    ));
-                }
-            };
-
-            if parent.is_empty() {
-                Ok(format!("{file_stem}/"))
-            } else {
-                Ok(format!("{parent}/{file_stem}/"))
-            }
+            format!("{}/", page_directory.display())
         }
+    }
+
+    fn page_directory(&self) -> PathBuf {
+        let mut page_directory = self.basename_path.clone();
+
+        if page_directory.ends_with(INDEX_DOCUMENT_NAME) {
+            page_directory.pop();
+        }
+
+        page_directory
     }
 
     fn rhai_basename(&mut self) -> String {
         self.basename().to_string()
     }
 
-    fn rhai_basename_last_stem(&mut self) -> Result<String, Box<EvalAltResult>> {
-        let basename_link_stem = self.basename_link_stem()?.to_string();
-        let last_stem: Option<&str> = basename_link_stem.trim_end_matches('/').rsplit('/').next();
-
-        match last_stem {
-            Some(last_stem) => Ok(last_stem.to_string()),
-            None => {
-                Err(format!("Unable to find basename last stem in {basename_link_stem}").into())
-            }
-        }
+    fn rhai_basename_last_stem(&mut self) -> String {
+        self.basename_last_stem()
     }
 
-    fn rhai_canonical_link(&mut self) -> Result<String, Box<EvalAltResult>> {
-        Ok(self.canonical_link()?)
+    fn rhai_canonical_link(&mut self) -> String {
+        self.canonical_link()
     }
 
     fn rhai_front_matter(&mut self) -> ContentDocumentFrontMatter {
-        self.front_matter.clone()
+        self.front_matter.as_ref().clone()
     }
 }
 
@@ -111,199 +86,5 @@ impl CustomType for ContentDocumentReference {
             .with_get("basename_last_stem", Self::rhai_basename_last_stem)
             .with_get("canonical_link", Self::rhai_canonical_link)
             .with_get("front_matter", Self::rhai_front_matter);
-    }
-}
-
-impl Eq for ContentDocumentReference {}
-
-impl Hash for ContentDocumentReference {
-    fn hash<THasher: Hasher>(&self, state: &mut THasher) {
-        self.basename_path.hash(state);
-    }
-}
-
-impl Ord for ContentDocumentReference {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.basename_path.cmp(&other.basename_path)
-    }
-}
-
-impl PartialEq for ContentDocumentReference {
-    fn eq(&self, other: &Self) -> bool {
-        self.basename_path == other.basename_path
-    }
-}
-
-impl PartialOrd for ContentDocumentReference {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::hash_map::DefaultHasher;
-
-    use anyhow::Result;
-
-    use super::*;
-
-    #[test]
-    fn target_path_is_generated_for_base_index() -> Result<()> {
-        let reference = ContentDocumentReference {
-            basename_path: "index".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert_eq!(reference.canonical_link().unwrap(), "/");
-
-        assert_eq!(
-            reference
-                .target_file_relative_path()
-                .unwrap()
-                .display()
-                .to_string(),
-            "index.html"
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn target_path_is_generated_for_base() -> Result<()> {
-        let reference = ContentDocumentReference {
-            basename_path: "bar".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert_eq!(reference.canonical_link().unwrap(), "/bar/");
-
-        assert_eq!(
-            reference
-                .target_file_relative_path()
-                .unwrap()
-                .display()
-                .to_string(),
-            "bar/index.html"
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn target_path_is_generated() -> Result<()> {
-        let reference = ContentDocumentReference {
-            basename_path: "foo/bar".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert_eq!(reference.canonical_link().unwrap(), "/foo/bar/");
-
-        assert_eq!(
-            reference
-                .target_file_relative_path()
-                .unwrap()
-                .display()
-                .to_string(),
-            "foo/bar/index.html"
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn target_path_is_generated_for_index() -> Result<()> {
-        let reference = ContentDocumentReference {
-            basename_path: "foo/index".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert_eq!(reference.canonical_link().unwrap(), "/foo/");
-
-        assert_eq!(
-            reference
-                .target_file_relative_path()
-                .unwrap()
-                .display()
-                .to_string(),
-            "foo/index.html"
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn canonical_link_does_not_add_trailing_slash_to_base_path() -> Result<()> {
-        let reference = ContentDocumentReference {
-            basename_path: "foo/bar".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "https://example.com".to_string(),
-        };
-
-        assert_eq!(
-            reference.canonical_link().unwrap(),
-            "https://example.comfoo/bar/"
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn basename_last_stem_returns_final_path_segment() -> Result<()> {
-        let mut reference = ContentDocumentReference {
-            basename_path: "foo/bar".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert_eq!(reference.rhai_basename_last_stem()?, "bar");
-
-        Ok(())
-    }
-
-    #[test]
-    fn fails_target_path_when_basename_has_no_file_stem() {
-        let reference = ContentDocumentReference {
-            basename_path: "foo/..".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert!(reference.target_file_relative_path().is_err());
-    }
-
-    #[test]
-    fn fails_target_path_when_basename_has_no_parent() {
-        let reference = ContentDocumentReference {
-            basename_path: "".into(),
-            front_matter: ContentDocumentFrontMatter::mock("foo"),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert!(reference.target_file_relative_path().is_err());
-    }
-
-    #[test]
-    fn identity_is_determined_by_basename_path_only() {
-        let make = |basename: &str, title: &str| ContentDocumentReference {
-            basename_path: basename.into(),
-            front_matter: ContentDocumentFrontMatter::mock(title),
-            generated_page_base_path: "/".to_string(),
-        };
-
-        assert_eq!(make("foo", "one"), make("foo", "two"));
-        assert!(make("a", "x") < make("b", "x"));
-
-        let mut first_hasher = DefaultHasher::new();
-        make("foo", "one").hash(&mut first_hasher);
-
-        let mut second_hasher = DefaultHasher::new();
-        make("foo", "two").hash(&mut second_hasher);
-
-        assert_eq!(first_hasher.finish(), second_hasher.finish());
     }
 }

@@ -1,6 +1,8 @@
 pub mod build_timer;
 pub mod compile_shortcodes;
 pub mod compile_shortcodes_params;
+pub mod document_error;
+pub mod document_error_collection;
 pub mod eval_mdx_element;
 pub mod find_front_matter_in_mdast;
 pub mod find_text_content_in_mdast;

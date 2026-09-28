@@ -2100,12 +2100,8 @@ dependencies = [
 name = "poet_content"
 version = "0.8.0"
 dependencies = [
- "anyhow",
  "chrono",
- "dashmap",
  "esbuild-metafile",
- "indoc",
- "itertools 0.15.0",
  "log",
  "markdown",
  "nom 8.0.0",
@@ -2117,11 +2113,29 @@ dependencies = [
  "rhai",
  "rhai_components",
  "serde",
- "serde_json",
  "sitemap-rs",
  "slug",
  "syntect",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
+name = "poet_content_tests"
+version = "0.8.0"
+dependencies = [
+ "esbuild-metafile",
+ "markdown",
+ "poet_assets",
+ "poet_content",
+ "poet_filesystem",
+ "poet_mdx",
+ "rhai",
+ "rhai_components",
+ "sitemap-rs",
+ "syntect",
  "tempfile",
+ "thiserror",
  "tokio",
  "toml",
 ]
@@ -2193,6 +2207,7 @@ dependencies = [
 name = "poet_mdx"
 version = "0.8.0"
 dependencies = [
+ "dashmap",
  "log",
  "markdown",
  "poet_filesystem",

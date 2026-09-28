@@ -61,13 +61,14 @@ impl SearchIndexReader {
         for (_score, doc_address) in results {
             let tantivy_document: TantivyDocument = searcher.doc::<TantivyDocument>(doc_address)?;
 
-            let basename: ContentDocumentBasename = tantivy_document
-                .get_first(self.fields.basename)
-                .ok_or_else(|| anyhow!("Document does not have a stored basename"))?
-                .as_str()
-                .ok_or_else(|| anyhow!("Unable to convert Tantivy Value to string slice"))?
-                .to_string()
-                .into();
+            let basename = ContentDocumentBasename(
+                tantivy_document
+                    .get_first(self.fields.basename)
+                    .ok_or_else(|| anyhow!("Document does not have a stored basename"))?
+                    .as_str()
+                    .ok_or_else(|| anyhow!("Unable to convert Tantivy Value to string slice"))?
+                    .to_owned(),
+            );
 
             let ContentDocumentSource { reference, .. }: &ContentDocumentSource = self
                 .content_document_sources

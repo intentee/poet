@@ -116,6 +116,7 @@ impl CustomType for PromptDocumentComponentContext {
 mod tests {
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
     use poet_assets::asset_path_renderer::AssetPathRenderer;
+    use poet_content::content_document_basename::ContentDocumentBasename;
     use poet_content::content_document_front_matter::ContentDocumentFrontMatter;
     use poet_content::content_document_reference::ContentDocumentReference;
     use poet_mcp::content_block::ContentBlock;
@@ -126,12 +127,12 @@ mod tests {
         let mut content_document_by_basename = HashMap::new();
 
         content_document_by_basename.insert(
-            "guide".to_string().into(),
+            ContentDocumentBasename("guide".to_owned()),
             ContentDocumentReference {
                 basename_path: "guide".into(),
-                front_matter: toml::from_str::<ContentDocumentFrontMatter>(
+                front_matter: Arc::new(toml::from_str::<ContentDocumentFrontMatter>(
                     "description = \"\"\nlayout = \"SomeLayout\"\ntitle = \"guide\"",
-                )?,
+                )?),
                 generated_page_base_path: "/".to_string(),
             },
         );

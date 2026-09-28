@@ -1,0 +1,32 @@
+[package]
+name = "poet_content_tests"
+autotests = false
+description = "Integration tests for poet_content"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+esbuild-metafile = { workspace = true }
+markdown = { workspace = true }
+poet_assets = { workspace = true }
+poet_content = { workspace = true }
+poet_filesystem = { workspace = true }
+poet_mdx = { workspace = true }
+rhai = { workspace = true }
+rhai_components = { workspace = true }
+sitemap-rs = { workspace = true }
+syntect = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+
+[lints]
+workspace = true

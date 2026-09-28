@@ -18,6 +18,7 @@ use crate::filesystem::Filesystem;
 use crate::filesystem_error::FilesystemError;
 use crate::read_file_contents_result::ReadFileContentsResult;
 use crate::source_directory::SourceDirectory;
+use crate::source_file::SourceFile;
 
 struct DirectoryEntry {
     file_name: OsString,
@@ -69,30 +70,36 @@ impl Filesystem for Storage {
             file_extension,
             name,
         }: &SourceDirectory,
-    ) -> Result<Vec<FileEntry>, FilesystemError> {
-        let mut directories_to_visit: Vec<PathBuf> = vec![PathBuf::from(name)];
-        let mut file_entries: Vec<FileEntry> = vec![];
+    ) -> Result<Vec<SourceFile>, FilesystemError> {
+        let mut directories_to_visit: Vec<PathBuf> = vec![PathBuf::new()];
+        let mut source_files: Vec<SourceFile> = vec![];
 
-        while let Some(relative_directory) = directories_to_visit.pop() {
+        while let Some(directory_within_source) = directories_to_visit.pop() {
             for DirectoryEntry {
                 file_name,
                 is_directory,
-            } in self.source_directory_entries(&relative_directory)?
+            } in
+                self.source_directory_entries(&Path::new(name).join(&directory_within_source))?
             {
-                let relative_path = relative_directory.join(file_name);
+                let path_within_source = directory_within_source.join(file_name);
 
                 if is_directory {
-                    directories_to_visit.push(relative_path);
-                } else if relative_path.extension() == Some(OsStr::new(file_extension)) {
-                    file_entries.push(FileEntry::from(FileEntryStub {
-                        contents: self.read_file_contents_string(&relative_path).await?,
-                        relative_path,
-                    }));
+                    directories_to_visit.push(path_within_source);
+                } else if path_within_source.extension() == Some(OsStr::new(file_extension)) {
+                    let relative_path = Path::new(name).join(&path_within_source);
+
+                    source_files.push(SourceFile {
+                        file_entry: FileEntry::from(FileEntryStub {
+                            contents: self.read_file_contents_string(&relative_path).await?,
+                            relative_path,
+                        }),
+                        stem_path: path_within_source.with_extension(""),
+                    });
                 }
             }
         }
 
-        Ok(file_entries)
+        Ok(source_files)
     }
 
     async fn read_file_contents(

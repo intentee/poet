@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use poet_filesystem::file_entry::FileEntry;
 use poet_filesystem::filesystem::Filesystem as _;
 use poet_filesystem::source_directory::SourceDirectory;
+use poet_filesystem::source_file::SourceFile;
 use poet_filesystem_tests::poet_filesystem_tests_error::PoetFilesystemTestsError;
 use poet_filesystem_tests::temporary_storage::TemporaryStorage;
 
@@ -25,23 +26,35 @@ async fn storage_reads_source_files_recursively_by_extension()
         .set_file_contents(Path::new("authors/alice.md"), "alice")
         .await?;
 
-    let mut file_entries = storage
+    let mut source_files = storage
         .read_source_files(&SourceDirectory {
             file_extension: "md",
             name: "content",
         })
         .await?;
 
-    file_entries.sort_by(|first_file_entry, second_file_entry| {
-        first_file_entry
-            .relative_path
-            .cmp(&second_file_entry.relative_path)
+    source_files.sort_by(|first_source_file, second_source_file| {
+        first_source_file
+            .stem_path
+            .cmp(&second_source_file.stem_path)
     });
 
     assert_eq!(
-        file_entries
+        source_files
             .iter()
-            .map(|FileEntry { relative_path, .. }| relative_path.clone())
+            .map(|SourceFile { stem_path, .. }| stem_path.clone())
+            .collect::<Vec<PathBuf>>(),
+        vec![PathBuf::from("docs/intro"), PathBuf::from("guide")]
+    );
+    assert_eq!(
+        source_files
+            .iter()
+            .map(
+                |SourceFile {
+                     file_entry: FileEntry { relative_path, .. },
+                     ..
+                 }| relative_path.clone()
+            )
             .collect::<Vec<PathBuf>>(),
         vec![
             PathBuf::from("content/docs/intro.md"),
@@ -49,9 +62,14 @@ async fn storage_reads_source_files_recursively_by_extension()
         ]
     );
     assert_eq!(
-        file_entries
+        source_files
             .iter()
-            .map(|FileEntry { contents, .. }| contents.as_str())
+            .map(
+                |SourceFile {
+                     file_entry: FileEntry { contents, .. },
+                     ..
+                 }| contents.as_str()
+            )
             .collect::<Vec<&str>>(),
         vec!["intro", "guide"]
     );

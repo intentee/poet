@@ -9,8 +9,8 @@ use poet_assets::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_t
 use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use poet_content::build_authors::build_authors;
 use poet_content::build_project::build_project;
-use poet_content::build_project::build_project_params::BuildProjectParams;
-use poet_content::build_project::build_project_result_stub::BuildProjectResultStub;
+use poet_content::build_project_params::BuildProjectParams;
+use poet_content::build_project_result_stub::BuildProjectResultStub;
 use poet_filesystem::storage::Storage;
 
 use crate::cmd::builds_project::BuildsProject;
@@ -45,7 +45,7 @@ impl Handler for StaticPages {
     async fn handle(&self) -> Result<()> {
         let source_filesystem = self.source_filesystem();
         let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
-        let authors = build_authors(source_filesystem.clone()).await?;
+        let authors = build_authors(source_filesystem.as_ref()).await?;
 
         let BuildProjectResultStub {
             esbuild_metafile,
@@ -61,7 +61,7 @@ impl Handler for StaticPages {
             generate_sitemap: self.sitemap,
             is_watching: false,
             rhai_template_renderer,
-            source_filesystem,
+            source_filesystem: source_filesystem.as_ref(),
         })
         .await?;
 

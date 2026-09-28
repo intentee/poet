@@ -1,0 +1,17 @@
+use poet_content::content_error::ContentError;
+use poet_content_tests::evaluate_markdown::evaluate_markdown;
+use poet_content_tests::poet_content_tests_error::PoetContentTestsError;
+use syntect::parsing::SyntaxSet;
+
+#[test]
+fn propagates_link_content_failure() -> Result<(), PoetContentTestsError> {
+    assert!(matches!(
+        evaluate_markdown(
+            r"[{undefined_variable}](https://example.com)",
+            &SyntaxSet::new()
+        )?,
+        Err(ContentError::EvaluateExpression { .. })
+    ));
+
+    Ok(())
+}

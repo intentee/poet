@@ -5,6 +5,7 @@ members = [
     "poet_assets",
     "poet_assets_tests",
     "poet_content",
+    "poet_content_tests",
     "poet_filesystem",
     "poet_filesystem_tests",
     "poet_mcp",

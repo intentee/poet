@@ -1,46 +1,50 @@
 use std::sync::Arc;
 
-use anyhow::Result;
 use async_trait::async_trait;
 use log::error;
+use poet_error_chain::error_chain::ErrorChain;
 use poet_filesystem::storage::Storage;
+use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::cmd::service::Service;
 use crate::compile_poet_shortcodes::compile_poet_shortcodes;
-use crate::holder::Holder as _;
-use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
+use crate::holder::Holder;
+use crate::poet_error::PoetError;
 
 pub struct ShortcodesCompiler {
     pub ctrlc_notifier: CancellationToken,
     pub on_shortcode_file_changed: Arc<Notify>,
-    pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,
+    pub rhai_template_renderer_holder: Holder<RhaiTemplateRenderer>,
     pub source_filesystem: Arc<Storage>,
 }
 
 impl ShortcodesCompiler {
-    async fn do_compile_shortcodes(&self) {
+    async fn compile_shortcodes(&self) {
         match compile_poet_shortcodes(&self.source_filesystem).await {
-            Ok(rhai_template_renderer) => {
-                self.rhai_template_renderer_holder
-                    .set(Some(rhai_template_renderer))
-                    .await;
-            }
-            Err(err) => error!("Unable to compile shortcodes: {err:#?}"),
-        };
+            Ok(rhai_template_renderer) => self
+                .rhai_template_renderer_holder
+                .set(rhai_template_renderer),
+            Err(mdx_error) => error!(
+                "{}",
+                ErrorChain {
+                    error: &PoetError::CompileShortcodes(mdx_error)
+                }
+            ),
+        }
     }
 }
 
 #[async_trait]
 impl Service for ShortcodesCompiler {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<(), PoetError> {
         loop {
-            self.do_compile_shortcodes().await;
+            self.compile_shortcodes().await;
 
             tokio::select! {
-                _ = self.on_shortcode_file_changed.notified() => continue,
-                _ = self.ctrlc_notifier.cancelled() => break,
+                () = self.on_shortcode_file_changed.notified() => {},
+                () = self.ctrlc_notifier.cancelled() => break,
             }
         }
 

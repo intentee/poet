@@ -1,12 +1,7 @@
 use std::error::Error;
 use std::fmt;
-use std::iter::successors;
 
-fn error_source<'error>(
-    error: &&'error (dyn Error + 'static),
-) -> Option<&'error (dyn Error + 'static)> {
-    (*error).source()
-}
+use poet_error_chain::error_chain::ErrorChain;
 
 #[derive(Debug)]
 pub struct DocumentError<TError> {
@@ -17,7 +12,8 @@ pub struct DocumentError<TError> {
 impl<TError: Error + 'static> fmt::Display for DocumentError<TError> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(formatter, "{}:", self.basename).and_then(|()| {
-            successors(Some(&self.error as &(dyn Error + 'static)), error_source)
+            ErrorChain { error: &self.error }
+                .causes()
                 .try_for_each(|cause| writeln!(formatter, "- {cause}"))
         })
     }

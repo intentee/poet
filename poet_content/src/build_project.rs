@@ -20,6 +20,7 @@ use crate::content_site_context::ContentSiteContext;
 use crate::create_sitemap::create_sitemap;
 use crate::default_syntax_set::DEFAULT_SYNTAX_SET;
 use crate::load_content_document_sources::load_content_document_sources;
+use crate::sitemap_file_path::SITEMAP_FILE_PATH;
 
 pub async fn build_project<TFilesystem: Filesystem>(
     BuildProjectParams {
@@ -87,7 +88,7 @@ pub async fn build_project<TFilesystem: Filesystem>(
         .transpose()
         .map(|sitemap| {
             if let Some(sitemap) = sitemap {
-                memory_filesystem.set_file_contents_sync(Path::new("sitemap.xml"), &sitemap);
+                memory_filesystem.set_file_contents_sync(Path::new(SITEMAP_FILE_PATH), &sitemap);
             }
 
             BuildProjectResultStub {

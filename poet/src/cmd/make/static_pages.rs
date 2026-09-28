@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
@@ -15,9 +14,10 @@ use poet_filesystem::storage::Storage;
 
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
-use crate::cmd::value_parser::validate_is_directory;
-use crate::cmd::value_parser::validate_is_directory_or_create;
+use crate::cmd::value_parser::validate_is_directory::validate_is_directory;
+use crate::cmd::value_parser::validate_is_directory_or_create::validate_is_directory_or_create;
 use crate::compile_poet_shortcodes::compile_poet_shortcodes;
+use crate::poet_error::PoetError;
 
 #[derive(Parser)]
 pub struct StaticPages {
@@ -42,10 +42,14 @@ impl BuildsProject for StaticPages {
 
 #[async_trait(?Send)]
 impl Handler for StaticPages {
-    async fn handle(&self) -> Result<()> {
+    async fn handle(&self) -> Result<(), PoetError> {
         let source_filesystem = self.source_filesystem();
-        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
-        let authors = build_authors(source_filesystem.as_ref()).await?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem)
+            .await
+            .map_err(PoetError::CompileShortcodes)?;
+        let authors = build_authors(source_filesystem.as_ref())
+            .await
+            .map_err(PoetError::BuildAuthors)?;
 
         let BuildProjectResultStub {
             esbuild_metafile,
@@ -56,22 +60,26 @@ impl Handler for StaticPages {
                 base_path: self.public_path.clone(),
             },
             authors,
-            esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.as_ref()).await?,
+            esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.as_ref())
+                .await
+                .map_err(PoetError::ReadEsbuildMetafile)?,
             generated_page_base_path: self.public_path.clone(),
             generate_sitemap: self.sitemap,
             is_watching: false,
             rhai_template_renderer,
             source_filesystem: source_filesystem.as_ref(),
         })
-        .await?;
-
-        let storage = Storage {
-            base_directory: self.output_directory.clone(),
-        };
+        .await
+        .map_err(PoetError::BuildProject)?;
 
         info!("Saving generated files in output directory...");
 
-        memory_filesystem.copy_all_files_to(&storage).await?;
+        memory_filesystem
+            .copy_all_files_to(&Storage {
+                base_directory: self.output_directory.clone(),
+            })
+            .await
+            .map_err(PoetError::WriteGeneratedFiles)?;
 
         info!("Copying assets into output directory...");
 
@@ -80,8 +88,7 @@ impl Handler for StaticPages {
             &self.source_directory,
             &self.output_directory,
         )
-        .await?;
-
-        Ok(())
+        .await
+        .map_err(PoetError::CopyAssets)
     }
 }

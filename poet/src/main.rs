@@ -11,39 +11,42 @@ use poet::cmd::watch::Watch;
 #[command(arg_required_else_help(true), version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Commands>,
+    command: Commands,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Produce various output formats based on your content files
+    #[command(about = "Produce various output formats based on your content files")]
     Make {
         #[command(subcommand)]
         command: Make,
     },
-    /// Serves the application, starts MCP server from AppDir (run `poet make app-dir` first)
+    #[command(
+        about = "Serves the application, starts MCP server from AppDir (run `poet make app-dir` first)"
+    )]
     Serve(Serve),
-    /// Starts Poet in watch mode, and built-in MCP server
+    #[command(about = "Starts Poet in watch mode, and built-in MCP server")]
     Watch(Watch),
 }
 
 #[derive(Subcommand)]
 enum Make {
-    /// Generates AppDir (packageable with AppImageKit)
+    #[command(about = "Generates AppDir (packageable with AppImageKit)")]
     AppDir(AppDir),
-    /// Generates static pages
+    #[command(about = "Generates static pages")]
     StaticPages(StaticPages),
 }
 
-fn get_handler() -> Option<Box<dyn Handler>> {
-    match Cli::parse().command {
-        Some(Commands::Make { command }) => match command {
-            Make::AppDir(handler) => Some(Box::new(handler)),
-            Make::StaticPages(handler) => Some(Box::new(handler)),
-        },
-        Some(Commands::Serve(handler)) => Some(Box::new(handler)),
-        Some(Commands::Watch(handler)) => Some(Box::new(handler)),
-        None => None,
+fn command_handler(command: Commands) -> Box<dyn Handler> {
+    match command {
+        Commands::Make {
+            command: Make::AppDir(handler),
+        } => Box::new(handler),
+        Commands::Make {
+            command: Make::StaticPages(handler),
+        } => Box::new(handler),
+        Commands::Serve(handler) => Box::new(handler),
+        Commands::Watch(handler) => Box::new(handler),
     }
 }
 
@@ -53,9 +56,5 @@ async fn main() -> Result<()> {
         .filter_module("tantivy", log::LevelFilter::Warn)
         .init();
 
-    if let Some(handler) = get_handler() {
-        handler.handle().await
-    } else {
-        Ok(())
-    }
+    Ok(command_handler(Cli::parse().command).handle().await?)
 }

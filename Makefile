@@ -5,25 +5,31 @@ RUST_LOG ?= debug
 POET_SOURCES := \
 	$(shell find \
 		poet/src \
+		poet_app_dir/src \
 		poet_assets/src \
 		poet_content/src \
+		poet_error_chain/src \
 		poet_filesystem/src \
 		poet_mcp/src \
 		poet_mdx/src \
 		poet_prompt/src \
 		poet_search/src \
+		poet_watcher/src \
 		rhai_components/src \
 		-name '*.rs') \
 	Cargo.lock \
 	Cargo.toml \
 	poet/Cargo.toml \
+	poet_app_dir/Cargo.toml \
 	poet_assets/Cargo.toml \
 	poet_content/Cargo.toml \
+	poet_error_chain/Cargo.toml \
 	poet_filesystem/Cargo.toml \
 	poet_mcp/Cargo.toml \
 	poet_mdx/Cargo.toml \
 	poet_prompt/Cargo.toml \
 	poet_search/Cargo.toml \
+	poet_watcher/Cargo.toml \
 	rhai_components/Cargo.toml
 
 # -----------------------------------------------------------------------------
@@ -78,13 +84,16 @@ coverage: node_modules
 	npx rust-coverage-check target/llvm-cov.json \
 		--workspace-root $(CURDIR) \
 		--gated poet=80 \
+		--gated poet_app_dir=100 \
 		--gated poet_assets=100 \
 		--gated poet_content=100 \
+		--gated poet_error_chain=100 \
 		--gated poet_filesystem=100 \
 		--gated poet_mcp=100 \
 		--gated poet_mdx=100 \
 		--gated poet_prompt=100 \
 		--gated poet_search=100 \
+		--gated poet_watcher=100 \
 		--gated rhai_components=100
 
 .PHONY: coverage-clean

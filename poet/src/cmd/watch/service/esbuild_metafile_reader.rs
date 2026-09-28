@@ -1,44 +1,52 @@
 use std::sync::Arc;
 
-use anyhow::Result;
 use async_trait::async_trait;
+use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use log::error;
 use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
+use poet_error_chain::error_chain::ErrorChain;
 use poet_filesystem::storage::Storage;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::cmd::service::Service;
-use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
-use crate::holder::Holder as _;
+use crate::holder::Holder;
+use crate::poet_error::PoetError;
 
 pub struct EsbuildMetafileReader {
     pub ctrlc_notifier: CancellationToken,
-    pub esbuild_metafile_holder: EsbuildMetafileHolder,
+    pub esbuild_metafile_holder: Holder<Arc<EsbuildMetafile>>,
     pub on_esbuild_metafile_changed: Arc<Notify>,
     pub source_filesystem: Arc<Storage>,
 }
 
+impl EsbuildMetafileReader {
+    async fn read_esbuild_metafile(&self) {
+        match read_esbuild_metafile_or_default(self.source_filesystem.as_ref()).await {
+            Ok(esbuild_metafile) => self.esbuild_metafile_holder.set(esbuild_metafile),
+            Err(asset_error) => {
+                self.esbuild_metafile_holder.reset();
+
+                error!(
+                    "{}",
+                    ErrorChain {
+                        error: &PoetError::ReadEsbuildMetafile(asset_error)
+                    }
+                );
+            }
+        }
+    }
+}
+
 #[async_trait]
 impl Service for EsbuildMetafileReader {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<(), PoetError> {
         loop {
-            match read_esbuild_metafile_or_default(self.source_filesystem.as_ref()).await {
-                Ok(esbuild_metafile) => {
-                    self.esbuild_metafile_holder
-                        .set(Some(esbuild_metafile))
-                        .await;
-                }
-                Err(err) => {
-                    self.esbuild_metafile_holder.set(None).await;
-
-                    error!("Unable to read esbuild metafile: {err:#?}");
-                }
-            }
+            self.read_esbuild_metafile().await;
 
             tokio::select! {
-                _ = self.on_esbuild_metafile_changed.notified() => continue,
-                _ = self.ctrlc_notifier.cancelled() => break,
+                () = self.on_esbuild_metafile_changed.notified() => {},
+                () = self.ctrlc_notifier.cancelled() => break,
             }
         }
 

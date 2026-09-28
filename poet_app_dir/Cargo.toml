@@ -1,0 +1,22 @@
+[package]
+name = "poet_app_dir"
+description = "Builds and reads Poet AppDirs packageable with AppImageKit"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+freedesktop_entry_parser = { workspace = true }
+indoc = { workspace = true }
+log = { workspace = true }
+poet_assets = { workspace = true }
+poet_content = { workspace = true }
+poet_filesystem = { workspace = true }
+poet_mdx = { workspace = true }
+poet_prompt = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,4 +1,5 @@
 [package]
+autotests = false
 description = "Static site generator with optional MCP server and LLM SEO optimizations"
 edition.workspace = true
 homepage.workspace = true
@@ -7,50 +8,48 @@ name = "poet"
 repository.workspace = true
 version.workspace = true
 
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
 [dependencies]
 actix-files = { workspace = true }
 actix-web = { workspace = true }
 actix-ws = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-chrono = { workspace = true }
 clap = { workspace = true }
 ctrlc = { workspace = true }
-dashmap = { workspace = true }
 env_logger = { workspace = true }
 esbuild-metafile = { workspace = true }
-freedesktop_entry_parser = { workspace = true }
 futures-util = { workspace = true }
 indoc = { workspace = true }
-itertools = { workspace = true }
 log = { workspace = true }
-markdown = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
-nom = { workspace = true }
-notify-debouncer-full = { workspace = true }
-petgraph = { workspace = true }
+poet_app_dir = { workspace = true }
 poet_assets = { workspace = true }
 poet_content = { workspace = true }
+poet_error_chain = { workspace = true }
 poet_filesystem = { workspace = true }
 poet_mcp = { workspace = true }
 poet_mdx = { workspace = true }
 poet_prompt = { workspace = true }
 poet_search = { workspace = true }
-rayon = { workspace = true }
+poet_watcher = { workspace = true }
 rhai = { workspace = true }
 rhai_components = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
-sitemap-rs = { workspace = true }
-slug = { workspace = true }
-syntect = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
-toml = { workspace = true }
 
 [dev-dependencies]
+poet_content_tests = { workspace = true }
+poet_prompt_tests = { workspace = true }
 poet_search_tests = { workspace = true }
 tempfile = { workspace = true }
+
+[lints]
+workspace = true

@@ -8,7 +8,7 @@ async fn finds_documents_by_description_keyword() -> Result<(), PoetSearchTestsE
 
     assert_eq!(
         found_titles(&search_index_reader, "okapi")?,
-        vec!["Searchable Guide".to_owned()]
+        vec!["Guide".to_owned()]
     );
 
     Ok(())

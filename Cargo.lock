@@ -1516,15 +1516,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "itertools"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
-dependencies = [
- "either",
-]
-
-[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2027,45 +2018,64 @@ dependencies = [
  "actix-ws",
  "anyhow",
  "async-trait",
- "chrono",
  "clap",
  "ctrlc",
- "dashmap",
  "env_logger",
  "esbuild-metafile",
- "freedesktop_entry_parser",
  "futures-util",
  "indoc",
- "itertools 0.15.0",
  "log",
- "markdown",
  "mime",
  "mime_guess",
- "nom 8.0.0",
- "notify-debouncer-full",
- "petgraph",
+ "poet_app_dir",
  "poet_assets",
  "poet_content",
+ "poet_content_tests",
+ "poet_error_chain",
  "poet_filesystem",
  "poet_mcp",
  "poet_mdx",
  "poet_prompt",
+ "poet_prompt_tests",
  "poet_search",
  "poet_search_tests",
- "rayon",
+ "poet_watcher",
  "rhai",
  "rhai_components",
  "schemars",
  "serde",
- "serde_json",
- "sitemap-rs",
- "slug",
- "syntect",
  "tempfile",
  "thiserror",
  "tokio",
  "tokio-util",
- "toml",
+]
+
+[[package]]
+name = "poet_app_dir"
+version = "0.8.0"
+dependencies = [
+ "freedesktop_entry_parser",
+ "indoc",
+ "log",
+ "poet_assets",
+ "poet_content",
+ "poet_filesystem",
+ "poet_mdx",
+ "poet_prompt",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "poet_app_dir_tests"
+version = "0.8.0"
+dependencies = [
+ "indoc",
+ "poet_app_dir",
+ "poet_filesystem",
+ "tempfile",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -2143,6 +2153,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "poet_error_chain"
+version = "0.8.0"
+
+[[package]]
+name = "poet_error_chain_tests"
+version = "0.8.0"
+dependencies = [
+ "poet_error_chain",
+ "thiserror",
+]
+
+[[package]]
 name = "poet_filesystem"
 version = "0.8.0"
 dependencies = [
@@ -2212,6 +2234,7 @@ dependencies = [
  "dashmap",
  "log",
  "markdown",
+ "poet_error_chain",
  "poet_filesystem",
  "rhai",
  "rhai_components",
@@ -2293,6 +2316,33 @@ dependencies = [
  "poet_content_tests",
  "poet_search",
  "tantivy",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "poet_watcher"
+version = "0.8.0"
+dependencies = [
+ "log",
+ "notify-debouncer-full",
+ "poet_assets",
+ "poet_content",
+ "poet_filesystem",
+ "poet_mdx",
+ "poet_prompt",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "poet_watcher_tests"
+version = "0.8.0"
+dependencies = [
+ "futures-util",
+ "notify-debouncer-full",
+ "poet_watcher",
+ "tempfile",
  "thiserror",
  "tokio",
 ]
@@ -2909,7 +2959,7 @@ dependencies = [
  "fnv",
  "fs4",
  "htmlescape",
- "itertools 0.14.0",
+ "itertools",
  "levenshtein_automata",
  "log",
  "lru",
@@ -2958,7 +3008,7 @@ checksum = "c57166f5bcfd478f370ab8445afb4678dce44801fa5ce5c451aaf8595583c5dc"
 dependencies = [
  "downcast-rs",
  "fastdivide",
- "itertools 0.14.0",
+ "itertools",
  "serde",
  "tantivy-bitpacker",
  "tantivy-common",
@@ -3010,7 +3060,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a2cfc3ac5164cbadc28965ffb145a8f47582a60ae5897859ad8d4316596c606"
 dependencies = [
  "futures-util",
- "itertools 0.14.0",
+ "itertools",
  "tantivy-bitpacker",
  "tantivy-common",
  "tantivy-fst",

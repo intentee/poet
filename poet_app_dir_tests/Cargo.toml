@@ -1,0 +1,24 @@
+[package]
+name = "poet_app_dir_tests"
+autotests = false
+description = "Integration tests for poet_app_dir"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+indoc = { workspace = true }
+poet_app_dir = { workspace = true }
+poet_filesystem = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

@@ -6,6 +6,7 @@ use rhai::TypeBuilder;
 
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_front_matter::ContentDocumentFrontMatter;
+use crate::generated_page_file_name::GENERATED_PAGE_FILE_NAME;
 
 const INDEX_DOCUMENT_NAME: &str = "index";
 
@@ -38,7 +39,7 @@ impl ContentDocumentReference {
 
     #[must_use]
     pub fn target_file_relative_path(&self) -> PathBuf {
-        self.page_directory().join("index.html")
+        self.page_directory().join(GENERATED_PAGE_FILE_NAME)
     }
 
     fn link_stem(&self) -> String {

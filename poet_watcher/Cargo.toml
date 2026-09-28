@@ -1,0 +1,21 @@
+[package]
+name = "poet_watcher"
+description = "Detects changes of Poet project files"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+log = { workspace = true }
+notify-debouncer-full = { workspace = true }
+poet_assets = { workspace = true }
+poet_content = { workspace = true }
+poet_filesystem = { workspace = true }
+poet_mdx = { workspace = true }
+poet_prompt = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

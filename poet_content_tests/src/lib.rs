@@ -1,3 +1,4 @@
+pub mod build_fixture_guide;
 pub mod content_error_of;
 pub mod content_script_engine;
 pub mod evaluate_content_script;

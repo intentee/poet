@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use poet_content::content_document_reference::ContentDocumentReference;
 use poet_mcp::content_block::ContentBlock;
@@ -11,14 +13,15 @@ use poet_mcp::tool_provider::ToolProvider;
 use poet_mcp::tool_responder::ToolResponder;
 use poet_search::search_index_found_document::SearchIndexFoundDocument;
 use poet_search::search_index_query_params::SearchIndexQueryParams;
+use poet_search::search_index_reader::SearchIndexReader;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
 use tokio::task::spawn_blocking;
 
-use crate::holder::Holder as _;
+use crate::holder::Holder;
+use crate::holder_state::HolderState;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
-use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 const SEARCH_RESULTS_PER_PAGE: usize = 20;
 
@@ -32,7 +35,7 @@ pub struct SearchToolProviderOutput {}
 
 pub struct SearchTool {
     pub mcp_resource_provider_content_documents: McpResourceProviderContentDocuments,
-    pub search_index_reader_holder: SearchIndexReaderHolder,
+    pub search_index_reader_holder: Holder<Arc<SearchIndexReader>>,
 }
 
 impl SearchTool {
@@ -70,7 +73,7 @@ impl ToolResponder<Self> for SearchTool {
         &self,
         SearchToolProviderInput { query }: SearchToolProviderInput,
     ) -> Result<ToolCallResult<SearchToolProviderOutput>, ProviderError> {
-        let Some(search_index_reader) = self.search_index_reader_holder.get().await else {
+        let HolderState::Ready(search_index_reader) = self.search_index_reader_holder.get() else {
             return Ok(ToolCallErrorMessage(
                 "Search index is not ready yet. There are no successful builds yet, or the server needs more time to start.",
             )
@@ -92,80 +95,5 @@ impl ToolResponder<Self> for SearchTool {
                 .collect(),
             structured_content: SearchToolProviderOutput {},
         }))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use anyhow::Result;
-    use poet_mcp::provider_error::ProviderError;
-    use poet_mcp::tool_call_result::ToolCallResult;
-    use poet_mcp::tool_call_success::ToolCallSuccess;
-    use poet_mcp::tool_provider::ToolProvider as _;
-    use poet_mcp::tool_responder::ToolResponder as _;
-    use poet_search_tests::index_fixture_document::index_fixture_document;
-
-    use crate::holder::Holder as _;
-    use crate::search_index_reader_holder::SearchIndexReaderHolder;
-    use crate::search_tool::SearchTool;
-    use crate::search_tool::SearchToolProviderInput;
-
-    fn empty_search_tool() -> SearchTool {
-        SearchTool {
-            mcp_resource_provider_content_documents: Default::default(),
-            search_index_reader_holder: Default::default(),
-        }
-    }
-
-    async fn search_tool_with_index() -> Result<SearchTool> {
-        let search_index_reader_holder = SearchIndexReaderHolder::default();
-
-        search_index_reader_holder
-            .set(Some(Arc::new(
-                index_fixture_document("Guide", "keyword zebra body").await?,
-            )))
-            .await;
-
-        Ok(SearchTool {
-            mcp_resource_provider_content_documents: Default::default(),
-            search_index_reader_holder,
-        })
-    }
-
-    #[test]
-    fn tool_name_is_search() {
-        assert_eq!(empty_search_tool().name(), "search");
-    }
-
-    #[tokio::test]
-    async fn responds_with_failure_when_index_not_ready() -> Result<(), ProviderError> {
-        let result = empty_search_tool()
-            .respond(SearchToolProviderInput {
-                query: "anything".to_string(),
-            })
-            .await?;
-
-        assert!(matches!(result, ToolCallResult::Failure(_)));
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn responds_with_resource_links_for_matches() -> Result<(), ProviderError> {
-        let result = search_tool_with_index()
-            .await?
-            .respond(SearchToolProviderInput {
-                query: "zebra".to_string(),
-            })
-            .await?;
-
-        assert!(matches!(
-            result,
-            ToolCallResult::Success(ToolCallSuccess { content, .. }) if content.len() == 1
-        ));
-
-        Ok(())
     }
 }

@@ -1,30 +1,27 @@
 mod app_data;
 mod http_route;
-mod project_file_classifier;
-mod project_file_kind;
 mod service;
-mod watch_project_files;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
 use poet_assets::asset_path_renderer::AssetPathRenderer;
+use poet_content::build_project_result::BuildProjectResult;
 use poet_mcp::implementation::Implementation;
+use poet_watcher::project_file_notifications::ProjectFileNotifications;
+use poet_watcher::project_file_watcher::ProjectFileWatcher;
+use poet_watcher::watch_project_files::watch_project_files;
 use tokio_util::sync::CancellationToken;
 
-use self::watch_project_files::WatchProjectHandle;
-use self::watch_project_files::watch_project_files;
-use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
 use crate::cmd::service_manager::ServiceManager;
-use crate::cmd::value_parser::parse_socket_addr;
-use crate::cmd::value_parser::validate_is_directory;
+use crate::cmd::value_parser::parse_socket_addr::parse_socket_addr;
+use crate::cmd::value_parser::validate_is_directory::validate_is_directory;
 use crate::cmd::watch::service::esbuild_metafile_reader::EsbuildMetafileReader;
 use crate::cmd::watch::service::filesystem_http_route_index_builder::FilesystemHttpRouteIndexBuilder;
 use crate::cmd::watch::service::http_server::HttpServer;
@@ -33,12 +30,9 @@ use crate::cmd::watch::service::prompt_document_controller_collection_builder::P
 use crate::cmd::watch::service::resources_list_changed_broadcaster::ResourcesListChangedBroadcaster;
 use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
-use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
-use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
+use crate::holder::Holder;
 use crate::mcp_server_factory::McpServerFactory;
-use crate::prompt_document_controller_collection_holder::PromptDocumentControllerCollectionHolder;
-use crate::rhai_template_renderer_holder::RhaiTemplateRendererHolder;
-use crate::search_index_reader_holder::SearchIndexReaderHolder;
+use crate::poet_error::PoetError;
 
 #[derive(Parser)]
 pub struct Watch {
@@ -60,36 +54,38 @@ impl BuildsProject for Watch {
 
 #[async_trait(?Send)]
 impl Handler for Watch {
-    async fn handle(&self) -> Result<()> {
+    async fn handle(&self) -> Result<(), PoetError> {
         let ctrlc_notifier = CancellationToken::new();
         let ctrlc_notifier_handler = ctrlc_notifier.clone();
 
         ctrlc::set_handler(move || {
             ctrlc_notifier_handler.cancel();
-        })?;
+        })
+        .map_err(PoetError::SetCtrlcHandler)?;
 
-        let WatchProjectHandle {
+        let ProjectFileWatcher {
             debouncer: _debouncer,
-            on_author_file_changed,
-            on_content_file_changed,
-            on_esbuild_metafile_changed,
-            on_prompt_file_changed,
-            on_shortcode_file_changed,
-        } = watch_project_files(self.source_directory.clone())?;
+            notifications:
+                ProjectFileNotifications {
+                    on_author_file_changed,
+                    on_content_file_changed,
+                    on_esbuild_metafile_changed,
+                    on_prompt_file_changed,
+                    on_shortcode_file_changed,
+                },
+        } = watch_project_files(&self.source_directory)?;
 
         let generated_page_base_path = format!("http://{}/", self.addr);
-
         let asset_path_renderer = AssetPathRenderer {
             base_path: generated_page_base_path.clone(),
         };
-        let build_project_result_holder: BuildProjectResultHolder = Default::default();
-        let esbuild_metafile_holder: EsbuildMetafileHolder = Default::default();
-        let filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder = Default::default();
-        let prompt_document_controller_collection_holder: PromptDocumentControllerCollectionHolder =
-            Default::default();
-        let rhai_template_renderer_holder: RhaiTemplateRendererHolder = Default::default();
+        let build_project_result_holder: Holder<BuildProjectResult> = Holder::default();
+        let esbuild_metafile_holder = Holder::default();
+        let filesystem_http_route_index_holder = Holder::default();
+        let prompt_document_controller_collection_holder = Holder::default();
+        let rhai_template_renderer_holder = Holder::default();
+        let search_index_reader_holder = Holder::default();
         let source_filesystem = self.source_filesystem();
-        let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
         let mcp_server = McpServerFactory {
             build_project_result_holder: build_project_result_holder.clone(),
             prompt_document_controller_collection_holder:
@@ -104,7 +100,7 @@ impl Handler for Watch {
         }
         .create();
 
-        let mut service_manager: ServiceManager = Default::default();
+        let mut service_manager = ServiceManager::default();
 
         service_manager.register_service(Arc::new(EsbuildMetafileReader {
             ctrlc_notifier: ctrlc_notifier.clone(),
@@ -132,11 +128,11 @@ impl Handler for Watch {
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
             esbuild_metafile_holder: esbuild_metafile_holder.clone(),
-            generated_page_base_path: generated_page_base_path.clone(),
+            generate_sitemap: self.sitemap,
+            generated_page_base_path,
             on_author_file_changed,
             on_content_file_changed,
             rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
-            generate_sitemap: self.sitemap,
             source_filesystem: source_filesystem.clone(),
         }));
 
@@ -158,16 +154,16 @@ impl Handler for Watch {
         }));
 
         service_manager.register_service(Arc::new(SearchIndexBuilder {
-            build_project_result_holder: build_project_result_holder.clone(),
+            build_project_result_holder,
             ctrlc_notifier: ctrlc_notifier.clone(),
             search_index_reader_holder,
         }));
 
         service_manager.register_service(Arc::new(ShortcodesCompiler {
-            ctrlc_notifier: ctrlc_notifier.clone(),
+            ctrlc_notifier,
             on_shortcode_file_changed,
-            rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
-            source_filesystem: source_filesystem.clone(),
+            rhai_template_renderer_holder,
+            source_filesystem,
         }));
 
         service_manager.run().await?;

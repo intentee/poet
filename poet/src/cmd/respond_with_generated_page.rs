@@ -1,23 +1,21 @@
-use std::sync::Arc;
-
 use actix_web::HttpResponse;
-use actix_web::Result;
 use poet_filesystem::file_entry::FileEntry;
 
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
 
+#[must_use]
 pub fn respond_with_generated_page(
-    filesystem_http_route_index: Arc<FilesystemHttpRouteIndex>,
-    path: String,
-) -> Result<HttpResponse> {
-    match filesystem_http_route_index.get_file_entry_for_path(&path) {
+    filesystem_http_route_index: &FilesystemHttpRouteIndex,
+    route: &str,
+) -> HttpResponse {
+    match filesystem_http_route_index.file_entry_for_route(route) {
         Some(FileEntry {
             contents,
             relative_path,
             ..
-        }) => Ok(HttpResponse::Ok()
+        }) => HttpResponse::Ok()
             .content_type(mime_guess::from_path(relative_path).first_or_octet_stream())
-            .body(contents)),
-        None => Ok(HttpResponse::NotFound().body("File not found")),
+            .body(contents.clone()),
+        None => HttpResponse::NotFound().body("File not found"),
     }
 }

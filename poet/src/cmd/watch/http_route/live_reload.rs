@@ -15,67 +15,66 @@ use log::warn;
 use poet_filesystem::file_entry::FileEntry;
 
 use crate::cmd::watch::app_data::AppData;
-use crate::holder::Holder as _;
+use crate::holder_state::HolderState;
+use crate::poet_error::PoetError;
 
-pub fn register(cfg: &mut web::ServiceConfig) {
-    cfg.service(respond);
+pub fn register(service_config: &mut web::ServiceConfig) {
+    service_config.service(respond);
 }
 
 #[get("/api/v1/live_reload/{path:.*}")]
 async fn respond(
     app_data: Data<AppData>,
     path: Path<String>,
-    req: HttpRequest,
-    stream: Payload,
+    request: HttpRequest,
+    payload: Payload,
 ) -> Result<impl Responder, Error> {
-    let (res, mut session, mut stream) = actix_ws::handle(&req, stream)?;
+    let (response, mut session, mut message_stream) = actix_ws::handle(&request, payload)?;
 
     rt::spawn(async move {
-        let path_string = path.into_inner();
+        let route = path.into_inner();
 
         loop {
-            match app_data.filesystem_http_route_index_holder.get().await {
-                Some(filesystem_http_route_index) => {
-                    match filesystem_http_route_index.get_file_entry_for_path(&path_string) {
-                        Some(FileEntry { contents, .. }) => {
-                            if let Err(err) = session.text(contents).await {
-                                debug!("Unable to send live reload notification: {err}");
+            match app_data.filesystem_http_route_index_holder.get() {
+                HolderState::Ready(filesystem_http_route_index) => {
+                    let Some(FileEntry { contents, .. }) =
+                        filesystem_http_route_index.file_entry_for_route(&route)
+                    else {
+                        warn!("Unable to get file info for live reload: {route}");
 
-                                return;
-                            }
-                        }
-                        None => {
-                            warn!("Unable to get file info for live reload: {path_string}");
-                            return;
-                        }
+                        return;
+                    };
+
+                    if let Err(closed_session) = session.text(contents.clone()).await {
+                        debug!("Unable to send live reload notification: {closed_session}");
+
+                        return;
                     }
                 }
-                None => {
-                    warn!("Server is still starting up, or there are no successful builds yet")
-                }
+                HolderState::NotReady => warn!("{}", PoetError::BuildProjectResultNotReady),
             }
 
             tokio::select! {
-                msg = stream.next() => {
-                    match msg {
+                message = message_stream.next() => {
+                    match message {
                         None | Some(Ok(Message::Close(_))) => {
                             debug!("Closing live reload session");
 
-                            if let Err(err) = session.close(None).await {
-                                error!("Error while closing the session: {err}");
+                            if let Err(close_error) = session.close(None).await {
+                                error!("Error while closing the session: {close_error}");
                             }
 
                             return;
                         },
-                        _ => {
-                            warn!("Live reload socket message was ignored: {msg:?}");
+                        ignored_message => {
+                            warn!("Live reload socket message was ignored: {ignored_message:?}");
                         }
                     }
                 },
-                _ = app_data.filesystem_http_route_index_holder.update_notifier.notified() => {}
+                () = app_data.filesystem_http_route_index_holder.update_notifier.notified() => {}
             }
         }
     });
 
-    Ok(res)
+    Ok(response)
 }

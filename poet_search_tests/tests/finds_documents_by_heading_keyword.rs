@@ -8,7 +8,7 @@ async fn finds_documents_by_heading_keyword() -> Result<(), PoetSearchTestsError
 
     assert_eq!(
         found_titles(&search_index_reader, "lemurs")?,
-        vec!["Searchable Guide".to_owned()]
+        vec!["Guide".to_owned()]
     );
 
     Ok(())

@@ -3,15 +3,13 @@ use std::sync::Arc;
 
 use poet_filesystem::storage::Storage;
 
+use crate::cmd::STATIC_FILES_PUBLIC_PATH;
+
 pub trait BuildsProject {
     fn source_directory(&self) -> PathBuf;
 
     fn assets_directory(&self) -> PathBuf {
-        let mut static_files_directory: PathBuf = self.source_directory().clone();
-
-        static_files_directory.push("assets");
-
-        static_files_directory
+        self.source_directory().join(STATIC_FILES_PUBLIC_PATH)
     }
 
     fn source_filesystem(&self) -> Arc<Storage> {

@@ -9,41 +9,38 @@ use actix_files::Files;
 use actix_web::App;
 use actix_web::HttpServer;
 use actix_web::web::Data;
-use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+use poet_app_dir::app_dir_desktop_entry::AppDirDesktopEntry;
+use poet_app_dir::app_dir_name::AppDirName;
 use poet_assets::asset_path_renderer::AssetPathRenderer;
 use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 use poet_content::build_authors::build_authors;
 use poet_content::build_project::build_project;
 use poet_content::build_project_params::BuildProjectParams;
 use poet_content::build_project_result::BuildProjectResult;
-use poet_filesystem::filesystem::Filesystem;
 use poet_mcp::implementation::Implementation;
 use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
 use poet_prompt::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use poet_prompt::build_prompt_document_controller_collection_params::BuildPromptDocumentControllerCollectionParams;
 use poet_prompt::prompt_rendering_context::PromptRenderingContext;
 use poet_search::search_index::SearchIndex;
-use poet_search::search_index_reader::SearchIndexReader;
 
-use crate::app_dir_desktop_entry::AppDirDesktopEntry;
-use crate::build_project_result_holder::BuildProjectResultHolder;
+use crate::cmd::HTTP_SERVER_SHUTDOWN_TIMEOUT_SECONDS;
 use crate::cmd::MCP_STREAMABLE_HTTP_MOUNT_PATH;
 use crate::cmd::STATIC_FILES_PUBLIC_PATH;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
 use crate::cmd::serve::app_data::AppData;
-use crate::cmd::value_parser::parse_socket_addr;
-use crate::cmd::value_parser::validate_is_directory;
+use crate::cmd::value_parser::parse_socket_addr::parse_socket_addr;
+use crate::cmd::value_parser::validate_is_directory::validate_is_directory;
 use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
-use crate::holder::Holder as _;
+use crate::holder::Holder;
 use crate::mcp_server_factory::McpServerFactory;
-use crate::prompt_document_controller_collection_holder::PromptDocumentControllerCollectionHolder;
-use crate::search_index_reader_holder::SearchIndexReaderHolder;
+use crate::poet_error::PoetError;
 
 #[derive(Parser)]
 pub struct Serve {
@@ -71,31 +68,30 @@ impl BuildsProject for Serve {
 
 #[async_trait(?Send)]
 impl Handler for Serve {
-    async fn handle(&self) -> Result<()> {
+    async fn handle(&self) -> Result<(), PoetError> {
         let asset_path_renderer = AssetPathRenderer {
             base_path: self.public_path.clone(),
         };
         let source_filesystem = self.source_filesystem();
-        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
-        let app_dir_desktop_entry = AppDirDesktopEntry::parse(
-            &source_filesystem
-                .read_file_contents_string(&PathBuf::from(format!(
-                    "{}.desktop",
-                    self.app_name.to_lowercase()
-                )))
-                .await?,
-        )?;
+        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem)
+            .await
+            .map_err(PoetError::CompileShortcodes)?;
+        let app_dir_desktop_entry = AppDirDesktopEntry::read_from(
+            source_filesystem.as_ref(),
+            &AppDirName::parse(&self.app_name)?,
+        )
+        .await?;
 
         info!(
             "{}",
             formatdoc! {
-                r#"
+                "
                     Site details:
                     ├── name: {name}
                     ├── title: {title}
                     ├── generated with Poet version: {poet_version}
                     └── version: {site_version}
-                "#,
+                ",
                 name = app_dir_desktop_entry.name,
                 poet_version = app_dir_desktop_entry.poet_version,
                 site_version = app_dir_desktop_entry.site_version,
@@ -105,30 +101,32 @@ impl Handler for Serve {
 
         let server_info = Implementation {
             description: None,
-            name: app_dir_desktop_entry.name.clone(),
+            name: app_dir_desktop_entry.name.to_string(),
             title: Some(app_dir_desktop_entry.title.clone()),
             version: app_dir_desktop_entry.site_version.clone(),
         };
-
-        let authors = build_authors(source_filesystem.as_ref()).await?;
-
+        let authors = build_authors(source_filesystem.as_ref())
+            .await
+            .map_err(PoetError::BuildAuthors)?;
         let build_project_result: BuildProjectResult = build_project(BuildProjectParams {
             asset_path_renderer: asset_path_renderer.clone(),
             authors,
-            esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.as_ref()).await?,
+            esbuild_metafile: read_esbuild_metafile_or_default(source_filesystem.as_ref())
+                .await
+                .map_err(PoetError::ReadEsbuildMetafile)?,
             generated_page_base_path: self.public_path.clone(),
             generate_sitemap: self.sitemap,
             is_watching: false,
             rhai_template_renderer: rhai_template_renderer.clone(),
             source_filesystem: source_filesystem.as_ref(),
         })
-        .await?
+        .await
+        .map_err(PoetError::BuildProject)?
         .into();
-
         let prompt_document_controller_collection = build_prompt_document_controller_collection(
             BuildPromptDocumentControllerCollectionParams {
                 rendering_context: PromptRenderingContext {
-                    asset_path_renderer: asset_path_renderer.clone(),
+                    asset_path_renderer,
                     content_document_linker: build_project_result.content_document_linker.clone(),
                     esbuild_metafile: build_project_result.esbuild_metafile.clone(),
                     rhai_template_renderer,
@@ -136,37 +134,27 @@ impl Handler for Serve {
                 source_filesystem: source_filesystem.as_ref(),
             },
         )
-        .await?;
-
-        let prompt_document_controller_collection_holder: PromptDocumentControllerCollectionHolder =
-            Default::default();
-
-        prompt_document_controller_collection_holder
-            .set(Some(Arc::new(prompt_document_controller_collection)))
-            .await;
-
+        .await
+        .map_err(PoetError::BuildPrompts)?;
         let app_data = Data::new(AppData {
             filesystem_http_route_index: Arc::new(FilesystemHttpRouteIndex::from_memory(
                 &build_project_result.memory_filesystem,
             )?),
         });
-
-        let assets_directory = self.app_dir.join(STATIC_FILES_PUBLIC_PATH);
-        let search_index_reader: SearchIndexReader =
+        let search_index_reader =
             SearchIndex::create_in_memory(build_project_result.content_document_sources.clone())
-                .index()?;
-        let build_project_result_holder: BuildProjectResultHolder = Default::default();
+                .index()
+                .map_err(PoetError::IndexSearch)?;
+        let build_project_result_holder: Holder<BuildProjectResult> = Holder::default();
+        let prompt_document_controller_collection_holder = Holder::default();
+        let search_index_reader_holder = Holder::default();
 
-        build_project_result_holder
-            .set(Some(build_project_result))
-            .await;
+        build_project_result_holder.set(build_project_result);
+        prompt_document_controller_collection_holder
+            .set(Arc::new(prompt_document_controller_collection));
+        search_index_reader_holder.set(Arc::new(search_index_reader));
 
-        let search_index_reader_holder: SearchIndexReaderHolder = Default::default();
-
-        search_index_reader_holder
-            .set(Some(Arc::new(search_index_reader)))
-            .await;
-
+        let assets_directory = self.assets_directory();
         let mcp_server = McpServerFactory {
             build_project_result_holder,
             prompt_document_controller_collection_holder,
@@ -175,7 +163,7 @@ impl Handler for Serve {
         }
         .create();
 
-        HttpServer::new(move || {
+        let http_server = HttpServer::new(move || {
             App::new()
                 .app_data(app_data.clone())
                 .service(
@@ -189,11 +177,15 @@ impl Handler for Serve {
                 .configure(http_route::generated_pages::register)
         })
         .bind(self.addr)
-        .expect("Unable to bind server to address")
-        .shutdown_timeout(1)
-        .run()
-        .await?;
+        .map_err(|source| PoetError::BindHttpServer {
+            address: self.addr,
+            source,
+        })?;
 
-        Ok(())
+        http_server
+            .shutdown_timeout(HTTP_SERVER_SHUTDOWN_TIMEOUT_SECONDS)
+            .run()
+            .await
+            .map_err(PoetError::RunHttpServer)
     }
 }

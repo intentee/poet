@@ -1,19 +1,23 @@
+use std::sync::Arc;
+
 use actix_web::HttpResponse;
-use actix_web::Result;
 
 use crate::cmd::respond_with_generated_page::respond_with_generated_page;
-use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
-use crate::holder::Holder as _;
+use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
+use crate::holder::Holder;
+use crate::holder_state::HolderState;
+use crate::poet_error::PoetError;
 
-pub async fn respond_with_generated_page_holder(
-    filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder,
-    path: String,
-) -> Result<HttpResponse> {
-    match filesystem_http_route_index_holder.get().await {
-        Some(filesystem_http_route_index) => {
-            respond_with_generated_page(filesystem_http_route_index, path)
+#[must_use]
+pub fn respond_with_generated_page_holder(
+    filesystem_http_route_index_holder: &Holder<Arc<FilesystemHttpRouteIndex>>,
+    route: &str,
+) -> HttpResponse {
+    match filesystem_http_route_index_holder.get() {
+        HolderState::Ready(filesystem_http_route_index) => {
+            respond_with_generated_page(&filesystem_http_route_index, route)
         }
-        None => Ok(HttpResponse::ServiceUnavailable()
-            .body("Server is still starting up, or there are no successful builds yet")),
+        HolderState::NotReady => HttpResponse::ServiceUnavailable()
+            .body(PoetError::BuildProjectResultNotReady.to_string()),
     }
 }

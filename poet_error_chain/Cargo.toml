@@ -1,0 +1,10 @@
+[package]
+name = "poet_error_chain"
+description = "Renders chains of error sources"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,17 @@
+mod accepts_printable_desktop_entry_string;
+mod builds_app_dir_readable_by_serve;
+mod names_app_dir_files_after_app_name;
+mod parses_every_desktop_entry_attribute;
+mod rejects_ambiguous_desktop_entry_attribute;
+mod rejects_desktop_entry_string_with_control_character;
+mod rejects_desktop_entry_with_invalid_name;
+mod rejects_desktop_entry_without_any_required_attribute;
+mod rejects_desktop_entry_without_primary_section;
+mod rejects_empty_desktop_entry_string;
+mod rejects_invalid_esbuild_metafile;
+mod rejects_malformed_desktop_entry;
+mod rejects_missing_asset;
+mod rejects_project_without_esbuild_metafile;
+mod rejects_unreadable_project_directory;
+mod rejects_unwritable_app_run_file;
+mod renders_desktop_entry;

@@ -1,0 +1,24 @@
+[package]
+name = "poet_watcher_tests"
+autotests = false
+description = "Integration tests for poet_watcher"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+futures-util = { workspace = true }
+notify-debouncer-full = { workspace = true }
+poet_watcher = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

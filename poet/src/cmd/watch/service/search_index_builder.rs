@@ -1,60 +1,60 @@
 use std::sync::Arc;
 
-use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
 use log::error;
 use poet_content::build_project_result::BuildProjectResult;
+use poet_error_chain::error_chain::ErrorChain;
 use poet_search::search_index::SearchIndex;
+use poet_search::search_index_reader::SearchIndexReader;
 use tokio_util::sync::CancellationToken;
 
-use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::service::Service;
-use crate::holder::Holder as _;
-use crate::search_index_reader_holder::SearchIndexReaderHolder;
+use crate::holder::Holder;
+use crate::holder_state::HolderState;
+use crate::poet_error::PoetError;
 
 pub struct SearchIndexBuilder {
-    pub build_project_result_holder: BuildProjectResultHolder,
+    pub build_project_result_holder: Holder<BuildProjectResult>,
     pub ctrlc_notifier: CancellationToken,
-    pub search_index_reader_holder: SearchIndexReaderHolder,
+    pub search_index_reader_holder: Holder<Arc<SearchIndexReader>>,
 }
 
 impl SearchIndexBuilder {
-    async fn do_build_search_index(&self) {
-        let BuildProjectResult {
+    fn build_search_index(&self) {
+        let HolderState::Ready(BuildProjectResult {
             content_document_sources,
             ..
-        } = match self.build_project_result_holder.get().await {
-            Some(build_project_result) => build_project_result,
-            None => {
-                debug!("Build project results not ready yet. Skipping build");
+        }) = self.build_project_result_holder.get()
+        else {
+            debug!("Build project results not ready yet. Skipping build");
 
-                return;
-            }
+            return;
         };
 
         match SearchIndex::create_in_memory(content_document_sources).index() {
-            Err(err) => {
-                error!("Unable to index markdown document sources: {err:#?}");
-            }
-            Ok(search_index_reader) => {
-                self.search_index_reader_holder
-                    .set(Some(Arc::new(search_index_reader)))
-                    .await;
-            }
+            Ok(search_index_reader) => self
+                .search_index_reader_holder
+                .set(Arc::new(search_index_reader)),
+            Err(search_error) => error!(
+                "{}",
+                ErrorChain {
+                    error: &PoetError::IndexSearch(search_error)
+                }
+            ),
         }
     }
 }
 
 #[async_trait]
 impl Service for SearchIndexBuilder {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<(), PoetError> {
         loop {
-            self.do_build_search_index().await;
+            self.build_search_index();
 
             tokio::select! {
-                _ = self.build_project_result_holder.update_notifier.notified() => continue,
-                _ = self.ctrlc_notifier.cancelled() => break,
+                () = self.build_project_result_holder.update_notifier.notified() => {},
+                () = self.ctrlc_notifier.cancelled() => break,
             }
         }
 

@@ -1,36 +1,67 @@
 use std::sync::Arc;
+use std::sync::RwLock;
+use std::sync::RwLockReadGuard;
+use std::sync::RwLockWriteGuard;
 
-use async_trait::async_trait;
 use tokio::sync::Notify;
-use tokio::sync::RwLock;
 
-#[async_trait]
-pub trait Holder {
-    type Item: Clone + Send + Sync;
+use crate::holder_state::HolderState;
 
-    fn rw_lock(&self) -> Arc<RwLock<Option<Self::Item>>>;
+pub struct Holder<TItem> {
+    state: Arc<RwLock<HolderState<TItem>>>,
+    pub update_notifier: Arc<Notify>,
+}
 
-    fn update_notifier(&self) -> Arc<Notify>;
-
-    async fn get(&self) -> Option<Self::Item> {
-        let rw_lock = self.rw_lock();
-        let item_opt = rw_lock.read().await;
-
-        item_opt.clone()
+impl<TItem: Clone> Holder<TItem> {
+    #[must_use]
+    pub fn get(&self) -> HolderState<TItem> {
+        self.read_state().clone()
     }
 
-    fn on_update(&self, _item: &Option<Self::Item>) {}
+    pub fn reset(&self) {
+        self.replace_state(HolderState::NotReady);
+    }
 
-    async fn set(&self, item: Option<Self::Item>) {
-        {
-            let rw_lock = self.rw_lock();
-            let mut item_shared_writer = rw_lock.write().await;
+    pub fn set(&self, item: TItem) {
+        self.replace_state(HolderState::Ready(item));
+    }
 
-            self.on_update(&item);
+    #[expect(
+        clippy::expect_used,
+        reason = "a poisoned lock means another thread panicked while replacing the held item"
+    )]
+    fn read_state(&self) -> RwLockReadGuard<'_, HolderState<TItem>> {
+        self.state.read().expect("Holder lock is poisoned")
+    }
 
-            *item_shared_writer = item;
+    fn replace_state(&self, state: HolderState<TItem>) {
+        *self.write_state() = state;
+        self.update_notifier.notify_waiters();
+    }
+
+    #[expect(
+        clippy::expect_used,
+        reason = "a poisoned lock means another thread panicked while replacing the held item"
+    )]
+    fn write_state(&self) -> RwLockWriteGuard<'_, HolderState<TItem>> {
+        self.state.write().expect("Holder lock is poisoned")
+    }
+}
+
+impl<TItem> Clone for Holder<TItem> {
+    fn clone(&self) -> Self {
+        Self {
+            state: self.state.clone(),
+            update_notifier: self.update_notifier.clone(),
         }
+    }
+}
 
-        self.update_notifier().notify_waiters();
+impl<TItem> Default for Holder<TItem> {
+    fn default() -> Self {
+        Self {
+            state: Arc::new(RwLock::new(HolderState::NotReady)),
+            update_notifier: Arc::default(),
+        }
     }
 }

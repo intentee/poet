@@ -10,6 +10,7 @@ version.workspace = true
 dashmap = { workspace = true }
 log = { workspace = true }
 markdown = { workspace = true }
+poet_error_chain = { workspace = true }
 poet_filesystem = { workspace = true }
 rhai = { workspace = true }
 rhai_components = { workspace = true }

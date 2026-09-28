@@ -2,6 +2,8 @@
 
 RUST_LOG ?= debug
 
+RUST_SOURCES := Cargo.toml Cargo.lock $(shell find poet rhai_components -name '*.rs' -o -name 'Cargo.toml')
+
 # -----------------------------------------------------------------------------
 # Real targets
 # -----------------------------------------------------------------------------
@@ -13,11 +15,9 @@ node_modules: package-lock.json
 package-lock.json: package.json
 	npm install --package-lock-only
 
-public: node_modules
-	./jarmuz-generate.mjs
-
-target/debug/poet: target/debug/poet
+target/debug/poet: $(RUST_SOURCES)
 	cargo build
+	touch target/debug/poet
 
 test_site-x86_64.AppImage: test_site.AppDir test_site.AppDir/poet
 	ARCH=x86_64 appimage-run ~/bin/appimagetool-x86_64.AppImage ./test_site.AppDir

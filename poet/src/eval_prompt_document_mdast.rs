@@ -345,7 +345,7 @@ pub fn eval_prompt_document_mdast(
     }
 
     if is_directly_in_root {
-        prompt_document_component_context.append_to_message(trim_chunk(result.clone())?)?;
+        prompt_document_component_context.append_to_message(&trim_chunk(result.clone())?);
     }
 
     Ok(result)
@@ -356,7 +356,6 @@ mod test {
     use std::collections::HashMap;
     use std::str::FromStr as _;
     use std::sync::Arc;
-    use std::sync::RwLock;
 
     use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
     use rhai::Engine;
@@ -423,9 +422,13 @@ mod test {
     }
 
     fn renderer() -> Result<RhaiTemplateRenderer> {
+        let mut expression_engine = Engine::new_raw();
+
+        expression_engine.build_type::<PromptDocumentComponentContext>();
+
         RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
             component_registry: Arc::new(ComponentRegistry::default()),
-            expression_engine: Engine::new_raw(),
+            expression_engine,
         })
     }
 
@@ -434,10 +437,8 @@ mod test {
             arguments: HashMap::new(),
             asset_manager: asset_manager()?,
             content_document_linker: linker(),
-            current_role: None,
             front_matter: front_matter(),
-            prompt_messages: Vec::new(),
-            unprocessed_message_chunk: Arc::new(RwLock::new(String::new())),
+            prompt_message_accumulator: Default::default(),
         })
     }
 
@@ -457,7 +458,7 @@ mod test {
             &mut prompt_document_component_context,
         )?;
 
-        Ok(prompt_document_component_context.prompt_messages)
+        Ok(prompt_document_component_context.take_prompt_messages())
     }
 
     fn render_block(markdown: &str) -> Result<String> {
@@ -524,6 +525,29 @@ mod test {
         );
         assert_eq!(messages[1].role, Role::Assistant);
         assert_eq!(messages[1].content, ContentBlock::from("Paris."));
+
+        Ok(())
+    }
+
+    #[test]
+    fn keeps_previous_message_when_rhai_expression_switches_role() -> Result<()> {
+        let messages = assemble_messages(
+            "**user**: What is the capital of France?\n\n{context.switch_role_to(\"assistant\")}: Paris.",
+        )?;
+
+        assert_eq!(
+            messages,
+            vec![
+                PromptMessage {
+                    content: ContentBlock::from("What is the capital of France?"),
+                    role: Role::User,
+                },
+                PromptMessage {
+                    content: ContentBlock::from("Paris."),
+                    role: Role::Assistant,
+                },
+            ]
+        );
 
         Ok(())
     }

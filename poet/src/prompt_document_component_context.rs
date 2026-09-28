@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::mem::take;
 use std::sync::Arc;
-use std::sync::RwLock;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
 
 use anyhow::Result;
-use anyhow::anyhow;
 use rhai::CustomType;
 use rhai::Dynamic;
 use rhai::EvalAltResult;
@@ -17,70 +17,42 @@ use crate::mcp::jsonrpc::role::Role;
 use crate::mcp::prompt_message::PromptMessage;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
+use crate::prompt_message_accumulator::PromptMessageAccumulator;
 
 #[derive(Clone)]
 pub struct PromptDocumentComponentContext {
     pub arguments: HashMap<String, ArgumentWithInput>,
     pub asset_manager: AssetManager,
     pub content_document_linker: ContentDocumentLinker,
-    pub current_role: Option<Role>,
     pub front_matter: PromptDocumentFrontMatter,
-    pub prompt_messages: Vec<PromptMessage>,
-    pub unprocessed_message_chunk: Arc<RwLock<String>>,
+    pub prompt_message_accumulator: Arc<Mutex<PromptMessageAccumulator>>,
 }
 
 impl PromptDocumentComponentContext {
-    pub fn append_to_message(&mut self, chunk: String) -> Result<()> {
-        if !chunk.is_empty() {
-            let mut unprocessed_message_chunk = self
-                .unprocessed_message_chunk
-                .write()
-                .expect("Unprocessed message lock is poisoned");
-
-            unprocessed_message_chunk.push_str(&chunk);
-        }
-
-        Ok(())
+    pub fn append_to_message(&self, chunk: &str) {
+        self.lock_prompt_message_accumulator().append(chunk);
     }
 
-    pub fn flush(&mut self) -> Result<()> {
-        let unprocessed_message_chunk = take(
-            &mut *self
-                .unprocessed_message_chunk
-                .write()
-                .expect("Unprocessed message lock is poisoned"),
-        );
-
-        if let Some(role) = self.current_role.take() {
-            self.prompt_messages.push(PromptMessage {
-                content: unprocessed_message_chunk.into(),
-                role,
-            });
-
-            Ok(())
-        } else if unprocessed_message_chunk.is_empty() {
-            Ok(())
-        } else {
-            Err(anyhow!("Tried to flush messages, but there is no role set"))
-        }
+    pub fn flush(&self) -> Result<()> {
+        self.lock_prompt_message_accumulator().flush()
     }
 
-    pub fn switch_role_to(&mut self, role: Role) -> Result<()> {
-        self.flush()?;
-        self.current_role = Some(role);
-
-        Ok(())
+    pub fn switch_role_to(&self, role: Role) -> Result<()> {
+        self.lock_prompt_message_accumulator().switch_role_to(role)
     }
 
-    fn rhai_append_to_message(&mut self, chunk: String) -> Result<(), Box<EvalAltResult>> {
-        if let Err(err) = self.append_to_message(chunk) {
-            Err(Box::new(EvalAltResult::ErrorSystem(
-                "Unable to append chunk".to_string(),
-                err.into(),
-            )))
-        } else {
-            Ok(())
-        }
+    pub fn take_prompt_messages(&self) -> Vec<PromptMessage> {
+        take(&mut self.lock_prompt_message_accumulator().messages)
+    }
+
+    fn lock_prompt_message_accumulator(&self) -> MutexGuard<'_, PromptMessageAccumulator> {
+        self.prompt_message_accumulator
+            .lock()
+            .expect("Prompt message accumulator lock is poisoned")
+    }
+
+    fn rhai_append_to_message(&mut self, chunk: String) {
+        self.append_to_message(&chunk);
     }
 
     fn rhai_get_arguments(&mut self) -> Map {
@@ -148,6 +120,7 @@ mod tests {
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::content_document_front_matter::ContentDocumentFrontMatter;
     use crate::content_document_reference::ContentDocumentReference;
+    use crate::mcp::content_block::ContentBlock;
 
     fn linker() -> ContentDocumentLinker {
         let mut content_document_by_basename = HashMap::new();
@@ -177,54 +150,29 @@ mod tests {
                 },
             ),
             content_document_linker: linker(),
-            current_role: None,
             front_matter: PromptDocumentFrontMatter {
                 arguments: HashMap::new(),
                 description: "description".to_string(),
                 title: "title".to_string(),
             },
-            prompt_messages: Vec::new(),
-            unprocessed_message_chunk: Arc::new(RwLock::new(String::new())),
+            prompt_message_accumulator: Default::default(),
         }
     }
 
     #[test]
-    fn flush_fails_when_chunk_present_without_role() -> Result<()> {
-        let mut context = context();
-
-        context.append_to_message("orphan".to_string())?;
-
-        assert!(context.flush().is_err());
-
-        Ok(())
-    }
-
-    #[test]
-    fn switch_role_flushes_previous_message() -> Result<()> {
+    fn rhai_append_adds_chunk_to_current_message() -> Result<()> {
         let mut context = context();
 
         context.switch_role_to(Role::User)?;
-        context.append_to_message("hello".to_string())?;
-        context.switch_role_to(Role::Assistant)?;
+        context.rhai_append_to_message("piece".to_string());
+        context.flush()?;
 
-        assert_eq!(context.prompt_messages.len(), 1);
-        assert_eq!(context.prompt_messages[0].role, Role::User);
-
-        Ok(())
-    }
-
-    #[test]
-    fn rhai_append_accumulates_chunk() -> Result<()> {
-        let mut context = context();
-
-        context.rhai_append_to_message("piece".to_string())?;
-
-        assert!(
-            context
-                .unprocessed_message_chunk
-                .read()
-                .expect("Unprocessed message lock is poisoned")
-                .contains("piece")
+        assert_eq!(
+            context.take_prompt_messages(),
+            vec![PromptMessage {
+                content: ContentBlock::from("piece"),
+                role: Role::User,
+            }]
         );
 
         Ok(())
@@ -251,8 +199,16 @@ mod tests {
         let mut context = context();
 
         context.rhai_switch_role_to("assistant".to_string())?;
+        context.append_to_message("answer");
+        context.flush()?;
 
-        assert_eq!(context.current_role, Some(Role::Assistant));
+        assert_eq!(
+            context.take_prompt_messages(),
+            vec![PromptMessage {
+                content: ContentBlock::from("answer"),
+                role: Role::Assistant,
+            }]
+        );
 
         Ok(())
     }
@@ -272,7 +228,7 @@ mod tests {
     fn rhai_switch_role_fails_when_orphan_chunk_cannot_flush() -> Result<()> {
         let mut context = context();
 
-        context.append_to_message("orphan".to_string())?;
+        context.append_to_message("orphan");
 
         assert!(context.rhai_switch_role_to("user".to_string()).is_err());
 

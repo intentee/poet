@@ -1,5 +1,7 @@
 mod app_data;
 mod http_route;
+mod project_file_classifier;
+mod project_file_kind;
 mod service;
 mod watch_project_files;
 

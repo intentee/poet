@@ -34,7 +34,12 @@ impl SearchIndexReader {
     ) -> Result<Vec<SearchIndexFoundDocument>> {
         let mut query_parser = QueryParser::for_index(
             &self.index,
-            vec![self.fields.title, self.fields.header, self.fields.paragraph],
+            vec![
+                self.fields.title,
+                self.fields.description,
+                self.fields.header,
+                self.fields.paragraph,
+            ],
         );
 
         query_parser.set_field_boost(self.fields.title, 4.0);

@@ -76,10 +76,8 @@ impl PromptController for PromptDocumentController {
                 self.asset_path_renderer.clone(),
             ),
             content_document_linker: self.content_document_linker.clone(),
-            current_role: Default::default(),
             front_matter: self.front_matter.clone(),
-            prompt_messages: Default::default(),
-            unprocessed_message_chunk: Default::default(),
+            prompt_message_accumulator: Default::default(),
         };
 
         eval_prompt_document_mdast(
@@ -95,7 +93,7 @@ impl PromptController for PromptDocumentController {
 
         Ok(PromptsGetResult {
             description: Some(self.front_matter.description.clone()),
-            messages: prompt_document_component_context.prompt_messages,
+            messages: prompt_document_component_context.take_prompt_messages(),
             meta: None,
         })
     }

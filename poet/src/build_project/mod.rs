@@ -179,15 +179,12 @@ pub async fn build_project(
             });
 
             if content_document_reference.front_matter.render {
-                let relative_path = format!("{basename}.md");
-
                 content_document_sources.insert(
                     basename,
                     ContentDocumentSource {
                         file_entry: file,
                         mdast,
                         reference: content_document_reference,
-                        relative_path,
                     },
                 );
             }

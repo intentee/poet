@@ -89,7 +89,7 @@ pub fn eval_content_document_mdast(
             result.push_str("<pre class=\"code");
 
             if let Some(lang) = lang {
-                result.push_str(&format!(" language-{lang}\""));
+                result.push_str(&format!(" language-{}\"", escape_html_attribute(lang)));
                 result.push_str(&format!(" data-lang=\"{}\"", escape_html_attribute(lang)));
             } else {
                 result.push('"');
@@ -234,7 +234,7 @@ pub fn eval_content_document_mdast(
             warn!("Image references are not supported: {node:?}");
         }
         Node::InlineCode(InlineCode { value, .. }) => {
-            result.push_str(&format!("<code>{}</code>", escape_html_attribute(value)));
+            result.push_str(&format!("<code>{}</code>", escape_html(value)));
         }
         Node::InlineMath(node) => {
             warn!("Inline math expressions are not supported: {node:?}");
@@ -254,10 +254,10 @@ pub fn eval_content_document_mdast(
                 }
             };
 
-            result.push_str(&format!("<a href=\"{link}\""));
+            result.push_str(&format!("<a href=\"{}\"", escape_html_attribute(&link)));
 
             if let Some(title) = title {
-                result.push_str(&format!(" title=\"{}\"", title));
+                result.push_str(&format!(" title=\"{}\"", escape_html_attribute(title)));
             }
 
             result.push('>');
@@ -575,6 +575,43 @@ mod tests {
     #[test]
     fn renders_inline_code() -> Result<()> {
         assert_eq!(render("`let x = 1`")?, "<p><code>let x = 1</code></p>");
+
+        Ok(())
+    }
+
+    #[test]
+    fn escapes_html_in_inline_code() -> Result<()> {
+        assert_eq!(render("`<div>`")?, "<p><code>&lt;div&gt;</code></p>");
+
+        Ok(())
+    }
+
+    #[test]
+    fn escapes_quotes_in_link_title() -> Result<()> {
+        assert_eq!(
+            render("[label](https://example.com 'say \"hi\"')")?,
+            "<p><a href=\"https://example.com\" title=\"say &quot;hi&quot;\">label</a></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn escapes_quotes_in_link_href() -> Result<()> {
+        assert_eq!(
+            render("[label](https://example.com/?q=\"x\")")?,
+            "<p><a href=\"https://example.com/?q=&quot;x&quot;\">label</a></p>"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn escapes_quotes_in_code_block_language_class() -> Result<()> {
+        assert!(
+            render("```a\"b\ncode\n```")?
+                .starts_with("<pre class=\"code language-a&quot;b\" data-lang=\"a&quot;b\"")
+        );
 
         Ok(())
     }

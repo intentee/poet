@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
+use crate::build_project::build_project_result::BuildProjectResult;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::holder::Holder as _;
@@ -21,6 +22,23 @@ use crate::mcp::resource_template_provider::ResourceTemplateProvider;
 
 #[derive(Clone, Default)]
 pub struct McpResourceProviderContentDocuments(pub BuildProjectResultHolder);
+
+impl McpResourceProviderContentDocuments {
+    fn is_updated_by(
+        &self,
+        resource_reference: &ResourceReference,
+        build_project_result: &BuildProjectResult,
+    ) -> bool {
+        let subscribed_basename: ContentDocumentBasename = resource_reference.path.clone().into();
+
+        build_project_result
+            .changed_since_last_build
+            .iter()
+            .any(|content_document_source| {
+                content_document_source.reference.basename() == subscribed_basename
+            })
+    }
+}
 
 impl ResourceTemplateProvider for McpResourceProviderContentDocuments {
     fn mime_type(&self) -> String {
@@ -112,14 +130,10 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
                 tokio::select! {
                     _ = cancellation_token.cancelled() => break,
                     _ = build_update_notifier.notified() => {
-                        if let Some(build_project_result) = build_project_result_holder.get().await {
-                            for content_document_source in build_project_result.changed_since_last_build {
-                                let reference_uri = this.resource_uri(&content_document_source.relative_path);
-
-                                if reference_uri == resource_reference.uri_string {
-                                    resource_update_notifier_clone.notify_waiters();
-                                }
-                            }
+                        if let Some(build_project_result) = build_project_result_holder.get().await
+                            && this.is_updated_by(&resource_reference, &build_project_result)
+                        {
+                            resource_update_notifier_clone.notify_waiters();
                         }
                     }
                 }
@@ -145,13 +159,13 @@ mod tests {
     use crate::build_authors::build_authors;
     use crate::build_project::build_project;
     use crate::build_project::build_project_params::BuildProjectParams;
-    use crate::build_project::build_project_result::BuildProjectResult;
+    use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
     use crate::filesystem::Filesystem as _;
     use crate::filesystem::storage::Storage;
     use crate::mcp::resource_provider_list_params::ResourceProviderListParams;
 
-    async fn build_result() -> Result<BuildProjectResult> {
+    async fn build_stub(body: &str) -> Result<BuildProjectResultStub> {
         let directory = tempdir()?;
         let source_filesystem = Arc::new(Storage {
             base_directory: directory.path().to_path_buf(),
@@ -166,14 +180,16 @@ mod tests {
         source_filesystem
             .set_file_contents(
                 Path::new("content/guide.md"),
-                "+++\ndescription = \"Guide description\"\nlayout = \"Layout\"\ntitle = \"Guide\"\n+++\n\nbody\n",
+                &format!(
+                    "+++\ndescription = \"Guide description\"\nlayout = \"Layout\"\ntitle = \"Guide\"\n+++\n\n{body}\n"
+                ),
             )
             .await?;
 
         let rhai_template_renderer = compile_shortcodes(source_filesystem.clone()).await?;
         let authors = build_authors(source_filesystem.clone()).await?;
 
-        Ok(build_project(BuildProjectParams {
+        build_project(BuildProjectParams {
             asset_path_renderer: AssetPathRenderer {
                 base_path: "/".to_string(),
             },
@@ -185,8 +201,7 @@ mod tests {
             rhai_template_renderer,
             source_filesystem,
         })
-        .await?
-        .into())
+        .await
     }
 
     fn reference(path: &str) -> ResourceReference {
@@ -202,7 +217,7 @@ mod tests {
     async fn lists_content_documents_as_resources() -> Result<()> {
         let provider = McpResourceProviderContentDocuments::default();
 
-        provider.0.set(Some(build_result().await?)).await;
+        provider.0.set(Some(build_stub("body").await?.into())).await;
 
         assert_eq!(provider.total(), 1);
 
@@ -224,7 +239,7 @@ mod tests {
     async fn reads_existing_document_and_misses_unknown_one() -> Result<()> {
         let provider = McpResourceProviderContentDocuments::default();
 
-        provider.0.set(Some(build_result().await?)).await;
+        provider.0.set(Some(build_stub("body").await?.into())).await;
 
         assert!(
             provider
@@ -238,6 +253,19 @@ mod tests {
                 .await?
                 .is_none()
         );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn changed_subscribed_document_updates_its_resource() -> Result<()> {
+        let provider = McpResourceProviderContentDocuments::default();
+        let previous_build: BuildProjectResult = build_stub("body").await?.into();
+        let changed_build = build_stub("changed body")
+            .await?
+            .changed_compared_to(previous_build);
+
+        assert!(provider.is_updated_by(&reference("guide"), &changed_build));
 
         Ok(())
     }

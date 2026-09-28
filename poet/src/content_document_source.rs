@@ -8,5 +8,4 @@ pub struct ContentDocumentSource {
     pub file_entry: FileEntry,
     pub mdast: Node,
     pub reference: ContentDocumentReference,
-    pub relative_path: String,
 }

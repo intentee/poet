@@ -155,8 +155,9 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn indexes_documents_and_finds_them_by_body_keyword() -> Result<()> {
+    async fn search_index_reader_for_guide(
+        front_matter_description: &str,
+    ) -> Result<SearchIndexReader> {
         let directory = tempdir()?;
         let source_filesystem = Arc::new(Storage {
             base_directory: directory.path().to_path_buf(),
@@ -171,7 +172,9 @@ mod tests {
         source_filesystem
             .set_file_contents(
                 Path::new("content/guide.md"),
-                "+++\ndescription = \"Guide description\"\nlayout = \"Layout\"\ntitle = \"Searchable Guide\"\n+++\n\nUnique body keyword zebra.\n",
+                &format!(
+                    "+++\ndescription = \"{front_matter_description}\"\nlayout = \"Layout\"\ntitle = \"Searchable Guide\"\n+++\n\nUnique body keyword zebra.\n"
+                ),
             )
             .await?;
 
@@ -195,18 +198,39 @@ mod tests {
         })
         .await?;
 
-        let search_index_reader =
-            SearchIndex::create_in_memory(content_document_sources).index()?;
+        SearchIndex::create_in_memory(content_document_sources).index()
+    }
 
-        let results = search_index_reader.query(SearchIndexQueryParams {
-            cursor: Default::default(),
-            query: "zebra".to_string(),
-        })?;
+    fn found_titles(search_index_reader: &SearchIndexReader, query: &str) -> Result<Vec<String>> {
+        Ok(search_index_reader
+            .query(SearchIndexQueryParams {
+                cursor: Default::default(),
+                query: query.to_string(),
+            })?
+            .into_iter()
+            .map(|found_document| found_document.content_document_reference.front_matter.title)
+            .collect())
+    }
 
-        assert_eq!(results.len(), 1);
+    #[tokio::test]
+    async fn indexes_documents_and_finds_them_by_body_keyword() -> Result<()> {
+        let search_index_reader = search_index_reader_for_guide("Guide description").await?;
+
         assert_eq!(
-            results[0].content_document_reference.front_matter.title,
-            "Searchable Guide"
+            found_titles(&search_index_reader, "zebra")?,
+            vec!["Searchable Guide".to_string()]
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn finds_documents_by_description_keyword() -> Result<()> {
+        let search_index_reader = search_index_reader_for_guide("Describes the okapi").await?;
+
+        assert_eq!(
+            found_titles(&search_index_reader, "okapi")?,
+            vec!["Searchable Guide".to_string()]
         );
 
         Ok(())

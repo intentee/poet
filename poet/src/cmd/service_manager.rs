@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::rt;
 use anyhow::Result;
-use log::error;
 use tokio::task::JoinSet;
 
 use crate::cmd::service::Service;
@@ -21,16 +19,42 @@ impl ServiceManager {
         let mut task_set = JoinSet::new();
 
         for service in self.services {
-            task_set.spawn(rt::spawn(async move {
-                if let Err(err) = service.run().await {
-                    error!("Service error: {err:#?}");
-                }
-            }));
+            task_set.spawn_local(async move { service.run().await });
         }
 
-        // Stop if any of the tasks stop
-        task_set.join_next().await;
+        match task_set.join_next().await {
+            Some(finished_service) => finished_service?,
+            None => Ok(()),
+        }
+    }
+}
 
-        Ok(())
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use anyhow::Result;
+    use anyhow::anyhow;
+    use async_trait::async_trait;
+
+    use super::ServiceManager;
+    use crate::cmd::service::Service;
+
+    struct FailingService;
+
+    #[async_trait]
+    impl Service for FailingService {
+        async fn run(&self) -> Result<()> {
+            Err(anyhow!("service failed"))
+        }
+    }
+
+    #[actix_web::test]
+    async fn returns_error_of_failed_service() {
+        let mut service_manager = ServiceManager::default();
+
+        service_manager.register_service(Arc::new(FailingService));
+
+        assert!(service_manager.run().await.is_err());
     }
 }

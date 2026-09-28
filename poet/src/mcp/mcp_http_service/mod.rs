@@ -1,5 +1,4 @@
 pub mod respond_to_delete;
-pub mod respond_to_get;
 pub mod respond_to_post;
 
 use std::sync::Arc;
@@ -20,7 +19,6 @@ use futures_util::future::LocalBoxFuture;
 
 use crate::mcp::jsonrpc::implementation::Implementation;
 use crate::mcp::mcp_http_service::respond_to_delete::RespondToDelete;
-use crate::mcp::mcp_http_service::respond_to_get::RespondToGet;
 use crate::mcp::mcp_http_service::respond_to_post::RespondToPost;
 use crate::mcp::mcp_responder_context::McpResponderContext;
 use crate::mcp::mcp_responder_handler::McpResponderHandler;
@@ -62,7 +60,6 @@ impl Service<ServiceRequest> for McpHttpService {
 
             let http_response = match req_method {
                 Method::DELETE => McpResponderHandler(RespondToDelete {}).call((ctx,)).await?,
-                Method::GET => McpResponderHandler(RespondToGet {}).call((ctx,)).await?,
                 Method::POST => {
                     McpResponderHandler(RespondToPost {
                         prompt_controller_collection_holder,
@@ -75,11 +72,68 @@ impl Service<ServiceRequest> for McpHttpService {
                     .await?
                 }
                 _ => HttpResponse::MethodNotAllowed()
+                    .insert_header(header::Allow(vec![Method::DELETE, Method::POST]))
                     .insert_header(header::ContentType(mime::TEXT_PLAIN_UTF_8))
                     .body("Method not allowed"),
             };
 
             Ok(req.into_response(http_response))
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+    use std::sync::Arc;
+
+    use actix_web::App;
+    use actix_web::http::StatusCode;
+    use actix_web::http::header;
+    use actix_web::mime;
+    use actix_web::test::TestRequest;
+    use actix_web::test::call_service;
+    use actix_web::test::init_service;
+
+    use crate::mcp::MCP_HEADER_PROTOCOL_VERSION;
+    use crate::mcp::MCP_PROTOCOL_VERSION;
+    use crate::mcp::jsonrpc::implementation::Implementation;
+    use crate::mcp::mcp_http_service_factory::McpHttpServiceFactory;
+    use crate::mcp::resource_list_aggregate::ResourceListAggregate;
+
+    #[actix_web::test]
+    async fn rejects_get_because_server_offers_no_standalone_event_stream() {
+        let mcp_service = init_service(App::new().service(McpHttpServiceFactory {
+            mount_path: "/mcp".to_string(),
+            prompt_controller_collection_holder: Default::default(),
+            resource_list_aggregate: Arc::new(ResourceListAggregate {
+                providers: BTreeSet::new(),
+            }),
+            server_info: Implementation {
+                description: None,
+                name: "poet".to_string(),
+                title: None,
+                version: "0.0.0".to_string(),
+            },
+            session_manager: Default::default(),
+            tool_registry: Default::default(),
+        }))
+        .await;
+
+        let response = call_service(
+            &mcp_service,
+            TestRequest::get()
+                .uri("/mcp")
+                .insert_header((header::ACCEPT, mime::TEXT_EVENT_STREAM.to_string()))
+                .insert_header((MCP_HEADER_PROTOCOL_VERSION, MCP_PROTOCOL_VERSION))
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
+        assert_eq!(
+            response.headers().get(header::ALLOW),
+            Some(&header::HeaderValue::from_static("DELETE, POST"))
+        );
     }
 }

@@ -10,10 +10,6 @@ const ERROR_INVALID_REQUEST: i32 = -32600;
 const ERROR_PARSE_ERROR: i32 = -32700;
 const ERROR_RESOURCE_NOT_FOUND: i32 = -32002;
 
-// pub const ERROR_METHOD_NOT_FOUND: i32 = -32601;
-// pub const ERROR_SERVER_ERROR_RANGE_MIN: i32 = -32099;
-// pub const ERROR_SERVER_ERROR_RANGE_MAX: i32 = -32000;
-
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourceNotFound {
@@ -112,11 +108,30 @@ impl Error {
 
     pub fn tool_not_found(id: Id, tool_name: String) -> Self {
         Self::ToolNotFound {
-            code: ERROR_RESOURCE_NOT_FOUND,
+            code: ERROR_INVALID_PARAMS,
             data: ToolNotFound { tool_name },
             id,
             jsonrpc: JSONRPC_VERSION.to_string(),
             message: "Tool not found".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use serde_json::json;
+
+    use super::Error;
+    use crate::mcp::jsonrpc::id::Id;
+
+    #[test]
+    fn unknown_tool_uses_invalid_params_code() -> Result<()> {
+        let serialized_error =
+            serde_json::to_value(Error::tool_not_found(Id::Number(1), "missing".to_string()))?;
+
+        assert_eq!(serialized_error["code"], json!(-32602));
+
+        Ok(())
     }
 }

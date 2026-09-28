@@ -8,15 +8,11 @@ use tantivy::IndexReader;
 use tantivy::TantivyDocument;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
-use tantivy::query::QueryParserError;
-use tantivy::query_grammar::Error as QueryGrammarError;
-use tantivy::query_grammar::parse_query;
 use tantivy::schema::Value as _;
 
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_source::ContentDocumentSource;
 use crate::mcp::list_resources_cursor::ListResourcesCursor;
-use crate::regex_leaves_to_literals::regex_leaves_to_literals;
 use crate::search_index_fields::SearchIndexFields;
 use crate::search_index_found_document::SearchIndexFoundDocument;
 use crate::search_index_query_params::SearchIndexQueryParams;
@@ -45,10 +41,7 @@ impl SearchIndexReader {
         query_parser.set_field_boost(self.fields.description, 3.0);
         query_parser.set_field_boost(self.fields.header, 2.0);
 
-        let user_input_ast = parse_query(&query)
-            .map_err(|QueryGrammarError| QueryParserError::SyntaxError(query.clone()))?;
-        let query = query_parser
-            .build_query_from_user_input_ast(regex_leaves_to_literals(user_input_ast))?;
+        let query = query_parser.parse_query(&query)?;
 
         let searcher = self.index_reader.searcher();
         let results = searcher.search(

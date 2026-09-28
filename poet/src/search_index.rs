@@ -98,7 +98,6 @@ impl SearchIndex {
 mod tests {
     use std::path::Path;
 
-    use tantivy::query::QueryParserError;
     use tempfile::tempdir;
 
     use super::*;
@@ -156,7 +155,8 @@ mod tests {
         Ok(())
     }
 
-    async fn search_index_reader_with_zebra_guide() -> Result<SearchIndexReader> {
+    #[tokio::test]
+    async fn indexes_documents_and_finds_them_by_body_keyword() -> Result<()> {
         let directory = tempdir()?;
         let source_filesystem = Arc::new(Storage {
             base_directory: directory.path().to_path_buf(),
@@ -195,68 +195,19 @@ mod tests {
         })
         .await?;
 
-        SearchIndex::create_in_memory(content_document_sources).index()
-    }
+        let search_index_reader =
+            SearchIndex::create_in_memory(content_document_sources).index()?;
 
-    fn found_titles(search_index_reader: &SearchIndexReader, query: &str) -> Result<Vec<String>> {
-        Ok(search_index_reader
-            .query(SearchIndexQueryParams {
-                cursor: Default::default(),
-                query: query.to_string(),
-            })?
-            .into_iter()
-            .map(|found_document| found_document.content_document_reference.front_matter.title)
-            .collect())
-    }
+        let results = search_index_reader.query(SearchIndexQueryParams {
+            cursor: Default::default(),
+            query: "zebra".to_string(),
+        })?;
 
-    #[tokio::test]
-    async fn indexes_documents_and_finds_them_by_body_keyword() -> Result<()> {
-        let search_index_reader = search_index_reader_with_zebra_guide().await?;
-
+        assert_eq!(results.len(), 1);
         assert_eq!(
-            found_titles(&search_index_reader, "zebra")?,
-            vec!["Searchable Guide".to_string()]
+            results[0].content_document_reference.front_matter.title,
+            "Searchable Guide"
         );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn slash_delimited_query_matches_like_a_term() -> Result<()> {
-        let search_index_reader = search_index_reader_with_zebra_guide().await?;
-
-        assert_eq!(
-            found_titles(&search_index_reader, "/zebra/ giraffe")?,
-            vec!["Searchable Guide".to_string()]
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn boosted_slash_delimited_query_matches_like_a_term() -> Result<()> {
-        let search_index_reader = search_index_reader_with_zebra_guide().await?;
-
-        assert_eq!(
-            found_titles(&search_index_reader, "(/zebra/)^2")?,
-            vec!["Searchable Guide".to_string()]
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn rejects_query_with_invalid_syntax() -> Result<()> {
-        let search_index_reader = search_index_reader_with_zebra_guide().await?;
-
-        let search_error = found_titles(&search_index_reader, "(zebra")
-            .err()
-            .map(|error| error.downcast::<QueryParserError>());
-
-        assert!(matches!(
-            search_error,
-            Some(Ok(QueryParserError::SyntaxError(query))) if query == "(zebra"
-        ));
 
         Ok(())
     }

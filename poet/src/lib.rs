@@ -59,7 +59,6 @@ pub mod prompt_document_component_context;
 pub mod prompt_document_controller;
 pub mod prompt_document_front_matter;
 pub mod read_esbuild_metafile_or_default;
-pub mod regex_leaves_to_literals;
 pub mod rhai_helpers;
 pub mod rhai_map_serde;
 pub mod rhai_template_renderer_factory;

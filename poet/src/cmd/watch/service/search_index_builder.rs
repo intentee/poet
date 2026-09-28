@@ -5,12 +5,12 @@ use async_trait::async_trait;
 use log::debug;
 use log::error;
 use poet_content::build_project_result::BuildProjectResult;
+use poet_search::search_index::SearchIndex;
 use tokio_util::sync::CancellationToken;
 
 use crate::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::service::Service;
 use crate::holder::Holder as _;
-use crate::search_index::SearchIndex;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 pub struct SearchIndexBuilder {

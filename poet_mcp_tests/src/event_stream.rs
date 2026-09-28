@@ -1,4 +1,3 @@
-use serde_json::from_slice;
 use std::pin::Pin;
 
 use actix_web::body::BoxBody;
@@ -6,6 +5,7 @@ use actix_web::body::MessageBody as _;
 use actix_web::web::Bytes;
 use futures_util::future::poll_fn;
 use serde_json::Value;
+use serde_json::from_slice;
 
 use crate::poet_mcp_tests_error::PoetMcpTestsError;
 

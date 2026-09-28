@@ -1,0 +1,23 @@
+[package]
+name = "poet_search_tests"
+autotests = false
+description = "Integration tests for poet_search"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+poet_content_tests = { workspace = true }
+poet_search = { workspace = true }
+tantivy = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

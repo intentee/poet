@@ -1,14 +1,14 @@
-use async_stream::stream;
-use serde_json::to_string;
 use std::time::Duration;
-use tokio::select;
 
 use actix_web::HttpResponse;
 use actix_web::body::BoxBody;
 use actix_web::web::Bytes;
+use async_stream::stream;
 use futures_core::stream::Stream;
 use log::warn;
 use serde::Serialize;
+use serde_json::to_string;
+use tokio::select;
 use tokio::sync::mpsc::Receiver;
 use tokio::time::interval;
 

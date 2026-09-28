@@ -23,6 +23,8 @@ use poet_content::build_project_result::BuildProjectResult;
 use poet_filesystem::filesystem::Filesystem;
 use poet_mcp::implementation::Implementation;
 use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
+use poet_search::search_index::SearchIndex;
+use poet_search::search_index_reader::SearchIndexReader;
 
 use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
@@ -40,8 +42,6 @@ use crate::cmd::value_parser::validate_is_directory;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
 use crate::mcp_server_factory::McpServerFactory;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
-use crate::search_index::SearchIndex;
-use crate::search_index_reader::SearchIndexReader;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 #[derive(Parser)]

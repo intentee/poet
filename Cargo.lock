@@ -2049,6 +2049,8 @@ dependencies = [
  "poet_filesystem",
  "poet_mcp",
  "poet_mdx",
+ "poet_search",
+ "poet_search_tests",
  "rayon",
  "rhai",
  "rhai_components",
@@ -2058,7 +2060,6 @@ dependencies = [
  "sitemap-rs",
  "slug",
  "syntect",
- "tantivy",
  "tempfile",
  "thiserror",
  "tokio",
@@ -2229,6 +2230,29 @@ dependencies = [
  "rhai_components",
  "serde",
  "tempfile",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "poet_search"
+version = "0.8.0"
+dependencies = [
+ "markdown",
+ "poet_content",
+ "poet_mdx",
+ "rayon",
+ "tantivy",
+ "thiserror",
+]
+
+[[package]]
+name = "poet_search_tests"
+version = "0.8.0"
+dependencies = [
+ "poet_content_tests",
+ "poet_search",
+ "tantivy",
  "thiserror",
  "tokio",
 ]

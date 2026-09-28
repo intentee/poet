@@ -1,0 +1,18 @@
+[package]
+name = "poet_search"
+description = "Full-text search index over Poet content documents"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+markdown = { workspace = true }
+poet_content = { workspace = true }
+poet_mdx = { workspace = true }
+rayon = { workspace = true }
+tantivy = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

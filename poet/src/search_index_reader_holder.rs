@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use poet_search::search_index_reader::SearchIndexReader;
 use tokio::sync::Notify;
 use tokio::sync::RwLock;
 
 use crate::holder::Holder;
-use crate::search_index_reader::SearchIndexReader;
 
 #[derive(Clone, Default)]
 pub struct SearchIndexReaderHolder {

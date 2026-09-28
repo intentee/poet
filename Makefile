@@ -10,6 +10,7 @@ POET_SOURCES := \
 		poet_filesystem/src \
 		poet_mcp/src \
 		poet_mdx/src \
+		poet_search/src \
 		rhai_components/src \
 		-name '*.rs') \
 	Cargo.lock \
@@ -20,6 +21,7 @@ POET_SOURCES := \
 	poet_filesystem/Cargo.toml \
 	poet_mcp/Cargo.toml \
 	poet_mdx/Cargo.toml \
+	poet_search/Cargo.toml \
 	rhai_components/Cargo.toml
 
 # -----------------------------------------------------------------------------
@@ -79,6 +81,7 @@ coverage: node_modules
 		--gated poet_filesystem=100 \
 		--gated poet_mcp=100 \
 		--gated poet_mdx=100 \
+		--gated poet_search=100 \
 		--gated rhai_components=100
 
 .PHONY: coverage-clean

@@ -9,6 +9,8 @@ use poet_mcp::tool_call_result::ToolCallResult;
 use poet_mcp::tool_call_success::ToolCallSuccess;
 use poet_mcp::tool_provider::ToolProvider;
 use poet_mcp::tool_responder::ToolResponder;
+use poet_search::search_index_found_document::SearchIndexFoundDocument;
+use poet_search::search_index_query_params::SearchIndexQueryParams;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
@@ -16,8 +18,6 @@ use tokio::task::spawn_blocking;
 
 use crate::holder::Holder as _;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
-use crate::search_index_found_document::SearchIndexFoundDocument;
-use crate::search_index_query_params::SearchIndexQueryParams;
 use crate::search_index_reader_holder::SearchIndexReaderHolder;
 
 const SEARCH_RESULTS_PER_PAGE: usize = 20;
@@ -97,27 +97,17 @@ impl ToolResponder<Self> for SearchTool {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
     use std::sync::Arc;
 
     use anyhow::Result;
-    use poet_assets::asset_path_renderer::AssetPathRenderer;
-    use poet_content::build_authors::build_authors;
-    use poet_content::build_project::build_project;
-    use poet_content::build_project_params::BuildProjectParams;
-    use poet_content::build_project_result_stub::BuildProjectResultStub;
-    use poet_filesystem::filesystem::Filesystem as _;
-    use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
     use poet_mcp::tool_call_result::ToolCallResult;
     use poet_mcp::tool_call_success::ToolCallSuccess;
     use poet_mcp::tool_provider::ToolProvider as _;
     use poet_mcp::tool_responder::ToolResponder as _;
-    use tempfile::tempdir;
+    use poet_search_tests::index_fixture_document::index_fixture_document;
 
-    use crate::compile_poet_shortcodes::compile_poet_shortcodes;
     use crate::holder::Holder as _;
-    use crate::search_index::SearchIndex;
     use crate::search_index_reader_holder::SearchIndexReaderHolder;
     use crate::search_tool::SearchTool;
     use crate::search_tool::SearchToolProviderInput;
@@ -130,50 +120,12 @@ mod tests {
     }
 
     async fn search_tool_with_index() -> Result<SearchTool> {
-        let directory = tempdir()?;
-        let source_filesystem = Arc::new(Storage {
-            base_directory: directory.path().to_path_buf(),
-        });
-
-        source_filesystem
-            .set_file_contents(
-                Path::new("shortcodes/Layout.rhai"),
-                "fn template(context, props, content) { component { <html>{content}</html> } }",
-            )
-            .await?;
-        source_filesystem
-            .set_file_contents(
-                Path::new("content/guide.md"),
-                "+++\ndescription = \"Guide\"\nlayout = \"Layout\"\ntitle = \"Guide\"\n+++\n\nkeyword zebra body\n",
-            )
-            .await?;
-
-        let rhai_template_renderer = compile_poet_shortcodes(&source_filesystem).await?;
-        let authors = build_authors(source_filesystem.as_ref()).await?;
-
-        let BuildProjectResultStub {
-            content_document_sources,
-            ..
-        } = build_project(BuildProjectParams {
-            asset_path_renderer: AssetPathRenderer {
-                base_path: "/".to_string(),
-            },
-            authors,
-            esbuild_metafile: Default::default(),
-            generated_page_base_path: "/".to_string(),
-            generate_sitemap: false,
-            is_watching: false,
-            rhai_template_renderer,
-            source_filesystem: source_filesystem.as_ref(),
-        })
-        .await?;
-
-        let search_index_reader =
-            SearchIndex::create_in_memory(content_document_sources).index()?;
         let search_index_reader_holder = SearchIndexReaderHolder::default();
 
         search_index_reader_holder
-            .set(Some(Arc::new(search_index_reader)))
+            .set(Some(Arc::new(
+                index_fixture_document("Guide", "keyword zebra body").await?,
+            )))
             .await;
 
         Ok(SearchTool {

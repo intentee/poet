@@ -2,7 +2,6 @@ pub mod build_prompt_document_controller_collection_params;
 
 use std::sync::Arc;
 
-use crate::document_error_collection::DocumentErrorCollection;
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
@@ -16,9 +15,10 @@ use rayon::iter::ParallelIterator as _;
 use crate::build_prompt_document_controller::build_prompt_document_controller;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
 use crate::build_prompt_document_controller_params::BuildPromptDocumentControllerParams;
+use crate::document_error_collection::DocumentErrorCollection;
 use crate::prompt_controller::PromptController;
-use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
 use crate::prompt_controller_collection::PromptControllerCollection;
+use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
 
 pub async fn build_prompt_document_controller_collection(
     BuildPromptControllerCollectionParams {

@@ -35,6 +35,7 @@ poet_content = { workspace = true }
 poet_filesystem = { workspace = true }
 poet_mcp = { workspace = true }
 poet_mdx = { workspace = true }
+poet_search = { workspace = true }
 rayon = { workspace = true }
 rhai = { workspace = true }
 rhai_components = { workspace = true }
@@ -44,11 +45,11 @@ serde_json = { workspace = true }
 sitemap-rs = { workspace = true }
 slug = { workspace = true }
 syntect = { workspace = true }
-tantivy = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 toml = { workspace = true }
 
 [dev-dependencies]
+poet_search_tests = { workspace = true }
 tempfile = { workspace = true }

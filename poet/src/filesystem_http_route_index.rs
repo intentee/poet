@@ -1,7 +1,6 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
-
 use poet_filesystem::file_entry::FileEntry;
 use poet_filesystem::memory::Memory;
 
@@ -51,8 +50,9 @@ impl FilesystemHttpRouteIndex {
 
 #[cfg(test)]
 mod tests {
-    use poet_filesystem::file_entry_stub::FileEntryStub;
     use std::path::PathBuf;
+
+    use poet_filesystem::file_entry_stub::FileEntryStub;
 
     use super::*;
 

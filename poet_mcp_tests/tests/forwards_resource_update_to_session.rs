@@ -1,10 +1,10 @@
 use std::sync::Arc;
-use tokio::join;
 
 use poet_mcp::resource_update_forwarder::ResourceUpdateForwarder;
 use poet_mcp::server_to_client_notification::ServerToClientNotification;
 use poet_mcp::session_manager::SessionManager;
 use poet_mcp::session_with_notifications_receiver::SessionWithNotificationsReceiver;
+use tokio::join;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 

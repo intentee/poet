@@ -9,9 +9,11 @@ members = [
     "poet_filesystem",
     "poet_filesystem_tests",
     "poet_mcp",
+    "poet_mcp_tests",
     "poet_mdx",
     "poet_mdx_tests",
-    "poet_mcp_tests",
+    "poet_search",
+    "poet_search_tests",
     "rhai_components",
     "rhai_components_tests",
 ]
@@ -90,9 +92,12 @@ notify-debouncer-full = "0.7"
 petgraph = { version = "0.8", features = ["serde", "serde_derive"] }
 poet_assets = { path = "poet_assets", version = "0.8" }
 poet_content = { path = "poet_content", version = "0.8" }
+poet_content_tests = { path = "poet_content_tests" }
 poet_filesystem = { path = "poet_filesystem", version = "0.8" }
 poet_mcp = { path = "poet_mcp", version = "0.8" }
 poet_mdx = { path = "poet_mdx", version = "0.8" }
+poet_search = { path = "poet_search", version = "0.8" }
+poet_search_tests = { path = "poet_search_tests" }
 rayon = "1.12"
 rhai = { version = "1.26", features = ["internals", "metadata", "no_closure", "serde", "serde_json", "sync"] }
 rhai_components = { path = "rhai_components", version = "0.6" }

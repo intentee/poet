@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use tokio::select;
 
+use tokio::select;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 

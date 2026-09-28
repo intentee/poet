@@ -89,11 +89,13 @@ freedesktop_entry_parser = "2.0"
 futures-core = "0.3"
 futures-util = "0.3"
 http = "1.5"
+httparse = "1.10"
 indoc = "2.0"
 log = "0.4"
 markdown = "1.0"
 mime = "0.3"
 mime_guess = "2.0"
+nix = { version = "0.31", features = ["signal"] }
 nom = "8.0"
 notify-debouncer-full = "0.7"
 petgraph = { version = "0.8", features = ["serde", "serde_derive"] }
@@ -125,5 +127,6 @@ tempfile = "3.27"
 tokio = { version = "1.53", features = ["full"] }
 tokio-util = "0.7"
 toml = "1.1"
+tungstenite = "0.30"
 url = "2.5"
 uuid = { version = "1.26", features = ["rng", "serde", "v4"] }

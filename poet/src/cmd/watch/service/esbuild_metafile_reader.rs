@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
-use log::error;
 use poet_assets::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
-use poet_error_chain::error_chain::ErrorChain;
 use poet_filesystem::storage::Storage;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
@@ -12,6 +10,7 @@ use tokio_util::sync::CancellationToken;
 use crate::cmd::service::Service;
 use crate::holder::Holder;
 use crate::poet_error::PoetError;
+use crate::report_poet_error::report_poet_error;
 
 pub struct EsbuildMetafileReader {
     pub ctrlc_notifier: CancellationToken,
@@ -27,12 +26,7 @@ impl EsbuildMetafileReader {
             Err(asset_error) => {
                 self.esbuild_metafile_holder.reset();
 
-                error!(
-                    "{}",
-                    ErrorChain {
-                        error: &PoetError::ReadEsbuildMetafile(asset_error)
-                    }
-                );
+                report_poet_error(PoetError::ReadEsbuildMetafile(asset_error));
             }
         }
     }

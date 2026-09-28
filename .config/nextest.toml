@@ -1,2 +1,6 @@
 [profile.default]
 slow-timeout = { period = "100ms", terminate-after = 3 }
+
+[[profile.default.overrides]]
+filter = 'binary_id(poet::processes)'
+slow-timeout = { period = "1s", terminate-after = 3 }

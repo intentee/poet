@@ -123,7 +123,16 @@ impl Handler for Serve {
         .await
         .map_err(PoetError::BuildProject)?
         .into();
-        let prompt_document_controller_collection = build_prompt_document_controller_collection(
+        let app_data = Data::new(AppData {
+            filesystem_http_route_index: Arc::new(FilesystemHttpRouteIndex::from_generated_files(
+                &build_project_result.generated_files,
+            )),
+        });
+        let build_project_result_holder: Holder<BuildProjectResult> = Holder::default();
+        let prompt_document_controller_collection_holder = Holder::default();
+        let search_index_reader_holder = Holder::default();
+
+        build_prompt_document_controller_collection(
             BuildPromptDocumentControllerCollectionParams {
                 rendering_context: PromptRenderingContext {
                     asset_path_renderer,
@@ -135,24 +144,17 @@ impl Handler for Serve {
             },
         )
         .await
-        .map_err(PoetError::BuildPrompts)?;
-        let app_data = Data::new(AppData {
-            filesystem_http_route_index: Arc::new(FilesystemHttpRouteIndex::from_memory(
-                &build_project_result.memory_filesystem,
-            )?),
-        });
-        let search_index_reader =
+        .map_err(PoetError::BuildPrompts)
+        .and_then(|prompt_document_controller_collection| {
+            prompt_document_controller_collection_holder
+                .set(Arc::new(prompt_document_controller_collection));
+
             SearchIndex::create_in_memory(build_project_result.content_document_sources.clone())
                 .index()
-                .map_err(PoetError::IndexSearch)?;
-        let build_project_result_holder: Holder<BuildProjectResult> = Holder::default();
-        let prompt_document_controller_collection_holder = Holder::default();
-        let search_index_reader_holder = Holder::default();
-
+                .map_err(PoetError::IndexSearch)
+        })
+        .map(|search_index_reader| search_index_reader_holder.set(Arc::new(search_index_reader)))?;
         build_project_result_holder.set(build_project_result);
-        prompt_document_controller_collection_holder
-            .set(Arc::new(prompt_document_controller_collection));
-        search_index_reader_holder.set(Arc::new(search_index_reader));
 
         let assets_directory = self.assets_directory();
         let mcp_server = McpServerFactory {

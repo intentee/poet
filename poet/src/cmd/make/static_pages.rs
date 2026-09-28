@@ -10,6 +10,8 @@ use poet_content::build_authors::build_authors;
 use poet_content::build_project::build_project;
 use poet_content::build_project_params::BuildProjectParams;
 use poet_content::build_project_result_stub::BuildProjectResultStub;
+use poet_content::generated_file::GeneratedFile;
+use poet_filesystem::filesystem::Filesystem as _;
 use poet_filesystem::storage::Storage;
 
 use crate::cmd::builds_project::BuildsProject;
@@ -53,7 +55,7 @@ impl Handler for StaticPages {
 
         let BuildProjectResultStub {
             esbuild_metafile,
-            memory_filesystem,
+            generated_files,
             ..
         } = build_project(BuildProjectParams {
             asset_path_renderer: AssetPathRenderer {
@@ -74,12 +76,21 @@ impl Handler for StaticPages {
 
         info!("Saving generated files in output directory...");
 
-        memory_filesystem
-            .copy_all_files_to(&Storage {
-                base_directory: self.output_directory.clone(),
-            })
-            .await
-            .map_err(PoetError::WriteGeneratedFiles)?;
+        let output_filesystem = Storage {
+            base_directory: self.output_directory.clone(),
+        };
+
+        for GeneratedFile {
+            contents,
+            relative_path,
+            ..
+        } in generated_files.iter()
+        {
+            output_filesystem
+                .set_file_contents(relative_path, contents)
+                .await
+                .map_err(PoetError::WriteGeneratedFiles)?;
+        }
 
         info!("Copying assets into output directory...");
 

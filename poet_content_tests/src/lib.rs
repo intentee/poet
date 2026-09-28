@@ -11,5 +11,6 @@ pub mod fixture_reference;
 pub mod fixture_site_context;
 pub mod fixture_syntax_set;
 pub mod fixture_template_renderer;
-pub mod generated_file;
+pub mod generated_file_contents;
+pub mod layout_plain_shortcode;
 pub mod poet_content_tests_error;

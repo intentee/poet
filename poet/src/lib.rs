@@ -11,6 +11,7 @@ pub mod mcp_resource_provider_content_documents;
 pub mod mcp_server_factory;
 pub mod poet_error;
 pub mod register_poet_rhai_types;
+pub mod report_poet_error;
 pub mod search_tool;
 pub mod search_tool_provider_input;
 pub mod search_tool_provider_output;

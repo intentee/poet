@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use log::debug;
-use log::error;
 use poet_content::build_project_result::BuildProjectResult;
-use poet_error_chain::error_chain::ErrorChain;
 use tokio_util::sync::CancellationToken;
 
 use crate::cmd::service::Service;
@@ -23,13 +21,10 @@ impl FilesystemHttpRouteIndexBuilder {
     fn build_filesystem_http_route_index(&self) {
         match self.build_project_result_holder.get() {
             HolderState::Ready(BuildProjectResult {
-                memory_filesystem, ..
-            }) => match FilesystemHttpRouteIndex::from_memory(&memory_filesystem) {
-                Ok(filesystem_http_route_index) => self
-                    .filesystem_http_route_index_holder
-                    .set(Arc::new(filesystem_http_route_index)),
-                Err(poet_error) => error!("{}", ErrorChain { error: &poet_error }),
-            },
+                generated_files, ..
+            }) => self.filesystem_http_route_index_holder.set(Arc::new(
+                FilesystemHttpRouteIndex::from_generated_files(&generated_files),
+            )),
             HolderState::NotReady => debug!("Build project results not ready yet. Skipping build"),
         }
     }
@@ -38,11 +33,13 @@ impl FilesystemHttpRouteIndexBuilder {
 #[async_trait]
 impl Service for FilesystemHttpRouteIndexBuilder {
     async fn run(&self) -> Result<(), PoetError> {
+        let mut build_project_result_updates = self.build_project_result_holder.subscribe();
+
         loop {
             self.build_filesystem_http_route_index();
 
             tokio::select! {
-                () = self.build_project_result_holder.update_notifier.notified() => {},
+                Ok(()) = build_project_result_updates.changed() => {},
                 () = self.ctrlc_notifier.cancelled() => break,
             }
         }

@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use log::error;
-use poet_error_chain::error_chain::ErrorChain;
 use poet_filesystem::storage::Storage;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use tokio::sync::Notify;
@@ -12,6 +10,7 @@ use crate::cmd::service::Service;
 use crate::compile_poet_shortcodes::compile_poet_shortcodes;
 use crate::holder::Holder;
 use crate::poet_error::PoetError;
+use crate::report_poet_error::report_poet_error;
 
 pub struct ShortcodesCompiler {
     pub ctrlc_notifier: CancellationToken,
@@ -22,17 +21,14 @@ pub struct ShortcodesCompiler {
 
 impl ShortcodesCompiler {
     async fn compile_shortcodes(&self) {
-        match compile_poet_shortcodes(&self.source_filesystem).await {
-            Ok(rhai_template_renderer) => self
-                .rhai_template_renderer_holder
-                .set(rhai_template_renderer),
-            Err(mdx_error) => error!(
-                "{}",
-                ErrorChain {
-                    error: &PoetError::CompileShortcodes(mdx_error)
-                }
-            ),
-        }
+        compile_poet_shortcodes(&self.source_filesystem)
+            .await
+            .map(|rhai_template_renderer| {
+                self.rhai_template_renderer_holder
+                    .set(rhai_template_renderer);
+            })
+            .map_err(PoetError::CompileShortcodes)
+            .unwrap_or_else(report_poet_error);
     }
 }
 

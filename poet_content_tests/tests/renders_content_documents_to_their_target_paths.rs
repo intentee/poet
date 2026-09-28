@@ -1,5 +1,5 @@
 use poet_content_tests::fixture_project::FixtureProject;
-use poet_content_tests::generated_file::generated_file;
+use poet_content_tests::generated_file_contents::generated_file_contents;
 use poet_content_tests::poet_content_tests_error::PoetContentTestsError;
 
 #[tokio::test]
@@ -28,11 +28,11 @@ async fn renders_content_documents_to_their_target_paths() -> Result<(), PoetCon
     let build_project_result_stub = fixture_project.build(false).await?;
 
     assert_eq!(
-        generated_file(&build_project_result_stub, "index.html").await?,
+        generated_file_contents(&build_project_result_stub, "index.html")?,
         "\n    <html><p>Home body.</p></html>\n  "
     );
     assert_eq!(
-        generated_file(&build_project_result_stub, "docs/page/index.html").await?,
+        generated_file_contents(&build_project_result_stub, "docs/page/index.html")?,
         "\n    <html><p>Page body.</p></html>\n  "
     );
 

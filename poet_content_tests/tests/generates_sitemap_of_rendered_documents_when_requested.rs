@@ -1,5 +1,5 @@
 use poet_content_tests::fixture_project::FixtureProject;
-use poet_content_tests::generated_file::generated_file;
+use poet_content_tests::generated_file_contents::generated_file_contents;
 use poet_content_tests::poet_content_tests_error::PoetContentTestsError;
 
 #[tokio::test]
@@ -27,7 +27,7 @@ async fn generates_sitemap_of_rendered_documents_when_requested()
         .await?;
 
     let build_project_result_stub = fixture_project.build(true).await?;
-    let sitemap = generated_file(&build_project_result_stub, "sitemap.xml").await?;
+    let sitemap = generated_file_contents(&build_project_result_stub, "sitemap.xml")?;
 
     assert!(sitemap.contains("<loc>/</loc>"));
     assert!(!sitemap.contains("<loc>/draft/</loc>"));

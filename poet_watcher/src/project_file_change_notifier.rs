@@ -20,7 +20,7 @@ impl DebounceEventHandler for ProjectFileChangeNotifier {
 
                     self.notifications
                         .notifier_of(project_file_kind)
-                        .notify_waiters();
+                        .notify_one();
                 }
             }
             Err(errors) => {

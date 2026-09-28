@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use log::info;
@@ -19,6 +19,8 @@ use crate::content_error::ContentError;
 use crate::content_site_context::ContentSiteContext;
 use crate::create_sitemap::create_sitemap;
 use crate::default_syntax_set::DEFAULT_SYNTAX_SET;
+use crate::generated_file::GeneratedFile;
+use crate::generated_file_kind::GeneratedFileKind;
 use crate::load_content_document_sources::load_content_document_sources;
 use crate::sitemap_file_path::SITEMAP_FILE_PATH;
 
@@ -54,7 +56,7 @@ pub async fn build_project<TFilesystem: Filesystem>(
         },
         is_watching,
     };
-    let memory_filesystem = ContentDocumentRenderer {
+    let mut generated_files = ContentDocumentRenderer {
         asset_path_renderer: &asset_path_renderer,
         esbuild_metafile: &esbuild_metafile,
         rhai_template_renderer: &rhai_template_renderer,
@@ -87,15 +89,18 @@ pub async fn build_project<TFilesystem: Filesystem>(
         })
         .transpose()
         .map(|sitemap| {
-            if let Some(sitemap) = sitemap {
-                memory_filesystem.set_file_contents_sync(Path::new(SITEMAP_FILE_PATH), &sitemap);
-            }
+            generated_files.extend(sitemap.map(|sitemap_contents| GeneratedFile {
+                contents: sitemap_contents,
+                kind: GeneratedFileKind::Sitemap,
+                relative_path: PathBuf::from(SITEMAP_FILE_PATH),
+            }));
 
             BuildProjectResultStub {
                 content_document_linker: site_context.content_document_linker,
                 content_document_sources: Arc::new(rendered_content_document_sources),
                 esbuild_metafile,
-                memory_filesystem: Arc::new(memory_filesystem),
+                generated_files: Arc::new(generated_files),
+                rhai_template_renderer,
             }
         })
 }

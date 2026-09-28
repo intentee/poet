@@ -1,5 +1,5 @@
 use poet_content_tests::fixture_project::FixtureProject;
-use poet_content_tests::generated_file::generated_file;
+use poet_content_tests::generated_file_contents::generated_file_contents;
 use poet_content_tests::poet_content_tests_error::PoetContentTestsError;
 
 #[tokio::test]
@@ -25,7 +25,7 @@ async fn renders_mdx_component_and_expression() -> Result<(), PoetContentTestsEr
         )
         .await?;
 
-    let home = generated_file(&fixture_project.build(false).await?, "index.html").await?;
+    let home = generated_file_contents(&fixture_project.build(false).await?, "index.html")?;
 
     assert!(home.contains("<p>Value 42</p>"));
     assert!(home.contains("<nav><p>inner</p></nav>"));

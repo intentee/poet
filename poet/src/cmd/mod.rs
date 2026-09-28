@@ -1,4 +1,5 @@
 pub mod builds_project;
+pub mod cancel_on_termination_signal;
 pub mod handler;
 pub mod make;
 pub mod respond_with_generated_page;

@@ -18,6 +18,7 @@ use poet_watcher::watch_project_files::watch_project_files;
 use tokio_util::sync::CancellationToken;
 
 use crate::cmd::builds_project::BuildsProject;
+use crate::cmd::cancel_on_termination_signal::cancel_on_termination_signal;
 use crate::cmd::handler::Handler;
 use crate::cmd::service_manager::ServiceManager;
 use crate::cmd::value_parser::parse_socket_addr::parse_socket_addr;
@@ -56,13 +57,6 @@ impl BuildsProject for Watch {
 impl Handler for Watch {
     async fn handle(&self) -> Result<(), PoetError> {
         let ctrlc_notifier = CancellationToken::new();
-        let ctrlc_notifier_handler = ctrlc_notifier.clone();
-
-        ctrlc::set_handler(move || {
-            ctrlc_notifier_handler.cancel();
-        })
-        .map_err(PoetError::SetCtrlcHandler)?;
-
         let ProjectFileWatcher {
             debouncer: _debouncer,
             notifications:
@@ -73,7 +67,11 @@ impl Handler for Watch {
                     on_prompt_file_changed,
                     on_shortcode_file_changed,
                 },
-        } = watch_project_files(&self.source_directory)?;
+        } = watch_project_files(&self.source_directory)
+            .map_err(PoetError::WatchProjectFiles)
+            .and_then(|project_file_watcher| {
+                cancel_on_termination_signal(ctrlc_notifier.clone()).map(|()| project_file_watcher)
+            })?;
 
         let generated_page_base_path = format!("http://{}/", self.address);
         let asset_path_renderer = AssetPathRenderer {
@@ -127,7 +125,7 @@ impl Handler for Watch {
             asset_path_renderer: asset_path_renderer.clone(),
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
-            esbuild_metafile_holder: esbuild_metafile_holder.clone(),
+            esbuild_metafile_holder,
             generate_sitemap: self.sitemap,
             generated_page_base_path,
             on_author_file_changed,
@@ -140,10 +138,8 @@ impl Handler for Watch {
             asset_path_renderer,
             build_project_result_holder: build_project_result_holder.clone(),
             ctrlc_notifier: ctrlc_notifier.clone(),
-            esbuild_metafile_holder,
             on_prompt_file_changed,
             prompt_document_controller_collection_holder,
-            rhai_template_renderer_holder: rhai_template_renderer_holder.clone(),
             source_filesystem: source_filesystem.clone(),
         }));
 

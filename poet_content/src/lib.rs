@@ -35,6 +35,8 @@ pub mod date_parse_attempt;
 pub mod default_syntax_set;
 pub mod deserialize_flexible_datetime;
 pub mod deserialize_rhai_map;
+pub mod generated_file;
+pub mod generated_file_kind;
 pub mod generated_page_file_name;
 pub mod load_content_document_sources;
 pub mod mdast_children_to_heading_id;

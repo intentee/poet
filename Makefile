@@ -83,7 +83,7 @@ coverage: node_modules
 	cargo llvm-cov report
 	npx rust-coverage-check target/llvm-cov.json \
 		--workspace-root $(CURDIR) \
-		--gated poet=80 \
+		--gated poet=100 \
 		--gated poet_app_dir=100 \
 		--gated poet_assets=100 \
 		--gated poet_content=100 \
@@ -108,6 +108,10 @@ coverage-report:
 .PHONY: fmt
 fmt: node_modules
 	./jarmuz-fmt.mjs
+
+.PHONY: publish
+publish:
+	cargo publish --workspace
 
 .PHONY: test
 test:

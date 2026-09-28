@@ -2,15 +2,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+use futures_util::TryFutureExt as _;
 use log::debug;
-use log::error;
 use log::info;
 use poet_assets::asset_path_renderer::AssetPathRenderer;
 use poet_content::build_authors::build_authors;
 use poet_content::build_project::build_project;
 use poet_content::build_project_params::BuildProjectParams;
 use poet_content::build_project_result::BuildProjectResult;
-use poet_error_chain::error_chain::ErrorChain;
 use poet_filesystem::storage::Storage;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use tokio::sync::Notify;
@@ -20,6 +19,7 @@ use crate::cmd::service::Service;
 use crate::holder::Holder;
 use crate::holder_state::HolderState;
 use crate::poet_error::PoetError;
+use crate::report_poet_error::report_poet_error;
 
 pub struct ProjectBuilder {
     pub asset_path_renderer: AssetPathRenderer,
@@ -40,53 +40,46 @@ impl ProjectBuilder {
         esbuild_metafile: Arc<EsbuildMetafile>,
         rhai_template_renderer: RhaiTemplateRenderer,
     ) -> Result<BuildProjectResult, PoetError> {
-        let authors = build_authors(self.source_filesystem.as_ref())
+        build_authors(self.source_filesystem.as_ref())
+            .map_err(PoetError::BuildAuthors)
+            .and_then(|authors| {
+                build_project(BuildProjectParams {
+                    asset_path_renderer: self.asset_path_renderer.clone(),
+                    authors,
+                    esbuild_metafile,
+                    generate_sitemap: self.generate_sitemap,
+                    generated_page_base_path: self.generated_page_base_path.clone(),
+                    is_watching: true,
+                    rhai_template_renderer,
+                    source_filesystem: self.source_filesystem.as_ref(),
+                })
+                .map_err(PoetError::BuildProject)
+            })
+            .map_ok(
+                |build_project_result_stub| match self.build_project_result_holder.get() {
+                    HolderState::Ready(previous_build_project_result) => build_project_result_stub
+                        .changed_compared_to(&previous_build_project_result),
+                    HolderState::NotReady => build_project_result_stub.into(),
+                },
+            )
             .await
-            .map_err(PoetError::BuildAuthors)?;
-        let build_project_result_stub = build_project(BuildProjectParams {
-            asset_path_renderer: self.asset_path_renderer.clone(),
-            authors,
-            esbuild_metafile,
-            generate_sitemap: self.generate_sitemap,
-            generated_page_base_path: self.generated_page_base_path.clone(),
-            is_watching: true,
-            rhai_template_renderer,
-            source_filesystem: self.source_filesystem.as_ref(),
-        })
-        .await
-        .map_err(PoetError::BuildProject)?;
-
-        Ok(match self.build_project_result_holder.get() {
-            HolderState::Ready(previous_build_project_result) => {
-                build_project_result_stub.changed_compared_to(&previous_build_project_result)
-            }
-            HolderState::NotReady => build_project_result_stub.into(),
-        })
     }
 
     async fn rebuild_project(&self) {
-        let HolderState::Ready(esbuild_metafile) = self.esbuild_metafile_holder.get() else {
-            debug!("Esbuild metafile is not ready yet. Skipping build");
+        match (
+            self.esbuild_metafile_holder.get(),
+            self.rhai_template_renderer_holder.get(),
+        ) {
+            (HolderState::Ready(esbuild_metafile), HolderState::Ready(rhai_template_renderer)) => {
+                self.build_project_with(esbuild_metafile, rhai_template_renderer)
+                    .await
+                    .map_or_else(report_poet_error, |build_project_result| {
+                        self.build_project_result_holder.set(build_project_result);
 
-            return;
-        };
-        let HolderState::Ready(rhai_template_renderer) = self.rhai_template_renderer_holder.get()
-        else {
-            debug!("Rhai components are not compiled yet. Skipping build");
-
-            return;
-        };
-
-        match self
-            .build_project_with(esbuild_metafile, rhai_template_renderer)
-            .await
-        {
-            Ok(build_project_result) => {
-                self.build_project_result_holder.set(build_project_result);
-
-                info!("Build successful");
+                        info!("Build successful");
+                    });
             }
-            Err(poet_error) => error!("{}", ErrorChain { error: &poet_error }),
+            _ => debug!("Esbuild metafile or shortcodes are not ready yet. Skipping build"),
         }
     }
 }
@@ -94,14 +87,17 @@ impl ProjectBuilder {
 #[async_trait]
 impl Service for ProjectBuilder {
     async fn run(&self) -> Result<(), PoetError> {
+        let mut esbuild_metafile_updates = self.esbuild_metafile_holder.subscribe();
+        let mut rhai_template_renderer_updates = self.rhai_template_renderer_holder.subscribe();
+
         loop {
             self.rebuild_project().await;
 
             tokio::select! {
-                () = self.esbuild_metafile_holder.update_notifier.notified() => {},
+                Ok(()) = esbuild_metafile_updates.changed() => {},
                 () = self.on_author_file_changed.notified() => {},
                 () = self.on_content_file_changed.notified() => {},
-                () = self.rhai_template_renderer_holder.update_notifier.notified() => {},
+                Ok(()) = rhai_template_renderer_updates.changed() => {},
                 () = self.ctrlc_notifier.cancelled() => break,
             }
         }

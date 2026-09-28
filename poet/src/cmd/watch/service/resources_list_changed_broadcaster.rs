@@ -31,9 +31,11 @@ impl ResourcesListChangedBroadcaster {
 #[async_trait]
 impl Service for ResourcesListChangedBroadcaster {
     async fn run(&self) -> Result<(), PoetError> {
+        let mut build_project_result_updates = self.build_project_result_holder.subscribe();
+
         loop {
             tokio::select! {
-                () = self.build_project_result_holder.update_notifier.notified() => {
+                Ok(()) = build_project_result_updates.changed() => {
                     self.broadcast_resources_list_changed().await;
                 }
                 () = self.ctrlc_notifier.cancelled() => break,

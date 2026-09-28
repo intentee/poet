@@ -115,6 +115,7 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
         resource_reference: ResourceReference,
     ) -> Arc<Notify> {
         let build_project_result_holder = self.build_project_result_holder.clone();
+        let mut build_project_result_updates = self.build_project_result_holder.subscribe();
         let resource_update_notifier: Arc<Notify> = Arc::default();
         let notified_resource_update_notifier = resource_update_notifier.clone();
 
@@ -122,11 +123,11 @@ impl ResourceProvider for McpResourceProviderContentDocuments {
             loop {
                 tokio::select! {
                     () = cancellation_token.cancelled() => break,
-                    () = build_project_result_holder.update_notifier.notified() => {
+                    Ok(()) = build_project_result_updates.changed() => {
                         if let HolderState::Ready(build_project_result) = build_project_result_holder.get()
                             && Self::is_updated_by(&resource_reference, &build_project_result)
                         {
-                            notified_resource_update_notifier.notify_waiters();
+                            notified_resource_update_notifier.notify_one();
                         }
                     }
                 }

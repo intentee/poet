@@ -10,7 +10,11 @@ version.workspace = true
 
 [[test]]
 name = "integration"
-path = "tests/main.rs"
+path = "tests/integration/main.rs"
+
+[[test]]
+name = "processes"
+path = "tests/processes/main.rs"
 
 [dependencies]
 actix-files = { workspace = true }
@@ -46,10 +50,15 @@ tokio = { workspace = true }
 tokio-util = { workspace = true }
 
 [dev-dependencies]
+futures-util = { workspace = true }
+httparse = { workspace = true }
+nix = { workspace = true }
 poet_content_tests = { workspace = true }
 poet_prompt_tests = { workspace = true }
 poet_search_tests = { workspace = true }
 tempfile = { workspace = true }
+tokio-util = { workspace = true }
+tungstenite = { workspace = true }
 
 [lints]
 workspace = true

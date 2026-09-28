@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use log::debug;
-use log::error;
 use poet_content::build_project_result::BuildProjectResult;
-use poet_error_chain::error_chain::ErrorChain;
 use poet_search::search_index::SearchIndex;
 use poet_search::search_index_reader::SearchIndexReader;
 use tokio_util::sync::CancellationToken;
@@ -13,6 +11,7 @@ use crate::cmd::service::Service;
 use crate::holder::Holder;
 use crate::holder_state::HolderState;
 use crate::poet_error::PoetError;
+use crate::report_poet_error::report_poet_error;
 
 pub struct SearchIndexBuilder {
     pub build_project_result_holder: Holder<BuildProjectResult>,
@@ -32,28 +31,27 @@ impl SearchIndexBuilder {
             return;
         };
 
-        match SearchIndex::create_in_memory(content_document_sources).index() {
-            Ok(search_index_reader) => self
-                .search_index_reader_holder
-                .set(Arc::new(search_index_reader)),
-            Err(search_error) => error!(
-                "{}",
-                ErrorChain {
-                    error: &PoetError::IndexSearch(search_error)
-                }
-            ),
-        }
+        SearchIndex::create_in_memory(content_document_sources)
+            .index()
+            .map(|search_index_reader| {
+                self.search_index_reader_holder
+                    .set(Arc::new(search_index_reader));
+            })
+            .map_err(PoetError::IndexSearch)
+            .unwrap_or_else(report_poet_error);
     }
 }
 
 #[async_trait]
 impl Service for SearchIndexBuilder {
     async fn run(&self) -> Result<(), PoetError> {
+        let mut build_project_result_updates = self.build_project_result_holder.subscribe();
+
         loop {
             self.build_search_index();
 
             tokio::select! {
-                () = self.build_project_result_holder.update_notifier.notified() => {},
+                Ok(()) = build_project_result_updates.changed() => {},
                 () = self.ctrlc_notifier.cancelled() => break,
             }
         }

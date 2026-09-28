@@ -1,0 +1,22 @@
+#[path = "../support/fixture_site.rs"]
+mod fixture_site;
+mod free_socket_address;
+mod http_get;
+mod http_response;
+mod poet_process_tests_error;
+mod poet_server_run;
+mod read_live_reload_until;
+mod run_poet_server;
+mod run_poet_to_exit;
+mod serve_serves_generated_pages_until_interrupted;
+mod spawn_poet;
+mod wait_for_page;
+mod watch_ends_live_reload_of_unknown_page;
+mod watch_exits_when_address_is_taken;
+mod watch_exits_when_assets_path_is_a_file;
+mod watch_live_reloads_page_after_content_change;
+mod watch_recovers_after_fixing_invalid_content;
+mod watch_recovers_after_fixing_invalid_esbuild_metafile;
+mod watch_recovers_after_fixing_invalid_shortcode;
+mod watch_rejects_live_reload_without_websocket_handshake;
+mod watch_serves_generated_pages_until_interrupted;

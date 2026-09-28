@@ -20,6 +20,8 @@ pub enum PoetContentTestsError {
     Filesystem(#[from] FilesystemError),
     #[error("unable to load syntax definitions")]
     LoadSyntax(#[from] LoadingError),
+    #[error("generated file '{relative_path}' does not exist")]
+    MissingGeneratedFile { relative_path: String },
     #[error("fixture document '{basename}' does not exist")]
     MissingFixtureDocument { basename: String },
     #[error("MDX operation failed")]

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use poet_assets::asset_manager::AssetManager;
 use poet_assets::asset_path_renderer::AssetPathRenderer;
-use poet_filesystem::memory::Memory;
 use poet_mdx::document_error_collection::DocumentErrorCollection;
 use rayon::iter::IntoParallelRefIterator as _;
 use rayon::iter::ParallelIterator as _;
@@ -19,6 +18,8 @@ use crate::content_document_evaluator::ContentDocumentEvaluator;
 use crate::content_document_source::ContentDocumentSource;
 use crate::content_error::ContentError;
 use crate::content_site_context::ContentSiteContext;
+use crate::generated_file::GeneratedFile;
+use crate::generated_file_kind::GeneratedFileKind;
 use crate::table_of_contents_state::TableOfContentsState;
 
 pub struct ContentDocumentRenderer<'renderer> {
@@ -71,14 +72,12 @@ impl ContentDocumentRenderer<'_> {
     pub fn render_pages(
         &self,
         content_document_sources: &[ContentDocumentSource],
-    ) -> Result<Memory, ContentError> {
-        let memory_filesystem = Memory::default();
+    ) -> Result<Vec<GeneratedFile>, ContentError> {
         let document_errors = DocumentErrorCollection::default();
-
-        content_document_sources
+        let generated_pages: Vec<GeneratedFile> = content_document_sources
             .par_iter()
             .filter(|content_document_source| content_document_source.reference.front_matter.render)
-            .for_each(|content_document_source| {
+            .filter_map(|content_document_source| {
                 let basename = content_document_source.reference.basename();
                 let AuthorResolveResult {
                     found_authors,
@@ -99,24 +98,28 @@ impl ContentDocumentRenderer<'_> {
                         );
                     }
 
-                    return;
+                    return None;
                 }
 
                 match self.render_page(content_document_source, found_authors) {
-                    Ok(page) => memory_filesystem.set_file_contents_sync(
-                        &content_document_source
+                    Ok(page) => Some(GeneratedFile {
+                        contents: page,
+                        kind: GeneratedFileKind::Page,
+                        relative_path: content_document_source
                             .reference
                             .target_file_relative_path(),
-                        &page,
-                    ),
+                    }),
                     Err(render_error) => {
                         document_errors.register_error(basename.to_string(), render_error);
+
+                        None
                     }
                 }
-            });
+            })
+            .collect();
 
         if document_errors.is_empty() {
-            Ok(memory_filesystem)
+            Ok(generated_pages)
         } else {
             Err(ContentError::InvalidDocuments(document_errors))
         }

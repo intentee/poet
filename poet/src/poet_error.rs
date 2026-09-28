@@ -2,6 +2,7 @@ use std::io;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+use actix_ws::Closed;
 use poet_app_dir::app_dir_error::AppDirError;
 use poet_assets::asset_error::AssetError;
 use poet_content::content_error::ContentError;
@@ -31,6 +32,8 @@ pub enum PoetError {
     BuildProjectResultNotReady,
     #[error("unable to build prompts")]
     BuildPrompts(#[source] PromptError),
+    #[error("unable to close the live reload session")]
+    CloseLiveReloadSession(#[source] Closed),
     #[error("unable to compile shortcodes")]
     CompileShortcodes(#[source] MdxError),
     #[error("unable to copy assets into the output directory")]
@@ -71,16 +74,16 @@ pub enum PoetError {
     },
     #[error("unable to run the HTTP server")]
     RunHttpServer(#[source] io::Error),
+    #[error("unable to send the reloaded page to the live reload session")]
+    SendLiveReloadPage(#[source] Closed),
     #[error("service task failed")]
     ServiceTask(#[source] JoinError),
     #[error("unable to set the Ctrl-C handler")]
     SetCtrlcHandler(#[source] ctrlc::Error),
     #[error("socket address '{address}' does not resolve to any address")]
     SocketAddressUnresolved { address: String },
-    #[error("unexpected generated file '{}'", relative_path.display())]
-    UnexpectedGeneratedFile { relative_path: PathBuf },
     #[error("unable to watch project files")]
-    WatchProjectFiles(#[from] WatcherError),
+    WatchProjectFiles(#[source] WatcherError),
     #[error("unable to write generated files into the output directory")]
     WriteGeneratedFiles(#[source] FilesystemError),
 }

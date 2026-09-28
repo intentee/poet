@@ -3,6 +3,7 @@ mod does_not_notify_about_watch_errors;
 mod ignores_access_events;
 mod ignores_editor_temporary_files;
 mod ignores_files_outside_project_directories;
+mod keeps_notification_sent_while_consumer_was_busy;
 mod notifies_about_every_changed_file_kind;
 mod rejects_file_in_place_of_watched_directory;
 mod rejects_missing_project_directory;

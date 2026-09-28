@@ -8,18 +8,22 @@ use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+use poet_filesystem::filesystem::Filesystem;
+use poet_filesystem::storage::Storage;
 use tokio::fs;
 
 use crate::app_dir_desktop_entry::AppDirDesktopEntry;
 use crate::assert_valid_desktop_entry_string::assert_valid_desktop_entry_string;
+use crate::authors_source_directory::AUTHORS_SOURCE_DIRECTORY;
 use crate::cmd::builds_project::BuildsProject;
 use crate::cmd::handler::Handler;
 use crate::cmd::value_parser::validate_is_directory;
 use crate::cmd::value_parser::validate_is_directory_or_create;
+use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
 use crate::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_to;
-use crate::filesystem::Filesystem;
-use crate::filesystem::storage::Storage;
+use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
 use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
+use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
 const ICON: &str = r#"<svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="10" height="10" fill="black"/>
@@ -122,12 +126,20 @@ impl Handler for AppDir {
 
         info!("Copying project files to AppDir...");
 
-        app_dir_filesystem
-            .copy_project_files_from(source_filesystem.clone())
-            .await?;
+        for source_directory in [
+            AUTHORS_SOURCE_DIRECTORY,
+            CONTENT_SOURCE_DIRECTORY,
+            PROMPTS_SOURCE_DIRECTORY,
+            SHORTCODES_SOURCE_DIRECTORY,
+        ] {
+            app_dir_filesystem
+                .copy_source_files_from(source_filesystem.as_ref(), &source_directory)
+                .await?;
+        }
+
         app_dir_filesystem
             .copy_file_from(
-                source_filesystem.clone(),
+                source_filesystem.as_ref(),
                 &PathBuf::from("esbuild-meta.json"),
             )
             .await?;

@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use poet_filesystem::file_entry::FileEntry;
+use poet_filesystem::filesystem_error::FilesystemError;
 use rhai::Engine;
 use rhai::module_resolvers::FileModuleResolver;
 use rhai_components::component_syntax::component_reference::ComponentReference;
@@ -20,36 +22,34 @@ use crate::content_document_front_matter::ContentDocumentFrontMatter;
 use crate::content_document_hierarchy::ContentDocumentHierarchy;
 use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_tree_node::ContentDocumentTreeNode;
-use crate::filesystem::file_entry::FileEntry;
 use crate::prompt_document_component_context::PromptDocumentComponentContext;
 use crate::prompt_document_front_matter::PromptDocumentFrontMatter;
 use crate::prompt_document_front_matter::argument_with_input::ArgumentWithInput;
 use crate::rhai_helpers::render_hierarchy;
+use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 use crate::table_of_contents::TableOfContents;
 use crate::table_of_contents::heading::Heading;
 
 pub struct RhaiTemplateRendererFactory {
     base_directory: PathBuf,
     component_registry: Arc<ComponentRegistry>,
-    shortcodes_subdirectory: PathBuf,
 }
 
 impl RhaiTemplateRendererFactory {
-    pub fn new(base_directory: PathBuf, shortcodes_subdirectory: PathBuf) -> Self {
+    pub fn new(base_directory: PathBuf) -> Self {
         Self {
             base_directory,
             component_registry: Default::default(),
-            shortcodes_subdirectory,
         }
     }
 
-    pub fn register_component_file(&self, file_entry: FileEntry) {
-        let component_name = file_entry.get_stem_relative_to(&self.shortcodes_subdirectory);
-
+    pub fn register_component_file(&self, file_entry: &FileEntry) -> Result<(), FilesystemError> {
         self.component_registry
             .register_component(ComponentReference {
-                name: component_name,
+                name: file_entry.stem_in(&SHORTCODES_SOURCE_DIRECTORY)?,
             });
+
+        Ok(())
     }
 }
 
@@ -58,7 +58,7 @@ impl RhaiTemplateRendererFactory {
         let mut engine = create_component_engine();
 
         engine.set_module_resolver(FileModuleResolver::new_with_path(
-            self.base_directory.join(&self.shortcodes_subdirectory),
+            self.base_directory.join(SHORTCODES_SOURCE_DIRECTORY.name),
         ));
 
         engine.build_type::<ArgumentWithInput>();
@@ -72,7 +72,6 @@ impl RhaiTemplateRendererFactory {
         engine.build_type::<ContentDocumentHierarchy>();
         engine.build_type::<ContentDocumentReference>();
         engine.build_type::<ContentDocumentTreeNode>();
-        engine.build_type::<FileEntry>();
         engine.build_type::<Heading>();
         engine.build_type::<PromptDocumentComponentContext>();
         engine.build_type::<PromptDocumentFrontMatter>();

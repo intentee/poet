@@ -14,6 +14,7 @@ use async_trait::async_trait;
 use clap::Parser;
 use indoc::formatdoc;
 use log::info;
+use poet_filesystem::filesystem::Filesystem;
 use poet_mcp::implementation::Implementation;
 use poet_mcp::mcp_http_service_factory::McpHttpServiceFactory;
 
@@ -35,7 +36,6 @@ use crate::cmd::serve::app_data::AppData;
 use crate::cmd::value_parser::parse_socket_addr;
 use crate::cmd::value_parser::validate_is_directory;
 use crate::compile_shortcodes::compile_shortcodes;
-use crate::filesystem::Filesystem;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
 use crate::mcp_server_factory::McpServerFactory;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
@@ -142,12 +142,9 @@ impl Handler for Serve {
             .await;
 
         let app_data = Data::new(AppData {
-            filesystem_http_route_index: Arc::new(
-                FilesystemHttpRouteIndex::from_filesystem(
-                    build_project_result.memory_filesystem.clone(),
-                )
-                .await?,
-            ),
+            filesystem_http_route_index: Arc::new(FilesystemHttpRouteIndex::from_memory(
+                &build_project_result.memory_filesystem,
+            )?),
         });
 
         let assets_directory = self.app_dir.join(STATIC_FILES_PUBLIC_PATH);

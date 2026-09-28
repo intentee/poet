@@ -151,6 +151,8 @@ mod tests {
     use std::sync::Arc;
 
     use anyhow::Result;
+    use poet_filesystem::filesystem::Filesystem as _;
+    use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
     use poet_mcp::resource_provider::ResourceProvider as _;
     use poet_mcp::resource_provider_list_params::ResourceProviderListParams;
@@ -164,8 +166,6 @@ mod tests {
     use crate::build_project::build_project_result::BuildProjectResult;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
-    use crate::filesystem::Filesystem as _;
-    use crate::filesystem::storage::Storage;
     use crate::holder::Holder as _;
     use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 

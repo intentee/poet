@@ -7,9 +7,9 @@ use anyhow::anyhow;
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use log::warn;
 
-use crate::filesystem::Filesystem as _;
-use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
-use crate::filesystem::storage::Storage;
+use poet_filesystem::filesystem::Filesystem as _;
+use poet_filesystem::read_file_contents_result::ReadFileContentsResult;
+use poet_filesystem::storage::Storage;
 
 pub async fn read_esbuild_metafile_or_default(
     source_filesystem: Arc<Storage>,

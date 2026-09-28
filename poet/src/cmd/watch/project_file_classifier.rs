@@ -7,7 +7,11 @@ use anyhow::Result;
 use notify_debouncer_full::DebouncedEvent;
 use notify_debouncer_full::notify::EventKind;
 
+use crate::authors_source_directory::AUTHORS_SOURCE_DIRECTORY;
 use crate::cmd::watch::project_file_kind::ProjectFileKind;
+use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
+use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
+use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
 fn is_temp_file(path: &Path) -> bool {
     let path_string = path.to_string_lossy();
@@ -34,11 +38,23 @@ pub struct ProjectFileClassifier {
 impl ProjectFileClassifier {
     pub fn create_watched_directories_in(source_directory: &Path) -> Result<Self> {
         Ok(Self {
-            authors_directory: create_watched_directory(source_directory, "authors")?,
-            content_directory: create_watched_directory(source_directory, "content")?,
+            authors_directory: create_watched_directory(
+                source_directory,
+                AUTHORS_SOURCE_DIRECTORY.name,
+            )?,
+            content_directory: create_watched_directory(
+                source_directory,
+                CONTENT_SOURCE_DIRECTORY.name,
+            )?,
             esbuild_metafile_path: source_directory.join("esbuild-meta.json"),
-            prompts_directory: create_watched_directory(source_directory, "prompts")?,
-            shortcodes_directory: create_watched_directory(source_directory, "shortcodes")?,
+            prompts_directory: create_watched_directory(
+                source_directory,
+                PROMPTS_SOURCE_DIRECTORY.name,
+            )?,
+            shortcodes_directory: create_watched_directory(
+                source_directory,
+                SHORTCODES_SOURCE_DIRECTORY.name,
+            )?,
         })
     }
 
@@ -92,12 +108,21 @@ mod tests {
     use tempfile::tempdir;
 
     use super::ProjectFileClassifier;
+    use crate::authors_source_directory::AUTHORS_SOURCE_DIRECTORY;
     use crate::cmd::watch::project_file_kind::ProjectFileKind;
+    use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
+    use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
+    use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
     fn project_directory() -> Result<TempDir> {
         let project_directory = tempdir()?;
 
-        for subdirectory in ["authors", "content", "prompts", "shortcodes"] {
+        for subdirectory in [
+            AUTHORS_SOURCE_DIRECTORY.name,
+            CONTENT_SOURCE_DIRECTORY.name,
+            PROMPTS_SOURCE_DIRECTORY.name,
+            SHORTCODES_SOURCE_DIRECTORY.name,
+        ] {
             create_dir_all(project_directory.path().join(subdirectory))?;
         }
 
@@ -106,11 +131,11 @@ mod tests {
 
     fn classifier(source_directory: &Path) -> ProjectFileClassifier {
         ProjectFileClassifier {
-            authors_directory: source_directory.join("authors"),
-            content_directory: source_directory.join("content"),
+            authors_directory: source_directory.join(AUTHORS_SOURCE_DIRECTORY.name),
+            content_directory: source_directory.join(CONTENT_SOURCE_DIRECTORY.name),
             esbuild_metafile_path: source_directory.join("esbuild-meta.json"),
-            prompts_directory: source_directory.join("prompts"),
-            shortcodes_directory: source_directory.join("shortcodes"),
+            prompts_directory: source_directory.join(PROMPTS_SOURCE_DIRECTORY.name),
+            shortcodes_directory: source_directory.join(SHORTCODES_SOURCE_DIRECTORY.name),
         }
     }
 

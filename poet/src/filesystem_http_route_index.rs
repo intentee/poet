@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
 
-use crate::filesystem::Filesystem;
-use crate::filesystem::file_entry::FileEntry;
+use poet_filesystem::file_entry::FileEntry;
+use poet_filesystem::memory::Memory;
 
 #[derive(Default)]
 pub struct FilesystemHttpRouteIndex {
@@ -17,12 +15,10 @@ impl FilesystemHttpRouteIndex {
         self.routes.get(path).map(|entry| entry.value().clone())
     }
 
-    pub async fn from_filesystem<TFilesystem: Filesystem>(
-        filesystem: Arc<TFilesystem>,
-    ) -> Result<Self> {
+    pub fn from_memory(memory_filesystem: &Memory) -> Result<Self> {
         let this: Self = Default::default();
 
-        for file in filesystem.read_project_files().await? {
+        for file in memory_filesystem.file_entries() {
             this.register_file(file)?;
         }
 
@@ -55,24 +51,23 @@ impl FilesystemHttpRouteIndex {
 
 #[cfg(test)]
 mod tests {
+    use poet_filesystem::file_entry_stub::FileEntryStub;
     use std::path::PathBuf;
 
     use super::*;
-    use crate::filesystem::file_entry_stub::FileEntryStub;
 
-    fn file_entry(relative_path: &str) -> Result<FileEntry> {
-        FileEntryStub {
+    fn file_entry(relative_path: &str) -> FileEntry {
+        FileEntry::from(FileEntryStub {
             contents: String::new(),
             relative_path: PathBuf::from(relative_path),
-        }
-        .try_into()
+        })
     }
 
     #[test]
     fn registers_root_index_under_empty_and_named_routes() -> Result<()> {
         let index = FilesystemHttpRouteIndex::default();
 
-        index.register_file(file_entry("index.html")?)?;
+        index.register_file(file_entry("index.html"))?;
 
         assert_eq!(
             index
@@ -89,7 +84,7 @@ mod tests {
     fn registers_nested_index_under_directory_and_full_path() -> Result<()> {
         let index = FilesystemHttpRouteIndex::default();
 
-        index.register_file(file_entry("docs/index.html")?)?;
+        index.register_file(file_entry("docs/index.html"))?;
 
         assert!(index.get_file_entry_for_path("docs/index.html").is_some());
         assert!(index.get_file_entry_for_path("docs/").is_some());
@@ -101,7 +96,7 @@ mod tests {
     fn registers_sitemap_under_its_own_path() -> Result<()> {
         let index = FilesystemHttpRouteIndex::default();
 
-        index.register_file(file_entry("sitemap.xml")?)?;
+        index.register_file(file_entry("sitemap.xml"))?;
 
         assert!(index.get_file_entry_for_path("sitemap.xml").is_some());
 
@@ -112,7 +107,7 @@ mod tests {
     fn rejects_unexpected_filename() -> Result<()> {
         let index = FilesystemHttpRouteIndex::default();
 
-        assert!(index.register_file(file_entry("page.html")?).is_err());
+        assert!(index.register_file(file_entry("page.html")).is_err());
 
         Ok(())
     }

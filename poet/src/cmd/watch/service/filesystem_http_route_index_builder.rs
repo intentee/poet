@@ -34,7 +34,7 @@ impl FilesystemHttpRouteIndexBuilder {
 
         self.filesystem_http_route_index_holder
             .set(Some(Arc::new(
-                match FilesystemHttpRouteIndex::from_filesystem(memory_filesystem).await {
+                match FilesystemHttpRouteIndex::from_memory(&memory_filesystem) {
                     Ok(filesystem_http_route_index) => filesystem_http_route_index,
                     Err(err) => {
                         error!("Unable to build filesysetm http route index: {err:#?}");

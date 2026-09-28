@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+use poet_filesystem::memory::Memory;
 use rayon::iter::ParallelBridge as _;
 use rayon::iter::ParallelIterator as _;
 
@@ -9,7 +10,6 @@ use crate::build_project::build_project_result::BuildProjectResult;
 use crate::content_document_basename::ContentDocumentBasename;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_source::ContentDocumentSource;
-use crate::filesystem::memory::Memory;
 
 pub struct BuildProjectResultStub {
     pub content_document_linker: ContentDocumentLinker,
@@ -73,6 +73,8 @@ mod tests {
     use std::path::Path;
 
     use anyhow::Result;
+    use poet_filesystem::filesystem::Filesystem as _;
+    use poet_filesystem::storage::Storage;
     use tempfile::tempdir;
 
     use super::*;
@@ -81,8 +83,6 @@ mod tests {
     use crate::build_project::build_project;
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::compile_shortcodes::compile_shortcodes;
-    use crate::filesystem::Filesystem as _;
-    use crate::filesystem::storage::Storage;
 
     async fn build_stub(body: &str) -> Result<BuildProjectResultStub> {
         let directory = tempdir()?;

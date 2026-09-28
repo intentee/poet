@@ -98,6 +98,8 @@ impl SearchIndex {
 mod tests {
     use std::path::Path;
 
+    use poet_filesystem::filesystem::Filesystem as _;
+    use poet_filesystem::storage::Storage;
     use tempfile::tempdir;
 
     use super::*;
@@ -107,8 +109,6 @@ mod tests {
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
-    use crate::filesystem::Filesystem as _;
-    use crate::filesystem::storage::Storage;
     use crate::search_index_query_params::SearchIndexQueryParams;
 
     async fn search_index_reader_for_guide(

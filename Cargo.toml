@@ -2,6 +2,8 @@
 resolver = "3"
 members = [
     "poet",
+    "poet_filesystem",
+    "poet_filesystem_tests",
     "poet_mcp",
     "poet_mcp_tests",
     "rhai_components",
@@ -80,6 +82,7 @@ mime_guess = "2.0"
 nom = "8.0"
 notify-debouncer-full = "0.7"
 petgraph = { version = "0.8", features = ["serde", "serde_derive"] }
+poet_filesystem = { path = "poet_filesystem", version = "0.8" }
 poet_mcp = { path = "poet_mcp", version = "0.8" }
 rayon = "1.12"
 rhai = { version = "1.26", features = ["internals", "metadata", "no_closure", "serde", "serde_json", "sync"] }

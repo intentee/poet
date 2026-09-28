@@ -4,6 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use log::info;
+use poet_filesystem::storage::Storage;
 
 use crate::asset_path_renderer::AssetPathRenderer;
 use crate::build_authors::build_authors;
@@ -16,8 +17,6 @@ use crate::cmd::value_parser::validate_is_directory;
 use crate::cmd::value_parser::validate_is_directory_or_create;
 use crate::compile_shortcodes::compile_shortcodes;
 use crate::copy_esbuild_metafile_assets_to::copy_esbuild_metafile_assets_to;
-use crate::filesystem::Filesystem;
-use crate::filesystem::storage::Storage;
 use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 
 #[derive(Parser)]
@@ -72,7 +71,7 @@ impl Handler for StaticPages {
 
         info!("Saving generated files in output directory...");
 
-        storage.copy_project_files_from(memory_filesystem).await?;
+        memory_filesystem.copy_all_files_to(&storage).await?;
 
         info!("Copying assets into output directory...");
 

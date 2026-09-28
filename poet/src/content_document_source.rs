@@ -1,7 +1,7 @@
 use markdown::mdast::Node;
+use poet_filesystem::file_entry::FileEntry;
 
 use crate::content_document_reference::ContentDocumentReference;
-use crate::filesystem::file_entry::FileEntry;
 
 #[derive(Clone)]
 pub struct ContentDocumentSource {

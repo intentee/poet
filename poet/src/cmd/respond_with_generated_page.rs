@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use actix_web::HttpResponse;
 use actix_web::Result;
+use poet_filesystem::file_entry::FileEntry;
 
-use crate::filesystem::file_entry::FileEntry;
 use crate::filesystem_http_route_index::FilesystemHttpRouteIndex;
 
 pub fn respond_with_generated_page(

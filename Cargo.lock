@@ -2027,7 +2027,6 @@ dependencies = [
  "actix-ws",
  "anyhow",
  "async-trait",
- "blake3",
  "chrono",
  "clap",
  "ctrlc",
@@ -2045,6 +2044,7 @@ dependencies = [
  "nom 8.0.0",
  "notify-debouncer-full",
  "petgraph",
+ "poet_filesystem",
  "poet_mcp",
  "rayon",
  "rhai",
@@ -2061,6 +2061,27 @@ dependencies = [
  "tokio",
  "tokio-util",
  "toml",
+]
+
+[[package]]
+name = "poet_filesystem"
+version = "0.8.0"
+dependencies = [
+ "async-trait",
+ "blake3",
+ "dashmap",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "poet_filesystem_tests"
+version = "0.8.0"
+dependencies = [
+ "poet_filesystem",
+ "tempfile",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

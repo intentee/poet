@@ -1,12 +1,12 @@
 pub mod build_prompt_document_controller_collection_params;
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
 use anyhow::anyhow;
 use dashmap::DashMap;
 use log::info;
+use poet_filesystem::filesystem::Filesystem as _;
 use rayon::iter::IntoParallelIterator as _;
 use rayon::iter::ParallelIterator as _;
 
@@ -15,8 +15,8 @@ use crate::build_prompt_document_controller_collection::build_prompt_document_co
 use crate::build_prompt_document_controller_params::BuildPromptDocumentControllerParams;
 use crate::build_timer::BuildTimer;
 use crate::document_error_collection::DocumentErrorCollection;
-use crate::filesystem::Filesystem as _;
 use crate::prompt_controller::PromptController;
+use crate::prompts_source_directory::PROMPTS_SOURCE_DIRECTORY;
 use crate::prompt_controller_collection::PromptControllerCollection;
 
 pub async fn build_prompt_document_controller_collection(
@@ -35,15 +35,21 @@ pub async fn build_prompt_document_controller_collection(
     let prompt_controller_map: DashMap<String, Arc<dyn PromptController>> = Default::default();
 
     source_filesystem
-        .read_project_files()
+        .read_source_files(&PROMPTS_SOURCE_DIRECTORY)
         .await?
         .into_par_iter()
-        .filter(|file| file.kind.is_prompt())
         .for_each(|file| {
-            let name = file
-                .get_stem_path_relative_to(&PathBuf::from("prompts"))
-                .display()
-                .to_string();
+            let name = match file.stem_path_in(&PROMPTS_SOURCE_DIRECTORY) {
+                Ok(stem_path) => stem_path.display().to_string(),
+                Err(filesystem_error) => {
+                    error_collection.register_error(
+                        file.relative_path.display().to_string(),
+                        filesystem_error.into(),
+                    );
+
+                    return;
+                }
+            };
 
             match build_prompt_document_controller(BuildPromptDocumentControllerParams {
                 asset_path_renderer: asset_path_renderer.clone(),
@@ -73,13 +79,13 @@ pub async fn build_prompt_document_controller_collection(
 mod tests {
     use std::path::Path;
 
+    use poet_filesystem::storage::Storage;
     use poet_mcp::list_resources_cursor::ListResourcesCursor;
     use tempfile::tempdir;
 
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
     use crate::compile_shortcodes::compile_shortcodes;
-    use crate::filesystem::storage::Storage;
 
     async fn build(prompt_files: &[(&str, &str)]) -> Result<PromptControllerCollection> {
         let directory = tempdir()?;

@@ -7,7 +7,6 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -15,6 +14,8 @@ use anyhow::anyhow;
 use dashmap::DashMap;
 use log::debug;
 use log::info;
+use poet_filesystem::filesystem::Filesystem as _;
+use poet_filesystem::memory::Memory;
 use rayon::iter::IntoParallelRefIterator as _;
 use rayon::iter::ParallelIterator as _;
 use rhai::Dynamic;
@@ -36,10 +37,9 @@ use crate::content_document_in_collection::ContentDocumentInCollection;
 use crate::content_document_linker::ContentDocumentLinker;
 use crate::content_document_reference::ContentDocumentReference;
 use crate::content_document_source::ContentDocumentSource;
+use crate::content_source_directory::CONTENT_SOURCE_DIRECTORY;
 use crate::document_error_collection::DocumentErrorCollection;
 use crate::eval_content_document_mdast::eval_content_document_mdast;
-use crate::filesystem::Filesystem as _;
-use crate::filesystem::memory::Memory;
 use crate::find_front_matter_in_mdast::find_front_matter_in_mdast;
 use crate::find_table_of_contents_in_mdast::find_table_of_contents_in_mdast;
 use crate::generate_sitemap::create_sitemap;
@@ -143,50 +143,48 @@ pub async fn build_project(
     let mut content_document_sources: BTreeMap<ContentDocumentBasename, ContentDocumentSource> =
         Default::default();
 
-    for file in source_filesystem.read_project_files().await? {
-        if file.kind.is_content() {
-            let mdast = string_to_mdast(&file.contents)?;
-            let front_matter: ContentDocumentFrontMatter = find_front_matter_in_mdast(&mdast)?
-                .ok_or_else(|| {
-                    anyhow!("No front matter found in file: {:?}", file.relative_path)
-                })?;
+    for file in source_filesystem
+        .read_source_files(&CONTENT_SOURCE_DIRECTORY)
+        .await?
+    {
+        let mdast = string_to_mdast(&file.contents)?;
+        let front_matter: ContentDocumentFrontMatter = find_front_matter_in_mdast(&mdast)?
+            .ok_or_else(|| anyhow!("No front matter found in file: {:?}", file.relative_path))?;
 
-            let basename_path = file.get_stem_path_relative_to(&PathBuf::from("content"));
-            let basename: ContentDocumentBasename = basename_path.clone().into();
-            let content_document_reference = ContentDocumentReference {
-                basename_path,
-                front_matter: front_matter.clone(),
-                generated_page_base_path: generated_page_base_path.clone(),
-            };
+        let basename_path = file.stem_path_in(&CONTENT_SOURCE_DIRECTORY)?;
+        let basename: ContentDocumentBasename = basename_path.clone().into();
+        let content_document_reference = ContentDocumentReference {
+            basename_path,
+            front_matter: front_matter.clone(),
+            generated_page_base_path: generated_page_base_path.clone(),
+        };
 
-            if let Some(id) = &front_matter.id {
-                if content_document_basename_by_id.contains_key(id) {
-                    error_collection.register_error(
-                        content_document_reference.basename().to_string(),
-                        anyhow!("Duplicate document id: #{id} in '{basename}'"),
-                    );
-                }
-
-                content_document_basename_by_id.insert(id.clone(), basename.clone());
-            }
-
-            content_document_by_basename
-                .insert(basename.clone(), content_document_reference.clone());
-            content_document_list.push(ContentDocument {
-                mdast: mdast.clone(),
-                reference: content_document_reference.clone(),
-            });
-
-            if content_document_reference.front_matter.render {
-                content_document_sources.insert(
-                    basename,
-                    ContentDocumentSource {
-                        file_entry: file,
-                        mdast,
-                        reference: content_document_reference,
-                    },
+        if let Some(id) = &front_matter.id {
+            if content_document_basename_by_id.contains_key(id) {
+                error_collection.register_error(
+                    content_document_reference.basename().to_string(),
+                    anyhow!("Duplicate document id: #{id} in '{basename}'"),
                 );
             }
+
+            content_document_basename_by_id.insert(id.clone(), basename.clone());
+        }
+
+        content_document_by_basename.insert(basename.clone(), content_document_reference.clone());
+        content_document_list.push(ContentDocument {
+            mdast: mdast.clone(),
+            reference: content_document_reference.clone(),
+        });
+
+        if content_document_reference.front_matter.render {
+            content_document_sources.insert(
+                basename,
+                ContentDocumentSource {
+                    file_entry: file,
+                    mdast,
+                    reference: content_document_reference,
+                },
+            );
         }
     }
 
@@ -322,19 +320,12 @@ pub async fn build_project(
                 Ok(processed_file) => {
                     match content_document.reference.target_file_relative_path() {
                         Ok(relative_path) => {
-                            if let Err(err) = memory_filesystem
-                                .set_file_contents_sync(&relative_path, &processed_file)
-                            {
-                                error_collection.register_error(
-                                    content_document.reference.basename().to_string(),
-                                    err,
-                                );
-                            } else {
-                                content_document_reference_collection_dashmap.insert(
-                                    relative_path.display().to_string(),
-                                    content_document.reference.clone(),
-                                );
-                            }
+                            memory_filesystem
+                                .set_file_contents_sync(&relative_path, &processed_file);
+                            content_document_reference_collection_dashmap.insert(
+                                relative_path.display().to_string(),
+                                content_document.reference.clone(),
+                            );
                         }
                         Err(err) => {
                             error_collection.register_error(
@@ -358,11 +349,7 @@ pub async fn build_project(
                 .filter(|content_document| content_document.front_matter.render),
         ) {
             Ok(sitemap) => {
-                if let Err(err) =
-                    memory_filesystem.set_file_contents_sync(Path::new("sitemap.xml"), &sitemap)
-                {
-                    error_collection.register_error("sitemap.xml".to_string(), err);
-                }
+                memory_filesystem.set_file_contents_sync(Path::new("sitemap.xml"), &sitemap);
             }
             Err(err) => {
                 error_collection.register_error("sitemap.xml".to_string(), err);
@@ -389,6 +376,9 @@ mod tests {
 
     use anyhow::Result;
     use anyhow::anyhow;
+    use poet_filesystem::filesystem::Filesystem as _;
+    use poet_filesystem::read_file_contents_result::ReadFileContentsResult;
+    use poet_filesystem::storage::Storage;
     use tempfile::tempdir;
 
     use super::build_project;
@@ -397,9 +387,6 @@ mod tests {
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
-    use crate::filesystem::Filesystem as _;
-    use crate::filesystem::read_file_contents_result::ReadFileContentsResult;
-    use crate::filesystem::storage::Storage;
 
     const LAYOUT_MINIMAL: &str = r#"
 fn template(context, props, content) {

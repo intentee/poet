@@ -105,6 +105,8 @@ mod tests {
     use std::path::PathBuf;
 
     use indoc::indoc;
+    use poet_filesystem::file_entry::FileEntry;
+    use poet_filesystem::file_entry_stub::FileEntryStub;
     use poet_mcp::jsonrpc_version::JSONRPC_VERSION;
     use poet_mcp::prompt_message::PromptMessage;
     use poet_mcp::request_id::RequestId;
@@ -113,7 +115,6 @@ mod tests {
     use super::*;
     use crate::build_prompt_document_controller::build_prompt_document_controller;
     use crate::build_prompt_document_controller_params::BuildPromptDocumentControllerParams;
-    use crate::filesystem::file_entry_stub::FileEntryStub;
     use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
 
     fn build_controller() -> Result<PromptDocumentController> {
@@ -136,10 +137,8 @@ mod tests {
         "#}
         .to_string();
 
-        let rhai_template_factory = RhaiTemplateRendererFactory::new(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")),
-            PathBuf::from("shortcodes"),
-        );
+        let rhai_template_factory =
+            RhaiTemplateRendererFactory::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")));
 
         let rhai_template_renderer: RhaiTemplateRenderer = rhai_template_factory.try_into()?;
 
@@ -149,11 +148,10 @@ mod tests {
             },
             content_document_linker: Default::default(),
             esbuild_metafile: Default::default(),
-            file: FileEntryStub {
+            file: FileEntry::from(FileEntryStub {
                 contents,
                 relative_path: PathBuf::from("prompts/help-me-finish-task.md"),
-            }
-            .try_into()?,
+            }),
             name: "help-me-finish-task".to_string(),
             rhai_template_renderer,
         })

@@ -108,6 +108,8 @@ mod tests {
     use std::sync::Arc;
 
     use anyhow::Result;
+    use poet_filesystem::filesystem::Filesystem as _;
+    use poet_filesystem::storage::Storage;
     use poet_mcp::provider_error::ProviderError;
     use poet_mcp::tool_call_result::ToolCallResult;
     use poet_mcp::tool_call_success::ToolCallSuccess;
@@ -121,8 +123,6 @@ mod tests {
     use crate::build_project::build_project_params::BuildProjectParams;
     use crate::build_project::build_project_result_stub::BuildProjectResultStub;
     use crate::compile_shortcodes::compile_shortcodes;
-    use crate::filesystem::Filesystem as _;
-    use crate::filesystem::storage::Storage;
     use crate::holder::Holder as _;
     use crate::search_index::SearchIndex;
     use crate::search_index_reader_holder::SearchIndexReaderHolder;

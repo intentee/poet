@@ -12,9 +12,9 @@ use futures_util::StreamExt as _;
 use log::debug;
 use log::error;
 use log::warn;
+use poet_filesystem::file_entry::FileEntry;
 
 use crate::cmd::watch::app_data::AppData;
-use crate::filesystem::file_entry::FileEntry;
 use crate::holder::Holder as _;
 
 pub fn register(cfg: &mut web::ServiceConfig) {

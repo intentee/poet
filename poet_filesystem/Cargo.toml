@@ -1,0 +1,17 @@
+[package]
+name = "poet_filesystem"
+description = "Source and in-memory filesystems used to build Poet projects"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+blake3 = { workspace = true }
+dashmap = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

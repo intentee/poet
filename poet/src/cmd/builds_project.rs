@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::filesystem::storage::Storage;
+use poet_filesystem::storage::Storage;
 
 pub trait BuildsProject {
     fn source_directory(&self) -> PathBuf;

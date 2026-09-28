@@ -1,28 +1,27 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
 use log::info;
+use poet_filesystem::filesystem::Filesystem as _;
+use poet_filesystem::storage::Storage;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
 use crate::build_timer::BuildTimer;
-use crate::filesystem::Filesystem as _;
-use crate::filesystem::storage::Storage;
 use crate::rhai_template_renderer_factory::RhaiTemplateRendererFactory;
+use crate::shortcodes_source_directory::SHORTCODES_SOURCE_DIRECTORY;
 
 pub async fn compile_shortcodes(source_filesystem: Arc<Storage>) -> Result<RhaiTemplateRenderer> {
     info!("Compiling shortcodes...");
 
     let _build_timer = BuildTimer::default();
-    let rhai_template_factory = RhaiTemplateRendererFactory::new(
-        source_filesystem.base_directory.clone(),
-        PathBuf::from("shortcodes"),
-    );
+    let rhai_template_factory =
+        RhaiTemplateRendererFactory::new(source_filesystem.base_directory.clone());
 
-    for file in &source_filesystem.read_project_files().await? {
-        if file.kind.is_shortcode() {
-            rhai_template_factory.register_component_file(file.clone());
-        }
+    for file in &source_filesystem
+        .read_source_files(&SHORTCODES_SOURCE_DIRECTORY)
+        .await?
+    {
+        rhai_template_factory.register_component_file(file)?;
     }
 
     Ok(rhai_template_factory.try_into()?)
@@ -34,14 +33,14 @@ mod tests {
     use std::sync::Arc;
 
     use anyhow::Result;
+    use poet_filesystem::filesystem::Filesystem as _;
+    use poet_filesystem::storage::Storage;
     use rhai::Dynamic;
     use tempfile::TempDir;
     use tempfile::tempdir;
 
     use super::compile_shortcodes;
     use crate::content_document_component_context::ContentDocumentComponentContext;
-    use crate::filesystem::Filesystem as _;
-    use crate::filesystem::storage::Storage;
 
     struct TestStorage {
         _directory: TempDir,

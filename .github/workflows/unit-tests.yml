@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: setup rust
         uses: ./.github/actions/setup-rust
@@ -25,10 +25,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: setup rust
         uses: ./.github/actions/setup-rust
 
       - name: run clippy
         run: make clippy
+
+  install:
+    name: install
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: setup rust
+        uses: ./.github/actions/setup-rust
+
+      - name: install poet
+        run: make install
+        env:
+          CARGO_INSTALL_ROOT: ${{ runner.temp }}/poet-install
+
+      - name: run installed poet
+        run: ${{ runner.temp }}/poet-install/bin/poet --version

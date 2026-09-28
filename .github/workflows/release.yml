@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
         with:
           toolchain: stable
 
@@ -36,7 +36,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - id: release-version
-        uses: intentee/release-action/release-tag-to-version@abdb835f34e49f5107b4569a381e0853c399797f
+        uses: intentee/release-action/release-tag-to-version@0cb8ec8e6cc19a2a8cba0fe47999f10e2f8700e6
         with:
           release-tag: "${{ github.ref_name }}"
 
@@ -44,7 +44,7 @@ jobs:
         run: mv ./target/release/poet ./${{ matrix.artifact_name }}
         shell: bash
 
-      - uses: intentee/release-action/assert-version@abdb835f34e49f5107b4569a381e0853c399797f
+      - uses: intentee/release-action/assert-version@0cb8ec8e6cc19a2a8cba0fe47999f10e2f8700e6
         with:
           filename: "./${{ matrix.artifact_name }}"
           expected-version: "${{ steps.release-version.outputs.version }}"

@@ -69,6 +69,10 @@ coverage-report:
 fmt: node_modules
 	./jarmuz-fmt.mjs
 
+.PHONY: install
+install:
+	cargo install --path poet
+
 .PHONY: release
 release:
 	cargo build --release

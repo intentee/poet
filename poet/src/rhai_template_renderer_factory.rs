@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::Result;
 use rhai::Engine;
 use rhai::module_resolvers::FileModuleResolver;
-use rhai_components::builds_engine::BuildsEngine;
 use rhai_components::component_syntax::component_reference::ComponentReference;
 use rhai_components::component_syntax::component_registry::ComponentRegistry;
+use rhai_components::create_component_engine::create_component_engine;
+use rhai_components::rhai_components_error::RhaiComponentsError;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use rhai_components::rhai_template_renderer_params::RhaiTemplateRendererParams;
 
@@ -48,18 +48,15 @@ impl RhaiTemplateRendererFactory {
 
         self.component_registry
             .register_component(ComponentReference {
-                name: component_name.clone(),
-                path: component_name,
+                name: component_name,
             });
     }
 }
 
-impl BuildsEngine for RhaiTemplateRendererFactory {
-    fn component_registry(&self) -> Arc<ComponentRegistry> {
-        self.component_registry.clone()
-    }
+impl RhaiTemplateRendererFactory {
+    fn create_engine(&self) -> Engine {
+        let mut engine = create_component_engine();
 
-    fn prepare_engine(&self, engine: &mut Engine) -> Result<()> {
         engine.set_module_resolver(FileModuleResolver::new_with_path(
             self.base_directory.join(&self.shortcodes_subdirectory),
         ));
@@ -83,15 +80,15 @@ impl BuildsEngine for RhaiTemplateRendererFactory {
 
         engine.register_fn("render_hierarchy", render_hierarchy);
 
-        Ok(())
+        engine
     }
 }
 
 impl TryInto<RhaiTemplateRenderer> for RhaiTemplateRendererFactory {
-    type Error = anyhow::Error;
+    type Error = RhaiComponentsError;
 
     fn try_into(self) -> Result<RhaiTemplateRenderer, Self::Error> {
-        let expression_engine = self.create_engine()?;
+        let expression_engine = self.create_engine();
 
         RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
             component_registry: self.component_registry,

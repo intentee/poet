@@ -426,10 +426,10 @@ mod test {
 
         expression_engine.build_type::<PromptDocumentComponentContext>();
 
-        RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
+        Ok(RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
             component_registry: Arc::new(ComponentRegistry::default()),
             expression_engine,
-        })
+        })?)
     }
 
     fn context() -> Result<PromptDocumentComponentContext> {

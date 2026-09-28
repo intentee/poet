@@ -12,7 +12,8 @@ use super::output_combined_symbol::OutputCombinedSymbol;
 use super::output_semantic_symbol::OutputSemanticSymbol;
 use super::output_symbol::OutputSymbol;
 use super::tag::Tag;
-use crate::component_syntax::tag_name::TagName;
+use super::tag_kind::TagKind;
+use super::tag_name::TagName;
 
 fn merge_adjacent_symbols(state: &Dynamic) -> Result<Vec<OutputCombinedSymbol>, ParseError> {
     let mut expression_index = 0;
@@ -29,7 +30,7 @@ fn merge_adjacent_symbols(state: &Dynamic) -> Result<Vec<OutputCombinedSymbol>, 
 
     for node in state_array.iter() {
         match node.clone().try_cast::<OutputSymbol>().ok_or_else(|| {
-            LexError::Runtime("Unable to cast state to output symbols".to_string())
+            LexError::Runtime("Unable to cast state to output symbols".to_owned())
                 .into_err(Position::NONE)
         })? {
             OutputSymbol::BodyExpression => {
@@ -47,7 +48,7 @@ fn merge_adjacent_symbols(state: &Dynamic) -> Result<Vec<OutputCombinedSymbol>, 
                 }
                 _ => {
                     return Err(LexError::Runtime(
-                        "Attribute value expression without name".to_string(),
+                        "Attribute value expression without name".to_owned(),
                     )
                     .into_err(Position::NONE));
                 }
@@ -58,14 +59,12 @@ fn merge_adjacent_symbols(state: &Dynamic) -> Result<Vec<OutputCombinedSymbol>, 
                     combined_symbols.push(OutputCombinedSymbol::TagLeftAngle);
                 }
             },
-            OutputSymbol::TagCloseBeforeNamePlusWhitespace(_text) => {
-                match combined_symbols.last_mut() {
-                    Some(OutputCombinedSymbol::TagCloseBeforeName) => {}
-                    _ => {
-                        combined_symbols.push(OutputCombinedSymbol::TagCloseBeforeName);
-                    }
+            OutputSymbol::TagCloseBeforeNamePlusWhitespace => match combined_symbols.last_mut() {
+                Some(OutputCombinedSymbol::TagCloseBeforeName) => {}
+                _ => {
+                    combined_symbols.push(OutputCombinedSymbol::TagCloseBeforeName);
                 }
-            }
+            },
             OutputSymbol::TagPadding => match combined_symbols.last_mut() {
                 Some(OutputCombinedSymbol::TagPadding) => {}
                 _ => {
@@ -83,7 +82,7 @@ fn merge_adjacent_symbols(state: &Dynamic) -> Result<Vec<OutputCombinedSymbol>, 
                 }
                 _ => {
                     return Err(LexError::Runtime(
-                        "Attribute value expression without name".to_string(),
+                        "Attribute value expression without name".to_owned(),
                     )
                     .into_err(Position::NONE));
                 }
@@ -140,17 +139,18 @@ fn assemble_semantic_symbols(
                     existing_text.push_str(&text);
                 }
                 _ => {
-                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text.to_string()));
+                    semantic_symbols.push_back(OutputSemanticSymbol::Text(text));
                 }
             },
             OutputCombinedSymbol::TagLeftAngle => match semantic_symbols.back_mut() {
-                Some(OutputSemanticSymbol::BodyExpression(_))
-                | Some(OutputSemanticSymbol::Tag(_))
-                | Some(OutputSemanticSymbol::Text(_)) => {
+                Some(
+                    OutputSemanticSymbol::BodyExpression(_)
+                    | OutputSemanticSymbol::Tag(_)
+                    | OutputSemanticSymbol::Text(_),
+                ) => {
                     semantic_symbols.push_back(OutputSemanticSymbol::Tag(Tag {
                         attributes: vec![],
-                        is_closing: false,
-                        is_self_closing: false,
+                        kind: TagKind::Opening,
                         tag_name: TagName {
                             name: String::new(),
                         },
@@ -164,12 +164,12 @@ fn assemble_semantic_symbols(
                 }
             },
             OutputCombinedSymbol::TagCloseBeforeName => match semantic_symbols.back_mut() {
-                Some(OutputSemanticSymbol::Tag(Tag { is_closing, .. })) => {
-                    *is_closing = true;
+                Some(OutputSemanticSymbol::Tag(Tag { kind, .. })) => {
+                    *kind = TagKind::Closing;
                 }
                 _ => {
                     return Err(
-                        LexError::UnexpectedInput("Unexpected tag closing".to_string())
+                        LexError::UnexpectedInput("Unexpected tag closing".to_owned())
                             .into_err(Position::NONE),
                     );
                 }
@@ -182,17 +182,20 @@ fn assemble_semantic_symbols(
                     existing_name.name = name;
                 }
                 _ => {
-                    return Err(LexError::UnexpectedInput("Unexpected tag name".to_string())
+                    return Err(LexError::UnexpectedInput("Unexpected tag name".to_owned())
                         .into_err(Position::NONE));
                 }
             },
             OutputCombinedSymbol::TagAttributeName(name) => match semantic_symbols.back_mut() {
                 Some(OutputSemanticSymbol::Tag(Tag { attributes, .. })) => {
-                    attributes.push(Attribute { name, value: None });
+                    attributes.push(Attribute {
+                        name,
+                        value: AttributeValue::Empty,
+                    });
                 }
                 _ => {
                     return Err(LexError::UnexpectedInput(
-                        "Unexpected tag attribute name".to_string(),
+                        "Unexpected tag attribute name".to_owned(),
                     )
                     .into_err(Position::NONE));
                 }
@@ -201,37 +204,34 @@ fn assemble_semantic_symbols(
                 match semantic_symbols.back_mut() {
                     Some(OutputSemanticSymbol::Tag(Tag { attributes, .. })) => {
                         if let Some(last_attribute) = attributes.last_mut() {
-                            last_attribute.value = Some(attribute_value);
+                            last_attribute.value = attribute_value;
                         } else {
                             return Err(LexError::UnexpectedInput(
-                                "Attribute value without name".to_string(),
+                                "Attribute value without name".to_owned(),
                             )
                             .into_err(Position::NONE));
                         }
                     }
                     _ => {
                         return Err(LexError::UnexpectedInput(
-                            "Unexpected tag attribute value".to_string(),
+                            "Unexpected tag attribute value".to_owned(),
                         )
                         .into_err(Position::NONE));
                     }
                 }
             }
-            OutputCombinedSymbol::TagPadding => {}
             OutputCombinedSymbol::TagSelfClose => match semantic_symbols.back_mut() {
-                Some(OutputSemanticSymbol::Tag(Tag {
-                    is_self_closing, ..
-                })) => {
-                    *is_self_closing = true;
+                Some(OutputSemanticSymbol::Tag(Tag { kind, .. })) => {
+                    *kind = TagKind::SelfClosing;
                 }
                 _ => {
                     return Err(LexError::UnexpectedInput(
-                        "Unexpected self-closing tag".to_string(),
+                        "Unexpected self-closing tag".to_owned(),
                     )
                     .into_err(Position::NONE));
                 }
             },
-            OutputCombinedSymbol::TagRightAngle => {}
+            OutputCombinedSymbol::TagPadding | OutputCombinedSymbol::TagRightAngle => {}
         }
     }
 
@@ -246,10 +246,9 @@ pub fn combine_output_symbols(
 
 #[cfg(test)]
 mod tests {
-    use std::mem::discriminant;
-
-    use anyhow::Result;
     use rhai::Dynamic;
+    use rhai::LexError;
+    use rhai::ParseErrorType;
 
     use super::AttributeValue;
     use super::OutputCombinedSymbol;
@@ -259,212 +258,175 @@ mod tests {
     use super::combine_output_symbols;
     use super::merge_adjacent_symbols;
 
-    fn make_state(symbols: Vec<OutputSymbol>) -> Dynamic {
+    fn state_of(symbols: Vec<OutputSymbol>) -> Dynamic {
         Dynamic::from_array(symbols.into_iter().map(Dynamic::from).collect())
     }
 
-    #[test]
-    fn errs_when_state_is_not_an_array() -> Result<()> {
-        let state = Dynamic::from(42_i64);
+    fn combining_error(state: &Dynamic) -> Option<ParseErrorType> {
+        combine_output_symbols(state)
+            .err()
+            .map(|parse_error| parse_error.err_type().clone())
+    }
 
-        assert!(
-            combine_output_symbols(&state)
-                .is_err_and(|error| error.to_string().contains("Invalid state array"))
+    fn assembling_error(combined_symbols: Vec<OutputCombinedSymbol>) -> Option<ParseErrorType> {
+        assemble_semantic_symbols(combined_symbols)
+            .err()
+            .map(|parse_error| parse_error.err_type().clone())
+    }
+
+    fn runtime_error(message: &str) -> ParseErrorType {
+        ParseErrorType::BadInput(LexError::Runtime(message.to_owned()))
+    }
+
+    fn unexpected_input(message: &str) -> ParseErrorType {
+        ParseErrorType::BadInput(LexError::UnexpectedInput(message.to_owned()))
+    }
+
+    #[test]
+    fn rejects_state_that_is_not_an_array() {
+        assert_eq!(
+            combining_error(&Dynamic::from(42_i64)),
+            Some(runtime_error("Invalid state array i64"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_when_state_array_contains_non_output_symbol() -> Result<()> {
-        let state = Dynamic::from_array(vec![Dynamic::from(42_i64)]);
-
-        assert!(
-            combine_output_symbols(&state)
-                .is_err_and(|error| error.to_string().contains("Unable to cast"))
+    fn rejects_state_array_with_foreign_values() {
+        assert_eq!(
+            combining_error(&Dynamic::from_array(vec![Dynamic::from(42_i64)])),
+            Some(runtime_error("Unable to cast state to output symbols"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_when_attribute_value_expression_has_no_prior_attribute_name() -> Result<()> {
-        let state = make_state(vec![OutputSymbol::TagAttributeValueExpression]);
-
-        assert!(combine_output_symbols(&state).is_err_and(|error| {
-            error
-                .to_string()
-                .contains("Attribute value expression without name")
-        }));
-
-        Ok(())
-    }
-
-    #[test]
-    fn errs_when_attribute_value_string_has_no_prior_attribute_name() -> Result<()> {
-        let state = make_state(vec![OutputSymbol::TagAttributeValueString("v".to_string())]);
-
-        assert!(combine_output_symbols(&state).is_err_and(|error| {
-            error
-                .to_string()
-                .contains("Attribute value expression without name")
-        }));
-
-        Ok(())
-    }
-
-    #[test]
-    fn errs_on_unexpected_tag_opening_after_unsupported_predecessor() -> Result<()> {
-        let state = make_state(vec![OutputSymbol::TagLeftAnglePlusWhitespace]);
-
-        assert!(
-            combine_output_symbols(&state)
-                .is_err_and(|error| error.to_string().contains("Unexpected tag opening"))
+    fn rejects_attribute_value_expression_without_attribute_name() {
+        assert_eq!(
+            combining_error(&state_of(vec![OutputSymbol::TagAttributeValueExpression])),
+            Some(runtime_error("Attribute value expression without name"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_on_unexpected_tag_closing_with_no_open_tag() -> Result<()> {
-        let state = make_state(vec![OutputSymbol::TagCloseBeforeNamePlusWhitespace(
-            "".to_string(),
-        )]);
-
-        assert!(
-            combine_output_symbols(&state)
-                .is_err_and(|error| error.to_string().contains("Unexpected tag closing"))
+    fn rejects_attribute_value_string_without_attribute_name() {
+        assert_eq!(
+            combining_error(&state_of(vec![OutputSymbol::TagAttributeValueString(
+                "value".to_owned()
+            )])),
+            Some(runtime_error("Attribute value expression without name"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_on_unexpected_tag_name_with_no_open_tag() -> Result<()> {
-        let state = make_state(vec![OutputSymbol::TagName("d".to_string())]);
-
-        assert!(
-            combine_output_symbols(&state)
-                .is_err_and(|error| error.to_string().contains("Unexpected tag name"))
+    fn rejects_tag_opening_at_start() {
+        assert_eq!(
+            combining_error(&state_of(vec![OutputSymbol::TagLeftAnglePlusWhitespace])),
+            Some(unexpected_input("Unexpected tag opening after None"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_on_unexpected_attribute_name_with_no_open_tag() -> Result<()> {
-        let state = make_state(vec![OutputSymbol::TagAttributeName("c".to_string())]);
-
-        assert!(
-            combine_output_symbols(&state)
-                .is_err_and(|error| error.to_string().contains("Unexpected tag attribute name"))
+    fn rejects_tag_closing_without_tag() {
+        assert_eq!(
+            combining_error(&state_of(vec![
+                OutputSymbol::TagCloseBeforeNamePlusWhitespace
+            ])),
+            Some(unexpected_input("Unexpected tag closing"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_when_attribute_value_emitted_before_attribute_name_in_assemble_semantic_symbols()
-    -> Result<()> {
-        let combined = vec![
-            OutputCombinedSymbol::Text("x".to_string()),
-            OutputCombinedSymbol::TagLeftAngle,
-            OutputCombinedSymbol::TagAttributeValue(AttributeValue::Text("v".to_string())),
-        ];
-
-        assert!(
-            assemble_semantic_symbols(combined)
-                .is_err_and(|error| error.to_string().contains("Attribute value without name"))
+    fn rejects_tag_name_without_tag() {
+        assert_eq!(
+            combining_error(&state_of(vec![OutputSymbol::TagName("div".to_owned())])),
+            Some(unexpected_input("Unexpected tag name"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_on_unexpected_attribute_value_with_no_open_tag() -> Result<()> {
-        let combined = vec![OutputCombinedSymbol::TagAttributeValue(
-            AttributeValue::Text("v".to_string()),
-        )];
-
-        assert!(
-            assemble_semantic_symbols(combined)
-                .is_err_and(|error| error.to_string().contains("Unexpected tag attribute value"))
+    fn rejects_attribute_name_without_tag() {
+        assert_eq!(
+            combining_error(&state_of(vec![OutputSymbol::TagAttributeName(
+                "class".to_owned()
+            )])),
+            Some(unexpected_input("Unexpected tag attribute name"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn errs_on_unexpected_self_close_with_no_open_tag() -> Result<()> {
-        let state = make_state(vec![OutputSymbol::TagSelfClose]);
-
-        assert!(
-            combine_output_symbols(&state)
-                .is_err_and(|error| error.to_string().contains("Unexpected self-closing tag"))
+    fn rejects_self_close_without_tag() {
+        assert_eq!(
+            combining_error(&state_of(vec![OutputSymbol::TagSelfClose])),
+            Some(unexpected_input("Unexpected self-closing tag"))
         );
-
-        Ok(())
     }
 
     #[test]
-    fn merge_adjacent_symbols_collapses_consecutive_same_kind_tokens() -> Result<()> {
-        let combined = merge_adjacent_symbols(&make_state(vec![
-            OutputSymbol::Text("a".to_string()),
-            OutputSymbol::Text("b".to_string()),
-            OutputSymbol::TagLeftAnglePlusWhitespace,
-            OutputSymbol::TagLeftAnglePlusWhitespace,
-            OutputSymbol::TagCloseBeforeNamePlusWhitespace("".to_string()),
-            OutputSymbol::TagCloseBeforeNamePlusWhitespace("".to_string()),
-            OutputSymbol::TagName("d".to_string()),
-            OutputSymbol::TagName("iv".to_string()),
-            OutputSymbol::TagPadding,
-            OutputSymbol::TagPadding,
-            OutputSymbol::TagAttributeName("c".to_string()),
-            OutputSymbol::TagAttributeName("lass".to_string()),
-        ]))
-        .unwrap_or_default();
-
-        let expected_discriminants = [
-            discriminant(&OutputCombinedSymbol::Text(String::new())),
-            discriminant(&OutputCombinedSymbol::TagLeftAngle),
-            discriminant(&OutputCombinedSymbol::TagCloseBeforeName),
-            discriminant(&OutputCombinedSymbol::TagName(String::new())),
-            discriminant(&OutputCombinedSymbol::TagPadding),
-            discriminant(&OutputCombinedSymbol::TagAttributeName(String::new())),
-        ];
-
-        assert_eq!(combined.len(), expected_discriminants.len());
-
-        for (actual, expected) in combined.iter().zip(expected_discriminants.iter()) {
-            assert_eq!(discriminant(actual), *expected);
-        }
-
-        assert!(matches!(&combined[0], OutputCombinedSymbol::Text(text) if text == "ab"));
-        assert!(matches!(&combined[3], OutputCombinedSymbol::TagName(name) if name == "div"));
-        assert!(matches!(
-            &combined[5],
-            OutputCombinedSymbol::TagAttributeName(name) if name == "class"
-        ));
-
-        Ok(())
+    fn rejects_attribute_value_before_attribute_name() {
+        assert_eq!(
+            assembling_error(vec![
+                OutputCombinedSymbol::Text("text".to_owned()),
+                OutputCombinedSymbol::TagLeftAngle,
+                OutputCombinedSymbol::TagAttributeValue(AttributeValue::Text("value".to_owned())),
+            ]),
+            Some(unexpected_input("Attribute value without name"))
+        );
     }
 
     #[test]
-    fn assemble_semantic_symbols_merges_consecutive_text() -> Result<()> {
-        let combined = vec![
-            OutputCombinedSymbol::Text("a".to_string()),
-            OutputCombinedSymbol::Text("b".to_string()),
-        ];
+    fn rejects_attribute_value_without_tag() {
+        assert_eq!(
+            assembling_error(vec![OutputCombinedSymbol::TagAttributeValue(
+                AttributeValue::Text("value".to_owned())
+            )]),
+            Some(unexpected_input("Unexpected tag attribute value"))
+        );
+    }
 
+    #[test]
+    fn merges_consecutive_symbols_of_the_same_kind() {
         assert!(
-            assemble_semantic_symbols(combined).is_ok_and(|mut semantic| {
-                let first = semantic.pop_front();
-
-                matches!(first, Some(OutputSemanticSymbol::Text(text)) if text == "ab")
-                    && semantic.is_empty()
+            merge_adjacent_symbols(&state_of(vec![
+                OutputSymbol::Text("a".to_owned()),
+                OutputSymbol::Text("b".to_owned()),
+                OutputSymbol::TagLeftAnglePlusWhitespace,
+                OutputSymbol::TagLeftAnglePlusWhitespace,
+                OutputSymbol::TagCloseBeforeNamePlusWhitespace,
+                OutputSymbol::TagCloseBeforeNamePlusWhitespace,
+                OutputSymbol::TagName("d".to_owned()),
+                OutputSymbol::TagName("iv".to_owned()),
+                OutputSymbol::TagPadding,
+                OutputSymbol::TagPadding,
+                OutputSymbol::TagAttributeName("c".to_owned()),
+                OutputSymbol::TagAttributeName("lass".to_owned()),
+            ]))
+            .is_ok_and(|combined_symbols| {
+                combined_symbols
+                    == vec![
+                        OutputCombinedSymbol::Text("ab".to_owned()),
+                        OutputCombinedSymbol::TagLeftAngle,
+                        OutputCombinedSymbol::TagCloseBeforeName,
+                        OutputCombinedSymbol::TagName("div".to_owned()),
+                        OutputCombinedSymbol::TagPadding,
+                        OutputCombinedSymbol::TagAttributeName("class".to_owned()),
+                    ]
             })
         );
+    }
 
-        Ok(())
+    #[test]
+    fn merges_consecutive_text_into_one_semantic_symbol() {
+        assert!(
+            assemble_semantic_symbols(vec![
+                OutputCombinedSymbol::Text("a".to_owned()),
+                OutputCombinedSymbol::Text("b".to_owned()),
+            ])
+            .is_ok_and(|semantic_symbols| {
+                semantic_symbols.len() == 1
+                    && matches!(
+                        semantic_symbols.front(),
+                        Some(OutputSemanticSymbol::Text(text)) if text == "ab"
+                    )
+            })
+        );
     }
 }

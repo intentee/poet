@@ -1,6 +1,7 @@
-/// Taken from Tera: https://github.com/Keats/tera/blob/master/src/utils.rs
+/// Taken from Tera: <https://github.com/Keats/tera/blob/master/src/utils.rs>
+#[must_use]
 pub fn escape_html_attribute(input: &str) -> String {
-    let mut output = String::with_capacity(input.len() * 2);
+    let mut output = String::with_capacity(input.len());
 
     for char in input.chars() {
         match char {
@@ -14,14 +15,10 @@ pub fn escape_html_attribute(input: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
     use super::escape_html_attribute;
 
     #[test]
-    fn escapes_only_double_quote() -> Result<()> {
+    fn escapes_only_double_quote() {
         assert_eq!(escape_html_attribute("\"&<>'/x"), "&quot;&<>'/x");
-
-        Ok(())
     }
 }

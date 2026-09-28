@@ -25,7 +25,7 @@ pub async fn compile_shortcodes(source_filesystem: Arc<Storage>) -> Result<RhaiT
         }
     }
 
-    rhai_template_factory.try_into()
+    Ok(rhai_template_factory.try_into()?)
 }
 
 #[cfg(test)]

@@ -1,3 +1,5 @@
+use rhai::LexError;
+
 #[repr(i32)]
 pub enum ParserState {
     Start = 0,
@@ -15,64 +17,65 @@ pub enum ParserState {
 }
 
 impl TryFrom<i32> for ParserState {
-    type Error = ();
+    type Error = LexError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(ParserState::Start),
-            1 => Ok(ParserState::OpeningBracket),
-            2 => Ok(ParserState::Body),
-            3 => Ok(ParserState::BodyExpression),
-            4 => Ok(ParserState::TagLeftAnglePlusWhitespace),
-            5 => Ok(ParserState::TagCloseBeforeNamePlusWhitespace),
-            6 => Ok(ParserState::TagName),
-            7 => Ok(ParserState::TagContent),
-            8 => Ok(ParserState::TagAttributeName),
-            9 => Ok(ParserState::TagAttributeValue),
-            10 => Ok(ParserState::TagAttributeValueString),
-            11 => Ok(ParserState::TagSelfClose),
-            _ => Err(()),
+            0 => Ok(Self::Start),
+            1 => Ok(Self::OpeningBracket),
+            2 => Ok(Self::Body),
+            3 => Ok(Self::BodyExpression),
+            4 => Ok(Self::TagLeftAnglePlusWhitespace),
+            5 => Ok(Self::TagCloseBeforeNamePlusWhitespace),
+            6 => Ok(Self::TagName),
+            7 => Ok(Self::TagContent),
+            8 => Ok(Self::TagAttributeName),
+            9 => Ok(Self::TagAttributeValue),
+            10 => Ok(Self::TagAttributeValueString),
+            11 => Ok(Self::TagSelfClose),
+            unknown_parser_state => Err(LexError::Runtime(format!(
+                "Invalid parser state {unknown_parser_state}"
+            ))),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
+    use rhai::LexError;
 
     use super::ParserState;
 
     #[test]
-    fn try_from_returns_the_expected_variant_for_each_valid_value() -> Result<()> {
-        let expected = [
-            (0, ParserState::Start as i32),
-            (1, ParserState::OpeningBracket as i32),
-            (2, ParserState::Body as i32),
-            (3, ParserState::BodyExpression as i32),
-            (4, ParserState::TagLeftAnglePlusWhitespace as i32),
-            (5, ParserState::TagCloseBeforeNamePlusWhitespace as i32),
-            (6, ParserState::TagName as i32),
-            (7, ParserState::TagContent as i32),
-            (8, ParserState::TagAttributeName as i32),
-            (9, ParserState::TagAttributeValue as i32),
-            (10, ParserState::TagAttributeValueString as i32),
-            (11, ParserState::TagSelfClose as i32),
-        ];
+    fn maps_every_known_state_tag_to_its_state() {
+        for parser_state in [
+            ParserState::Start,
+            ParserState::OpeningBracket,
+            ParserState::Body,
+            ParserState::BodyExpression,
+            ParserState::TagLeftAnglePlusWhitespace,
+            ParserState::TagCloseBeforeNamePlusWhitespace,
+            ParserState::TagName,
+            ParserState::TagContent,
+            ParserState::TagAttributeName,
+            ParserState::TagAttributeValue,
+            ParserState::TagAttributeValueString,
+            ParserState::TagSelfClose,
+        ] {
+            let parser_state_tag = parser_state as i32;
 
-        for (input, expected_discriminant) in expected {
             assert!(
-                ParserState::try_from(input)
-                    .is_ok_and(|state| state as i32 == expected_discriminant)
+                ParserState::try_from(parser_state_tag)
+                    .is_ok_and(|mapped_state| mapped_state as i32 == parser_state_tag)
             );
         }
-
-        Ok(())
     }
 
     #[test]
-    fn try_from_returns_err_for_unknown_value() -> Result<()> {
-        assert!(ParserState::try_from(99).is_err());
-
-        Ok(())
+    fn rejects_unknown_state_tag() {
+        assert!(matches!(
+            ParserState::try_from(99),
+            Err(LexError::Runtime(message)) if message == "Invalid parser state 99"
+        ));
     }
 }

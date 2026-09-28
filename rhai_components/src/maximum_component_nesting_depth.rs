@@ -1,0 +1,1 @@
+pub const MAXIMUM_COMPONENT_NESTING_DEPTH: usize = 40;

@@ -3,7 +3,7 @@ pub enum OutputSymbol {
     BodyExpression,
     Text(String),
     TagLeftAnglePlusWhitespace,
-    TagCloseBeforeNamePlusWhitespace(String),
+    TagCloseBeforeNamePlusWhitespace,
     TagName(String),
     TagPadding,
     TagAttributeName(String),

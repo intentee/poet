@@ -1,7 +1,7 @@
 use super::attribute_value::AttributeValue;
 use super::expression_reference::ExpressionReference;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum OutputCombinedSymbol {
     BodyExpression(ExpressionReference),
     Text(String),

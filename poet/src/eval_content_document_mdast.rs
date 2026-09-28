@@ -510,10 +510,10 @@ mod tests {
     }
 
     fn renderer() -> Result<RhaiTemplateRenderer> {
-        RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
+        Ok(RhaiTemplateRenderer::build(RhaiTemplateRendererParams {
             component_registry: Arc::new(ComponentRegistry::default()),
             expression_engine: Engine::new_raw(),
-        })
+        })?)
     }
 
     fn single_token_syntax_set() -> Result<SyntaxSet> {

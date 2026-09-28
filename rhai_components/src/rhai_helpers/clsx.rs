@@ -1,70 +1,70 @@
 use rhai::EvalAltResult;
 use rhai::Map;
 
-pub fn clsx(message: Map) -> Result<String, Box<EvalAltResult>> {
+use crate::rhai_components_error::RhaiComponentsError;
+
+pub fn clsx(class_toggles: Map) -> Result<String, Box<EvalAltResult>> {
     let mut glued_class = String::new();
 
-    for (key, value) in &message {
-        if !value.is_bool() {
-            return Err(format!("Expected only boolean map values, got: {value}").into());
-        }
+    for (class_name, class_toggle) in &class_toggles {
+        let is_enabled = class_toggle.as_bool().map_err(|value_type| {
+            RhaiComponentsError::ClsxValueNotBoolean {
+                class_name: class_name.to_string(),
+                value_type: value_type.to_owned(),
+            }
+        })?;
 
-        if value.as_bool().unwrap_or(false) {
-            glued_class.push_str(&format!(" {key}"));
+        if is_enabled {
+            glued_class.push(' ');
+            glued_class.push_str(class_name);
         }
     }
 
-    Ok(glued_class.trim().to_string())
+    Ok(glued_class.trim().to_owned())
 }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
     use rhai::Dynamic;
+    use rhai::EvalAltResult;
     use rhai::Map;
 
     use super::clsx;
+    use crate::rhai_components_error::RhaiComponentsError;
 
-    fn make_map(entries: &[(&str, Dynamic)]) -> Map {
-        let mut map = Map::new();
-
-        for (key, value) in entries {
-            map.insert((*key).into(), value.clone());
-        }
-
-        map
+    fn class_toggles(entries: &[(&str, Dynamic)]) -> Map {
+        entries
+            .iter()
+            .map(|(class_name, class_toggle)| ((*class_name).into(), class_toggle.clone()))
+            .collect()
     }
 
     #[test]
-    fn joins_truthy_keys_with_single_space_and_drops_falsy_keys() -> Result<()> {
-        let map = make_map(&[
-            ("a", Dynamic::from(true)),
-            ("b", Dynamic::from(false)),
-            ("c", Dynamic::from(true)),
-        ]);
-
-        assert!(clsx(map).is_ok_and(|joined| joined == "a c"));
-
-        Ok(())
+    fn joins_enabled_classes() {
+        assert!(
+            clsx(class_toggles(&[
+                ("a", Dynamic::from(true)),
+                ("b", Dynamic::from(false)),
+                ("c", Dynamic::from(true)),
+            ]))
+            .is_ok_and(|glued_class| glued_class == "a c")
+        );
     }
 
     #[test]
-    fn returns_empty_string_for_empty_map() -> Result<()> {
-        assert!(clsx(Map::new()).is_ok_and(|joined| joined.is_empty()));
-
-        Ok(())
-    }
-
-    #[test]
-    fn returns_error_when_value_is_not_bool() -> Result<()> {
-        let map = make_map(&[("a", Dynamic::from(1_i64))]);
-
-        assert!(clsx(map).is_err_and(|error| {
-            error
-                .to_string()
-                .contains("Expected only boolean map values")
-        }));
-
-        Ok(())
+    fn rejects_non_boolean_toggle() {
+        assert!(
+            clsx(class_toggles(&[("a", Dynamic::from(1_i64))])).is_err_and(|eval_alt_result| {
+                matches!(
+                    *eval_alt_result,
+                    EvalAltResult::ErrorSystem(_, ref source)
+                        if matches!(
+                            source.downcast_ref::<RhaiComponentsError>(),
+                            Some(RhaiComponentsError::ClsxValueNotBoolean { class_name, value_type })
+                                if class_name == "a" && value_type == "i64"
+                        )
+                )
+            })
+        );
     }
 }

@@ -1,29 +1,35 @@
+use rhai::Array;
 use rhai::Dynamic;
-use rhai::EvalAltResult;
+use rhai::ImmutableString;
+use rhai::Map;
 
-pub fn has(value: Dynamic) -> Result<bool, Box<EvalAltResult>> {
-    Ok(match value.type_name() {
-        "()" => false,
-        "array" => value
-            .as_array_ref()
-            .map(|array| !array.is_empty())
-            .unwrap_or(false),
-        "bool" => value.as_bool().unwrap_or(false),
-        "map" => value
-            .as_map_ref()
-            .map(|map| !map.is_empty())
-            .unwrap_or(false),
-        "string" => value
-            .into_string()
-            .map(|string| !string.is_empty())
-            .unwrap_or(false),
-        _ => true,
-    })
+#[must_use]
+pub fn has(value: Dynamic) -> bool {
+    if value.is_unit() {
+        return false;
+    }
+
+    if let Some(array) = value.read_lock::<Array>() {
+        return !array.is_empty();
+    }
+
+    if let Some(flag) = value.read_lock::<bool>() {
+        return *flag;
+    }
+
+    if let Some(map) = value.read_lock::<Map>() {
+        return !map.is_empty();
+    }
+
+    if let Some(string) = value.read_lock::<ImmutableString>() {
+        return !string.is_empty();
+    }
+
+    true
 }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
     use rhai::Array;
     use rhai::Dynamic;
     use rhai::Map;
@@ -31,56 +37,40 @@ mod tests {
     use super::has;
 
     #[test]
-    fn has_returns_false_for_unit() -> Result<()> {
-        assert!(has(Dynamic::UNIT).is_ok_and(|present| !present));
-
-        Ok(())
+    fn unit_is_absent() {
+        assert!(!has(Dynamic::UNIT));
     }
 
     #[test]
-    fn has_returns_non_emptiness_for_array() -> Result<()> {
-        let empty: Array = Vec::new();
-        let non_empty: Array = vec![Dynamic::from(1_i64)];
-
-        assert!(has(Dynamic::from(empty)).is_ok_and(|present| !present));
-        assert!(has(Dynamic::from(non_empty)).is_ok_and(|present| present));
-
-        Ok(())
+    fn array_is_present_when_not_empty() {
+        assert!(!has(Dynamic::from(Array::new())));
+        assert!(has(Dynamic::from(vec![Dynamic::from(1_i64)])));
     }
 
     #[test]
-    fn has_returns_its_value_for_bool() -> Result<()> {
-        assert!(has(Dynamic::from(true)).is_ok_and(|present| present));
-        assert!(has(Dynamic::from(false)).is_ok_and(|present| !present));
-
-        Ok(())
+    fn bool_is_present_when_true() {
+        assert!(has(Dynamic::from(true)));
+        assert!(!has(Dynamic::from(false)));
     }
 
     #[test]
-    fn has_returns_non_emptiness_for_map() -> Result<()> {
-        let empty = Map::new();
-        let mut non_empty = Map::new();
+    fn map_is_present_when_not_empty() {
+        let mut non_empty_map = Map::new();
 
-        non_empty.insert("a".into(), Dynamic::from(1_i64));
+        non_empty_map.insert("key".into(), Dynamic::from(1_i64));
 
-        assert!(has(Dynamic::from_map(empty)).is_ok_and(|present| !present));
-        assert!(has(Dynamic::from_map(non_empty)).is_ok_and(|present| present));
-
-        Ok(())
+        assert!(!has(Dynamic::from_map(Map::new())));
+        assert!(has(Dynamic::from_map(non_empty_map)));
     }
 
     #[test]
-    fn has_returns_non_emptiness_for_string() -> Result<()> {
-        assert!(has(Dynamic::from(String::new())).is_ok_and(|present| !present));
-        assert!(has(Dynamic::from("x".to_string())).is_ok_and(|present| present));
-
-        Ok(())
+    fn string_is_present_when_not_empty() {
+        assert!(!has(Dynamic::from(String::new())));
+        assert!(has(Dynamic::from("text".to_owned())));
     }
 
     #[test]
-    fn has_returns_true_for_other_types() -> Result<()> {
-        assert!(has(Dynamic::from(42_i64)).is_ok_and(|present| present));
-
-        Ok(())
+    fn other_values_are_present() {
+        assert!(has(Dynamic::from(42_i64)));
     }
 }

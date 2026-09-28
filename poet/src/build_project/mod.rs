@@ -98,12 +98,12 @@ fn render_document<'render>(
         syntax_set,
     )?;
 
-    rhai_template_renderer.render(
+    Ok(rhai_template_renderer.render(
         &front_matter.layout,
         component_context_with_toc.clone(),
         Dynamic::from_map(front_matter.props.clone()),
         layout_content.into(),
-    )
+    )?)
 }
 
 pub async fn build_project(

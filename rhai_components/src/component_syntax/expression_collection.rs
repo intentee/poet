@@ -4,56 +4,54 @@ use rhai::EvalContext;
 use rhai::Expression;
 
 use super::expression_reference::ExpressionReference;
+use crate::rhai_components_error::RhaiComponentsError;
 
-fn lookup_expression<'collection, 'expression>(
-    expressions: &'collection [Expression<'expression>],
-    expression_index: usize,
-) -> Result<&'collection Expression<'expression>, Box<EvalAltResult>> {
-    expressions.get(expression_index).ok_or_else(|| {
-        Box::new(EvalAltResult::ErrorRuntime(
-            "Expression index out of bounds".into(),
-            rhai::Position::NONE,
-        ))
-    })
+pub struct ExpressionCollection<'collection, 'expression> {
+    pub expressions: &'collection [Expression<'expression>],
 }
 
-pub struct ExpressionCollection<'expression> {
-    pub expressions: Vec<Expression<'expression>>,
-}
-
-impl<'expression> ExpressionCollection<'expression> {
-    pub fn eval_expression(
-        &mut self,
-        eval_context: &mut EvalContext,
+impl<'collection, 'expression> ExpressionCollection<'collection, 'expression> {
+    pub fn expression(
+        &self,
         ExpressionReference { expression_index }: &ExpressionReference,
+    ) -> Result<&'collection Expression<'expression>, RhaiComponentsError> {
+        self.expressions.get(*expression_index).ok_or(
+            RhaiComponentsError::ExpressionIndexOutOfBounds {
+                expression_index: *expression_index,
+            },
+        )
+    }
+
+    pub fn eval_expression(
+        &self,
+        eval_context: &mut EvalContext,
+        expression_reference: &ExpressionReference,
     ) -> Result<Dynamic, Box<EvalAltResult>> {
-        lookup_expression(&self.expressions, *expression_index)
-            .and_then(|expression| eval_context.eval_expression_tree(expression))
+        eval_context.eval_expression_tree(self.expression(expression_reference)?)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::mem::discriminant;
-
-    use anyhow::Result;
-    use rhai::Dynamic;
-    use rhai::EvalAltResult;
-    use rhai::Expression;
-    use rhai::Position;
-
-    use super::lookup_expression;
+    use super::ExpressionCollection;
+    use crate::component_syntax::expression_reference::ExpressionReference;
+    use crate::rhai_components_error::RhaiComponentsError;
 
     #[test]
-    fn lookup_expression_returns_runtime_error_when_index_is_out_of_bounds() -> Result<()> {
-        let expressions: Vec<Expression<'_>> = Vec::new();
-        let reference = discriminant(&EvalAltResult::ErrorRuntime(Dynamic::UNIT, Position::NONE));
+    fn rejects_reference_beyond_collected_expressions() {
+        let expression_collection = ExpressionCollection { expressions: &[] };
 
-        assert!(lookup_expression(&expressions, 0).is_err_and(|boxed| {
-            discriminant(boxed.as_ref()) == reference
-                && boxed.to_string().contains("Expression index out of bounds")
-        }));
-
-        Ok(())
+        assert!(
+            expression_collection
+                .expression(&ExpressionReference {
+                    expression_index: 3
+                })
+                .is_err_and(|rhai_components_error| matches!(
+                    rhai_components_error,
+                    RhaiComponentsError::ExpressionIndexOutOfBounds {
+                        expression_index: 3
+                    }
+                ))
+        );
     }
 }

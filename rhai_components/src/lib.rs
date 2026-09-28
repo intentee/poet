@@ -1,8 +1,12 @@
-pub mod builds_engine;
+pub mod component_context_variable_name;
+pub mod component_nesting_depth;
 pub mod component_syntax;
+pub mod create_component_engine;
 pub mod escape_html;
 pub mod escape_html_attribute;
+pub mod maximum_component_nesting_depth;
 pub mod rhai_call_template_function;
+pub mod rhai_components_error;
 pub mod rhai_helpers;
 pub mod rhai_template_renderer;
 pub mod rhai_template_renderer_params;

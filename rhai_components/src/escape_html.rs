@@ -1,6 +1,7 @@
-/// Taken from Tera: https://github.com/Keats/tera/blob/master/src/utils.rs
+/// Taken from Tera: <https://github.com/Keats/tera/blob/master/src/utils.rs>
+#[must_use]
 pub fn escape_html(input: &str) -> String {
-    let mut output = String::with_capacity(input.len() * 2);
+    let mut output = String::with_capacity(input.len());
 
     for char in input.chars() {
         match char {
@@ -19,14 +20,10 @@ pub fn escape_html(input: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
     use super::escape_html;
 
     #[test]
-    fn escapes_each_special_character_and_preserves_other() -> Result<()> {
+    fn escapes_each_special_character_and_preserves_other() {
         assert_eq!(escape_html("&<>\"'/x"), "&amp;&lt;&gt;&quot;&#x27;&#x2F;x");
-
-        Ok(())
     }
 }

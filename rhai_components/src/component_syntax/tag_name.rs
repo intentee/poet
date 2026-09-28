@@ -4,13 +4,17 @@ pub struct TagName {
 }
 
 impl TagName {
-    pub fn is_component(&self) -> bool {
-        self.name
-            .chars()
-            .next()
-            .is_some_and(|first_character| first_character.is_uppercase())
+    #[must_use]
+    pub fn closing_tag(&self) -> String {
+        format!("</{}>", self.name)
     }
 
+    #[must_use]
+    pub fn is_component(&self) -> bool {
+        self.name.chars().next().is_some_and(char::is_uppercase)
+    }
+
+    #[must_use]
     pub fn is_void_element(&self) -> bool {
         self.name == "!DOCTYPE"
             || self.name == "area"
@@ -32,60 +36,39 @@ impl TagName {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
     use super::TagName;
 
-    #[test]
-    fn is_component_returns_true_for_uppercase_first_character() -> Result<()> {
-        let tag_name = TagName {
-            name: "Button".to_string(),
-        };
-
-        assert!(tag_name.is_component());
-
-        Ok(())
+    fn tag_name(name: &str) -> TagName {
+        TagName {
+            name: name.to_owned(),
+        }
     }
 
     #[test]
-    fn is_component_returns_false_for_lowercase_and_for_empty_name() -> Result<()> {
-        let lowercase = TagName {
-            name: "div".to_string(),
-        };
-        let empty = TagName {
-            name: String::new(),
-        };
-
-        assert!(!lowercase.is_component());
-        assert!(!empty.is_component());
-
-        Ok(())
+    fn treats_uppercase_first_character_as_component() {
+        assert!(tag_name("Button").is_component());
     }
 
     #[test]
-    fn is_void_element_recognises_all_void_names_and_rejects_normal_name() -> Result<()> {
-        let void_names = [
+    fn treats_lowercase_and_empty_names_as_elements() {
+        assert!(!tag_name("div").is_component());
+        assert!(!tag_name("").is_component());
+    }
+
+    #[test]
+    fn recognizes_every_void_element() {
+        for void_name in [
             "!DOCTYPE", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
             "param", "source", "track", "wbr",
-        ];
-
-        for void_name in void_names {
-            let tag_name = TagName {
-                name: void_name.to_string(),
-            };
-
-            assert!(
-                tag_name.is_void_element(),
-                "expected {void_name} to be void"
-            );
+        ] {
+            assert!(tag_name(void_name).is_void_element(), "{void_name}");
         }
 
-        let non_void = TagName {
-            name: "div".to_string(),
-        };
+        assert!(!tag_name("div").is_void_element());
+    }
 
-        assert!(!non_void.is_void_element());
-
-        Ok(())
+    #[test]
+    fn renders_closing_tag() {
+        assert_eq!(tag_name("section").closing_tag(), "</section>");
     }
 }

@@ -2288,11 +2288,20 @@ dependencies = [
 
 [[package]]
 name = "rhai_components"
-version = "0.5.12"
+version = "0.6.0"
 dependencies = [
- "anyhow",
  "dashmap",
  "rhai",
+ "thiserror",
+]
+
+[[package]]
+name = "rhai_components_tests"
+version = "0.8.0"
+dependencies = [
+ "dashmap",
+ "rhai",
+ "rhai_components",
 ]
 
 [[package]]

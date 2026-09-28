@@ -1,0 +1,21 @@
+[package]
+name = "rhai_components_tests"
+autotests = false
+description = "Integration tests for rhai_components"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+dashmap = { workspace = true }
+rhai = { workspace = true }
+rhai_components = { workspace = true }
+
+[lints]
+workspace = true

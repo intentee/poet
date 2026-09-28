@@ -6,248 +6,228 @@ use rhai::Position;
 
 use super::output_semantic_symbol::OutputSemanticSymbol;
 use super::tag::Tag;
+use super::tag_kind::TagKind;
+use super::tag_stack::TagStack;
+use super::tag_stack_element::TagStackElement;
 use super::tag_stack_node::TagStackNode;
 
-pub fn combine_tag_stack(
-    current_node: &mut TagStackNode,
-    opened_tags: &mut VecDeque<Tag>,
+fn combine_element_children(
+    opening_tag: &Tag,
     semantic_symbols: &mut VecDeque<OutputSemanticSymbol>,
-) -> Result<(), ParseError> {
-    match current_node {
-        TagStackNode::Tag {
-            children,
-            is_closed,
-            opening_tag,
-        } => {
-            let next_symbol = semantic_symbols.pop_front();
+) -> Result<Vec<TagStackNode>, ParseError> {
+    let mut children = Vec::new();
 
-            match next_symbol {
-                Some(OutputSemanticSymbol::BodyExpression(expression_reference)) => {
-                    children.push(TagStackNode::BodyExpression(expression_reference));
-
-                    combine_tag_stack(current_node, opened_tags, semantic_symbols)
+    loop {
+        match semantic_symbols.pop_front() {
+            None => {
+                return Err(LexError::UnexpectedInput(format!(
+                    "Unclosed tag: <{}>",
+                    opening_tag.tag_name.name
+                ))
+                .into_err(Position::NONE));
+            }
+            Some(OutputSemanticSymbol::Tag(tag)) if tag.kind == TagKind::Closing => {
+                if tag.tag_name.name == opening_tag.tag_name.name {
+                    return Ok(children);
                 }
-                Some(OutputSemanticSymbol::Tag(tag)) => {
-                    if tag.is_closing {
-                        if let Some(opening_tag) = &opening_tag {
-                            if opening_tag.tag_name.name != tag.tag_name.name {
-                                return Err(LexError::UnexpectedInput(format!(
-                                    "Mismatched closing tag: expected </{}>, got </{}>",
-                                    opening_tag.tag_name.name, tag.tag_name.name
-                                ))
-                                .into_err(Position::NONE));
-                            }
 
-                            opened_tags.pop_back();
-                        } else {
-                            return Err(LexError::UnexpectedInput(format!(
-                                "Unexpected closing tag: </{}>",
-                                tag.tag_name.name
-                            ))
-                            .into_err(Position::NONE));
-                        }
-
-                        *is_closed = true;
-
-                        Ok(())
-                    } else if tag.is_self_closing || tag.tag_name.is_void_element() {
-                        children.push(TagStackNode::Tag {
-                            children: vec![],
-                            is_closed: false,
-                            opening_tag: Some(tag),
-                        });
-
-                        combine_tag_stack(current_node, opened_tags, semantic_symbols)
-                    } else {
-                        opened_tags.push_back(tag.clone());
-
-                        let mut child_node = TagStackNode::Tag {
-                            children: vec![],
-                            is_closed: false,
-                            opening_tag: Some(tag),
-                        };
-
-                        combine_tag_stack(&mut child_node, opened_tags, semantic_symbols)?;
-
-                        children.push(child_node);
-
-                        combine_tag_stack(current_node, opened_tags, semantic_symbols)
-                    }
-                }
-                Some(OutputSemanticSymbol::Text(text)) => {
-                    if !text.is_empty() {
-                        children.push(TagStackNode::Text(text));
-                    }
-
-                    combine_tag_stack(current_node, opened_tags, semantic_symbols)
-                }
-                None => match opened_tags.back() {
-                    Some(tag) => Err(LexError::UnexpectedInput(format!(
-                        "Unclosed tag: <{}>",
-                        tag.tag_name.name
-                    ))
-                    .into_err(Position::NONE)),
-                    None => Ok(()),
-                },
+                return Err(LexError::UnexpectedInput(format!(
+                    "Mismatched closing tag: expected </{}>, got </{}>",
+                    opening_tag.tag_name.name, tag.tag_name.name
+                ))
+                .into_err(Position::NONE));
+            }
+            Some(semantic_symbol) => {
+                append_semantic_symbol(&mut children, semantic_symbol, semantic_symbols)?;
             }
         }
-        TagStackNode::BodyExpression(_) => Err(LexError::UnexpectedInput(
-            "Cannot add child to body expression node".to_string(),
-        )
-        .into_err(Position::NONE)),
-        TagStackNode::Text(_) => Err(LexError::UnexpectedInput(
-            "Cannot add child to text node".to_string(),
-        )
-        .into_err(Position::NONE)),
     }
+}
+
+fn append_semantic_symbol(
+    children: &mut Vec<TagStackNode>,
+    semantic_symbol: OutputSemanticSymbol,
+    semantic_symbols: &mut VecDeque<OutputSemanticSymbol>,
+) -> Result<(), ParseError> {
+    match semantic_symbol {
+        OutputSemanticSymbol::BodyExpression(expression_reference) => {
+            children.push(TagStackNode::BodyExpression(expression_reference));
+        }
+        OutputSemanticSymbol::Tag(opening_tag) => {
+            let element_children = if opening_tag.kind == TagKind::Opening
+                && !opening_tag.tag_name.is_void_element()
+            {
+                combine_element_children(&opening_tag, semantic_symbols)?
+            } else {
+                Vec::new()
+            };
+
+            children.push(TagStackNode::Element(TagStackElement {
+                children: element_children,
+                opening_tag,
+            }));
+        }
+        OutputSemanticSymbol::Text(text) => {
+            if !text.is_empty() {
+                children.push(TagStackNode::Text(text));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn combine_tag_stack(
+    semantic_symbols: &mut VecDeque<OutputSemanticSymbol>,
+) -> Result<TagStack, ParseError> {
+    let mut children = Vec::new();
+
+    while let Some(semantic_symbol) = semantic_symbols.pop_front() {
+        match semantic_symbol {
+            OutputSemanticSymbol::Tag(tag) if tag.kind == TagKind::Closing => {
+                return Err(LexError::UnexpectedInput(format!(
+                    "Unexpected closing tag: </{}>",
+                    tag.tag_name.name
+                ))
+                .into_err(Position::NONE));
+            }
+            semantic_symbol => {
+                append_semantic_symbol(&mut children, semantic_symbol, semantic_symbols)?;
+            }
+        }
+    }
+
+    Ok(TagStack { children })
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
 
-    use anyhow::Result;
+    use rhai::LexError;
+    use rhai::ParseError;
+    use rhai::ParseErrorType;
 
     use super::OutputSemanticSymbol;
     use super::Tag;
+    use super::TagKind;
     use super::TagStackNode;
     use super::combine_tag_stack;
-    use crate::component_syntax::expression_reference::ExpressionReference;
     use crate::component_syntax::tag_name::TagName;
 
-    fn make_tag(name: &str, is_closing: bool, is_self_closing: bool) -> Tag {
-        Tag {
+    fn tag(name: &str, kind: TagKind) -> OutputSemanticSymbol {
+        OutputSemanticSymbol::Tag(Tag {
             attributes: vec![],
-            is_closing,
-            is_self_closing,
+            kind,
             tag_name: TagName {
-                name: name.to_string(),
+                name: name.to_owned(),
             },
-        }
+        })
     }
 
-    fn empty_root() -> TagStackNode {
-        TagStackNode::Tag {
-            children: vec![],
-            is_closed: false,
-            opening_tag: None,
-        }
+    fn is_unexpected_input(parse_error: &ParseError, expected_message: &str) -> bool {
+        matches!(
+            parse_error.err_type(),
+            ParseErrorType::BadInput(LexError::UnexpectedInput(message)) if message == expected_message
+        )
     }
 
     #[test]
-    fn errs_when_root_node_is_body_expression() -> Result<()> {
-        let mut root = TagStackNode::BodyExpression(ExpressionReference {
-            expression_index: 0,
-        });
+    fn rejects_mismatched_closing_tag() {
+        let mut semantic_symbols =
+            VecDeque::from([tag("div", TagKind::Opening), tag("span", TagKind::Closing)]);
 
         assert!(
-            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut VecDeque::new()).is_err_and(
-                |error| error
-                    .to_string()
-                    .contains("Cannot add child to body expression node")
-            )
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn errs_when_root_node_is_text() -> Result<()> {
-        let mut root = TagStackNode::Text("hi".to_string());
-
-        assert!(
-            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut VecDeque::new())
-                .is_err_and(|error| error.to_string().contains("Cannot add child to text node"))
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn errs_on_mismatched_closing_tag_name() -> Result<()> {
-        let opening = make_tag("div", false, false);
-        let mut root = TagStackNode::Tag {
-            children: vec![],
-            is_closed: false,
-            opening_tag: Some(opening),
-        };
-        let mut symbols = VecDeque::new();
-
-        symbols.push_back(OutputSemanticSymbol::Tag(make_tag("span", true, false)));
-
-        assert!(
-            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols)
-                .is_err_and(|error| error.to_string().contains("Mismatched closing tag"))
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn errs_on_closing_tag_when_no_tag_is_open() -> Result<()> {
-        let mut root = empty_root();
-        let mut symbols = VecDeque::new();
-
-        symbols.push_back(OutputSemanticSymbol::Tag(make_tag("div", true, false)));
-
-        assert!(
-            combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols)
-                .is_err_and(|error| error.to_string().contains("Unexpected closing tag"))
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn errs_on_unclosed_tag_at_end() -> Result<()> {
-        let mut root = empty_root();
-        let mut opened = VecDeque::new();
-
-        opened.push_back(make_tag("div", false, false));
-
-        assert!(
-            combine_tag_stack(&mut root, &mut opened, &mut VecDeque::new())
-                .is_err_and(|error| error.to_string().contains("Unclosed tag"))
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn adds_void_element_as_child_without_requiring_close() -> Result<()> {
-        let mut root = empty_root();
-        let mut symbols = VecDeque::new();
-
-        symbols.push_back(OutputSemanticSymbol::Tag(make_tag("br", false, false)));
-
-        assert!(combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok());
-        assert!(matches!(
-            &root,
-            TagStackNode::Tag { children, .. }
-                if children.len() == 1
-                && matches!(
-                    &children[0],
-                    TagStackNode::Tag { opening_tag: Some(tag), is_closed: false, .. }
-                        if tag.tag_name.name == "br"
+            combine_tag_stack(&mut semantic_symbols).is_err_and(|parse_error| {
+                is_unexpected_input(
+                    &parse_error,
+                    "Mismatched closing tag: expected </div>, got </span>",
                 )
-        ));
-
-        Ok(())
+            })
+        );
     }
 
     #[test]
-    fn drops_empty_text_node_without_adding_child() -> Result<()> {
-        let mut root = empty_root();
-        let mut symbols = VecDeque::new();
+    fn rejects_closing_tag_without_open_tag() {
+        let mut semantic_symbols = VecDeque::from([tag("div", TagKind::Closing)]);
 
-        symbols.push_back(OutputSemanticSymbol::Text(String::new()));
+        assert!(
+            combine_tag_stack(&mut semantic_symbols).is_err_and(|parse_error| {
+                is_unexpected_input(&parse_error, "Unexpected closing tag: </div>")
+            })
+        );
+    }
 
-        assert!(combine_tag_stack(&mut root, &mut VecDeque::new(), &mut symbols).is_ok());
-        assert!(matches!(
-            &root,
-            TagStackNode::Tag { children, .. } if children.is_empty()
-        ));
+    #[test]
+    fn rejects_unclosed_tag() {
+        let mut semantic_symbols = VecDeque::from([tag("div", TagKind::Opening)]);
 
-        Ok(())
+        assert!(
+            combine_tag_stack(&mut semantic_symbols)
+                .is_err_and(|parse_error| is_unexpected_input(&parse_error, "Unclosed tag: <div>"))
+        );
+    }
+
+    #[test]
+    fn adds_void_element_without_requiring_closing_tag() {
+        let mut semantic_symbols = VecDeque::from([tag("br", TagKind::Opening)]);
+
+        assert!(
+            combine_tag_stack(&mut semantic_symbols).is_ok_and(|tag_stack| {
+                matches!(
+                    tag_stack.children.as_slice(),
+                    [TagStackNode::Element(element)]
+                        if element.opening_tag.tag_name.name == "br" && element.children.is_empty()
+                )
+            })
+        );
+    }
+
+    #[test]
+    fn nests_children_until_matching_closing_tag() {
+        let mut semantic_symbols = VecDeque::from([
+            tag("ul", TagKind::Opening),
+            tag("li", TagKind::SelfClosing),
+            tag("ul", TagKind::Closing),
+        ]);
+
+        assert!(combine_tag_stack(&mut semantic_symbols).is_ok_and(|tag_stack| {
+            matches!(
+                tag_stack.children.as_slice(),
+                [TagStackNode::Element(element)]
+                    if matches!(
+                        element.children.as_slice(),
+                        [TagStackNode::Element(child)] if child.opening_tag.tag_name.name == "li"
+                    )
+            )
+        }));
+    }
+
+    #[test]
+    fn drops_empty_text() {
+        let mut semantic_symbols = VecDeque::from([OutputSemanticSymbol::Text(String::new())]);
+
+        assert!(
+            combine_tag_stack(&mut semantic_symbols)
+                .is_ok_and(|tag_stack| tag_stack.children.is_empty())
+        );
+    }
+
+    #[test]
+    fn rejects_mismatched_closing_tag_inside_nested_element() {
+        let mut semantic_symbols = VecDeque::from([
+            tag("ul", TagKind::Opening),
+            tag("li", TagKind::Opening),
+            tag("ul", TagKind::Closing),
+        ]);
+
+        assert!(
+            combine_tag_stack(&mut semantic_symbols).is_err_and(|parse_error| {
+                is_unexpected_input(
+                    &parse_error,
+                    "Mismatched closing tag: expected </li>, got </ul>",
+                )
+            })
+        );
     }
 }

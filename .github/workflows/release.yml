@@ -8,8 +8,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  resolve-version:
+    name: resolve-version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release-version.outputs.version }}
+      name: ${{ steps.release-version.outputs.name }}
+      description: ${{ steps.release-version.outputs.description }}
+      type: ${{ steps.release-version.outputs.type }}
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - id: release-version
+        uses: intentee/release-action/release-tag-to-version@8125f727e97f72bfef24299d7c6d3217af1453bc
+        with:
+          release-tag: "${{ github.ref_name }}"
+
   build:
     name: build
+    needs: resolve-version
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -24,36 +42,49 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v4
 
-      - name: set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-
       - name: build the binary
-        run: make release
+        run: make target/release/poet
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - id: release-version
-        uses: intentee/release-action/release-tag-to-version@abdb835f34e49f5107b4569a381e0853c399797f
-        with:
-          release-tag: "${{ github.ref_name }}"
 
       - name: rename the binary
         run: mv ./target/release/poet ./${{ matrix.artifact_name }}
         shell: bash
 
-      - uses: intentee/release-action/assert-version@abdb835f34e49f5107b4569a381e0853c399797f
+      - name: assert version matches tag
+        uses: intentee/release-action/assert-version@8125f727e97f72bfef24299d7c6d3217af1453bc
         with:
           filename: "./${{ matrix.artifact_name }}"
-          expected-version: "${{ steps.release-version.outputs.version }}"
+          expected-version: "${{ needs.resolve-version.outputs.version }}"
 
-      - name: upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          file: ./${{ matrix.artifact_name }}*
-          file_glob: true
-          overwrite: true
-          prerelease: ${{ steps.release-version.outputs.type == 'PRE_RELEASE' }}
-          tag: ${{ github.ref }}
+          name: ${{ matrix.artifact_name }}
+          path: ./${{ matrix.artifact_name }}
+
+  release:
+    name: release
+    needs: [resolve-version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: create release with all artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          name: ${{ needs.resolve-version.outputs.name }}
+          body: ${{ needs.resolve-version.outputs.description }}
+          prerelease: ${{ needs.resolve-version.outputs.type == 'PRE_RELEASE' }}
+          tag_name: ${{ github.ref }}

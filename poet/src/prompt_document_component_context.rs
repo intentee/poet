@@ -142,7 +142,7 @@ impl CustomType for PromptDocumentComponentContext {
 
 #[cfg(test)]
 mod tests {
-    use esbuild_metafile::EsbuildMetaFile;
+    use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
@@ -171,7 +171,7 @@ mod tests {
         PromptDocumentComponentContext {
             arguments: HashMap::new(),
             asset_manager: AssetManager::from_esbuild_metafile(
-                Arc::new(EsbuildMetaFile::default()),
+                Arc::new(EsbuildMetafile::default()),
                 AssetPathRenderer {
                     base_path: "/".to_string(),
                 },

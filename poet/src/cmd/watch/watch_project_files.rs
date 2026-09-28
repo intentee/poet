@@ -7,12 +7,12 @@ use std::time::Duration;
 use anyhow::Result;
 use log::error;
 use log::info;
-use notify::EventKind;
-use notify::RecommendedWatcher;
 use notify_debouncer_full::DebounceEventResult;
 use notify_debouncer_full::Debouncer;
 use notify_debouncer_full::RecommendedCache;
 use notify_debouncer_full::new_debouncer;
+use notify_debouncer_full::notify::EventKind;
+use notify_debouncer_full::notify::RecommendedWatcher;
 use notify_debouncer_full::notify::RecursiveMode;
 use tokio::sync::Notify;
 

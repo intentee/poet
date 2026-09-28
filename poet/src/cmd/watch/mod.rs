@@ -22,14 +22,14 @@ use crate::cmd::handler::Handler;
 use crate::cmd::service_manager::ServiceManager;
 use crate::cmd::value_parser::parse_socket_addr;
 use crate::cmd::value_parser::validate_is_directory;
-use crate::cmd::watch::service::esbuild_metafile_reader::EsbuildMetaFileReader;
+use crate::cmd::watch::service::esbuild_metafile_reader::EsbuildMetafileReader;
 use crate::cmd::watch::service::filesystem_http_route_index_builder::FilesystemHttpRouteIndexBuilder;
 use crate::cmd::watch::service::http_server::HttpServer;
 use crate::cmd::watch::service::project_builder::ProjectBuilder;
 use crate::cmd::watch::service::prompt_controller_collection_builder::PromptControllerCollectionBuilder;
 use crate::cmd::watch::service::search_index_builder::SearchIndexBuilder;
 use crate::cmd::watch::service::shortcodes_compiler::ShortcodesCompiler;
-use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
+use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::filesystem_http_route_index_holder::FilesystemHttpRouteIndexHolder;
 use crate::mcp::resource_provider::ResourceProvider;
 use crate::mcp::session_manager::SessionManager;
@@ -83,7 +83,7 @@ impl Handler for Watch {
             base_path: generated_page_base_path.clone(),
         };
         let build_project_result_holder: BuildProjectResultHolder = Default::default();
-        let esbuild_metafile_holder: EsbuildMetaFileHolder = Default::default();
+        let esbuild_metafile_holder: EsbuildMetafileHolder = Default::default();
         let filesystem_http_route_index_holder: FilesystemHttpRouteIndexHolder = Default::default();
         let mcp_resource_provider_content_documents: McpResourceProviderContentDocuments =
             McpResourceProviderContentDocuments(build_project_result_holder.clone());
@@ -105,7 +105,7 @@ impl Handler for Watch {
 
         let mut service_manager: ServiceManager = Default::default();
 
-        service_manager.register_service(Arc::new(EsbuildMetaFileReader {
+        service_manager.register_service(Arc::new(EsbuildMetafileReader {
             ctrlc_notifier: ctrlc_notifier.clone(),
             esbuild_metafile_holder: esbuild_metafile_holder.clone(),
             on_esbuild_metafile_changed,

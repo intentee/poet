@@ -2,8 +2,14 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use esbuild_metafile::EsbuildMetaFile;
-use esbuild_metafile::HttpPreloader;
+use dashmap::DashSet;
+use esbuild_metafile::asset::Asset;
+use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
+use esbuild_metafile::input_lookup::InputLookup;
+use esbuild_metafile::input_properties::InputProperties;
+use esbuild_metafile::output_lookup::OutputLookup;
+use esbuild_metafile::output_properties::OutputProperties;
+use esbuild_metafile::preloadable_asset::PreloadableAsset;
 use esbuild_metafile::renders_path::RendersPath;
 use rhai::CustomType;
 use rhai::EvalAltResult;
@@ -15,60 +21,91 @@ use crate::is_image_path::is_image_path;
 
 #[derive(Clone)]
 pub struct AssetManager {
-    esbuild_metafile: Arc<EsbuildMetaFile>,
+    esbuild_metafile: Arc<EsbuildMetafile>,
     external_assets: Arc<Mutex<BTreeSet<ExternalAsset>>>,
-    http_preloader: Arc<HttpPreloader>,
+    includes: Arc<DashSet<Asset>>,
     path_renderer: AssetPathRenderer,
+    preloads: Arc<DashSet<PreloadableAsset>>,
 }
 
 impl AssetManager {
     pub fn from_esbuild_metafile(
-        esbuild_metafile: Arc<EsbuildMetaFile>,
+        esbuild_metafile: Arc<EsbuildMetafile>,
         path_renderer: AssetPathRenderer,
     ) -> Self {
         AssetManager {
-            esbuild_metafile: esbuild_metafile.clone(),
+            esbuild_metafile,
             external_assets: Arc::new(Mutex::new(BTreeSet::new())),
-            http_preloader: Arc::new(HttpPreloader::new(esbuild_metafile)),
+            includes: Arc::new(DashSet::new()),
             path_renderer,
+            preloads: Arc::new(DashSet::new()),
         }
     }
 
     pub fn file(&self, asset: &str) -> Result<String, String> {
-        if let Some(static_paths) = self.esbuild_metafile.find_static_paths_for_input(asset) {
-            if static_paths.len() != 1 {
-                return Err("Unexpectedly multiple assets resolved to the same input".into());
-            }
+        let InputProperties { static_paths, .. } = self.input_properties(asset);
 
-            if let Some(path) = static_paths.first() {
-                return Ok(self.path_renderer.render_path(path));
-            }
+        match static_paths.as_slice() {
+            [path] => Ok(self.path_renderer.render_path(path)),
+            [] => Err(format!("Asset not found: '{asset}'")),
+            _ => Err("Unexpectedly multiple assets resolved to the same input".into()),
         }
-
-        Err(format!("Asset not found: '{asset}'"))
     }
 
     pub fn image(&self, asset: &str) -> Result<String, String> {
-        if let Some(static_paths) = self.esbuild_metafile.find_static_paths_for_input(asset) {
-            let mut image_paths = static_paths.iter().filter(|path| is_image_path(path));
+        let InputProperties { static_paths, .. } = self.input_properties(asset);
+        let mut image_paths = static_paths.iter().filter(|path| is_image_path(path));
 
-            if let Some(image_path) = image_paths.next() {
-                if image_paths.next().is_some() {
-                    return Err(format!(
-                        "Multiple image assets resolved to the same input: '{asset}'"
-                    ));
-                }
-
-                return Ok(self.path_renderer.render_path(image_path));
+        if let Some(image_path) = image_paths.next() {
+            if image_paths.next().is_some() {
+                return Err(format!(
+                    "Multiple image assets resolved to the same input: '{asset}'"
+                ));
             }
+
+            return Ok(self.path_renderer.render_path(image_path));
         }
 
         Err(format!("Image asset not found: '{asset}'"))
     }
 
+    fn input_properties(&self, input_path: &str) -> InputProperties {
+        match self.esbuild_metafile.input(input_path) {
+            InputLookup::Found(input_properties) => input_properties,
+            InputLookup::NotFound => InputProperties {
+                outputs: Vec::new(),
+                static_paths: Vec::new(),
+            },
+        }
+    }
+
+    fn output_preloads(&self, output_path: &str) -> Result<Vec<String>, String> {
+        match self.esbuild_metafile.output(output_path) {
+            OutputLookup::Found(OutputProperties { preloads }) => Ok(preloads),
+            OutputLookup::NotFound => Err(format!("Asset output not found: '{output_path}'")),
+        }
+    }
+
+    fn register_preloads(&self, preload_paths: Vec<String>) {
+        for preload_path in preload_paths {
+            self.preloads
+                .insert(PreloadableAsset::from_path(preload_path));
+        }
+    }
+
     fn rhai_add(&mut self, asset: String) -> Result<(), Box<EvalAltResult>> {
-        if self.http_preloader.register_input(&asset).is_none() {
+        let InputProperties { outputs, .. } = self.input_properties(&asset);
+
+        if outputs.is_empty() {
             return Err(format!("Asset not found: {asset}").into());
+        }
+
+        for output_path in outputs {
+            let output_preloads = self.output_preloads(&output_path)?;
+
+            if self.includes.insert(Asset::from_path(output_path)) {
+                self.register_preloads(output_preloads);
+            }
         }
 
         Ok(())
@@ -82,8 +119,18 @@ impl AssetManager {
         Ok(self.image(&asset)?)
     }
 
-    fn rhai_preload(&mut self, asset: String) {
-        self.http_preloader.register_preload(&asset);
+    fn rhai_preload(&mut self, asset: String) -> Result<(), Box<EvalAltResult>> {
+        let InputProperties { outputs, .. } = self.input_properties(&asset);
+
+        for output_path in outputs {
+            let output_preloads = self.output_preloads(&output_path)?;
+
+            self.preloads
+                .insert(PreloadableAsset::from_path(output_path));
+            self.register_preloads(output_preloads);
+        }
+
+        Ok(())
     }
 
     fn rhai_render(&mut self) -> String {
@@ -91,11 +138,11 @@ impl AssetManager {
         let mut rendered_preloads: BTreeSet<String> = BTreeSet::new();
         let mut rendered_includes: BTreeSet<String> = BTreeSet::new();
 
-        for path in self.http_preloader.preloads.iter() {
+        for path in self.preloads.iter() {
             rendered_preloads.insert(path.render(&self.path_renderer));
         }
 
-        for path in self.http_preloader.includes.iter() {
+        for path in self.includes.iter() {
             rendered_includes.insert(path.render(&self.path_renderer));
         }
 
@@ -159,7 +206,7 @@ mod tests {
 
     fn asset_manager(metafile_json: &str) -> Result<AssetManager, anyhow::Error> {
         Ok(AssetManager::from_esbuild_metafile(
-            Arc::new(EsbuildMetaFile::from_str(metafile_json)?),
+            Arc::new(EsbuildMetafile::from_str(metafile_json)?),
             AssetPathRenderer {
                 base_path: "/".to_string(),
             },
@@ -397,10 +444,54 @@ mod tests {
     }
 
     #[test]
+    fn file_fails_for_entry_point_only_input() -> Result<(), anyhow::Error> {
+        let metafile = indoc! {r#"
+            {
+                "outputs": {
+                    "static/app_ABCDEF12.js": {
+                        "imports": [],
+                        "entryPoint": "app.ts",
+                        "inputs": { "app.ts": {} }
+                    }
+                }
+            }
+        "#};
+
+        assert_eq!(
+            asset_manager(metafile)?.file("app.ts"),
+            Err("Asset not found: 'app.ts'".to_string())
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn add_fails_for_static_only_input() -> Result<(), anyhow::Error> {
+        let metafile = indoc! {r#"
+            {
+                "outputs": {
+                    "static/logo_ABCDEF12.png": {
+                        "imports": [],
+                        "inputs": { "logo.png": {} }
+                    }
+                }
+            }
+        "#};
+
+        assert!(
+            asset_manager(metafile)?
+                .rhai_add("logo.png".to_string())
+                .is_err()
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn preload_registers_known_input_for_rendering() -> Result<(), anyhow::Error> {
         let mut manager = asset_manager(ENTRY_METAFILE)?;
 
-        manager.rhai_preload("logo.png".to_string());
+        assert!(manager.rhai_preload("logo.png".to_string()).is_ok());
 
         assert!(manager.rhai_render().contains("/static/"));
 

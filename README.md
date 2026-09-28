@@ -28,10 +28,10 @@ Visit our documentation page at: https://poet.intentee.com/
 
 ## Installation
 
-You can install Poet from Cargo (requires Rust and Nightly) by running:
+You can install Poet from Cargo (requires Rust) by running:
 
 ```bash
-cargo +nightly install poet
+cargo install --locked poet
 ```
 
 ## Getting started

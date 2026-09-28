@@ -7,20 +7,20 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::cmd::service::Service;
-use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
+use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;
 use crate::read_esbuild_metafile_or_default::read_esbuild_metafile_or_default;
 
-pub struct EsbuildMetaFileReader {
+pub struct EsbuildMetafileReader {
     pub ctrlc_notifier: CancellationToken,
-    pub esbuild_metafile_holder: EsbuildMetaFileHolder,
+    pub esbuild_metafile_holder: EsbuildMetafileHolder,
     pub on_esbuild_metafile_changed: Arc<Notify>,
     pub source_filesystem: Arc<Storage>,
 }
 
 #[async_trait]
-impl Service for EsbuildMetaFileReader {
+impl Service for EsbuildMetafileReader {
     async fn run(&self) -> Result<()> {
         loop {
             match read_esbuild_metafile_or_default(self.source_filesystem.clone()).await {

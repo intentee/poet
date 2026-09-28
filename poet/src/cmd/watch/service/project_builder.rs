@@ -14,7 +14,7 @@ use crate::build_project::build_project;
 use crate::build_project::build_project_params::BuildProjectParams;
 use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::cmd::service::Service;
-use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
+use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;
 use crate::mcp::jsonrpc::JSONRPC_VERSION;
@@ -27,7 +27,7 @@ pub struct ProjectBuilder {
     pub asset_path_renderer: AssetPathRenderer,
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
-    pub esbuild_metafile_holder: EsbuildMetaFileHolder,
+    pub esbuild_metafile_holder: EsbuildMetafileHolder,
     pub generated_page_base_path: String,
     pub on_author_file_changed: Arc<Notify>,
     pub on_content_file_changed: Arc<Notify>,

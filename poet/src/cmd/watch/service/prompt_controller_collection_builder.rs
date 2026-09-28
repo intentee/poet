@@ -13,7 +13,7 @@ use crate::build_project::build_project_result_holder::BuildProjectResultHolder;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection;
 use crate::build_prompt_document_controller_collection::build_prompt_document_controller_collection_params::BuildPromptControllerCollectionParams;
 use crate::cmd::service::Service;
-use crate::esbuild_metafile_holder::EsbuildMetaFileHolder;
+use crate::esbuild_metafile_holder::EsbuildMetafileHolder;
 use crate::filesystem::storage::Storage;
 use crate::holder::Holder as _;
 use crate::prompt_controller_collection_holder::PromptControllerCollectionHolder;
@@ -23,7 +23,7 @@ pub struct PromptControllerCollectionBuilder {
     pub asset_path_renderer: AssetPathRenderer,
     pub build_project_result_holder: BuildProjectResultHolder,
     pub ctrlc_notifier: CancellationToken,
-    pub esbuild_metafile_holder: EsbuildMetaFileHolder,
+    pub esbuild_metafile_holder: EsbuildMetafileHolder,
     pub on_prompt_file_changed: Arc<Notify>,
     pub prompt_controller_collection_holder: PromptControllerCollectionHolder,
     pub rhai_template_renderer_holder: RhaiTemplateRendererHolder,

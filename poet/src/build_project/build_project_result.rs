@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use esbuild_metafile::EsbuildMetaFile;
+use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 
 use crate::build_project::build_project_result_stub::BuildProjectResultStub;
 use crate::content_document_basename::ContentDocumentBasename;
@@ -14,7 +14,7 @@ pub struct BuildProjectResult {
     pub changed_since_last_build: Vec<ContentDocumentSource>,
     pub content_document_linker: ContentDocumentLinker,
     pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
-    pub esbuild_metafile: Arc<EsbuildMetaFile>,
+    pub esbuild_metafile: Arc<EsbuildMetafile>,
     pub memory_filesystem: Arc<Memory>,
 }
 

@@ -1,23 +1,25 @@
-.DEFAULT_GOAL := release
+.DEFAULT_GOAL := target/release/poet
 
 RUST_LOG ?= debug
+
+POET_SOURCES := $(shell find poet/src rhai_components/src -name '*.rs') Cargo.toml Cargo.lock poet/Cargo.toml rhai_components/Cargo.toml
 
 # -----------------------------------------------------------------------------
 # Real targets
 # -----------------------------------------------------------------------------
 
 node_modules: package-lock.json
-	npm install --from-lockfile
+	npm ci
 	touch node_modules
 
 package-lock.json: package.json
 	npm install --package-lock-only
 
-public: node_modules
-	./jarmuz-generate.mjs
-
-target/debug/poet: target/debug/poet
+target/debug/poet: $(POET_SOURCES)
 	cargo build
+
+target/release/poet: $(POET_SOURCES)
+	cargo build --release
 
 test_site-x86_64.AppImage: test_site.AppDir test_site.AppDir/poet
 	ARCH=x86_64 appimage-run ~/bin/appimagetool-x86_64.AppImage ./test_site.AppDir
@@ -68,10 +70,6 @@ coverage-report:
 .PHONY: fmt
 fmt: node_modules
 	./jarmuz-fmt.mjs
-
-.PHONY: release
-release:
-	cargo build --release
 
 .PHONY: test
 test:

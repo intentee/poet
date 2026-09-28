@@ -39,7 +39,7 @@ pub struct ContentDocumentFrontMatter {
     #[serde(default, with = "crate::flexible_datetime")]
     pub last_updated_at: Option<DateTime<Utc>>,
     pub primary_collection: Option<String>,
-    #[serde(default)]
+    #[serde(default, with = "crate::rhai_map_serde")]
     pub props: Map,
     #[serde(default = "default_render")]
     pub render: bool,

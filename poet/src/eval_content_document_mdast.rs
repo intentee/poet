@@ -426,7 +426,7 @@ mod tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    use esbuild_metafile::EsbuildMetaFile;
+    use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
     use indoc::indoc;
     use rhai::Engine;
     use rhai_components::component_syntax::component_registry::ComponentRegistry;
@@ -465,7 +465,7 @@ mod tests {
 
     fn asset_manager() -> Result<AssetManager> {
         Ok(AssetManager::from_esbuild_metafile(
-            Arc::new(EsbuildMetaFile::from_str(ASSET_METAFILE)?),
+            Arc::new(EsbuildMetafile::from_str(ASSET_METAFILE)?),
             AssetPathRenderer {
                 base_path: "/".to_string(),
             },

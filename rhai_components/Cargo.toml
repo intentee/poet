@@ -2,12 +2,11 @@
 description = "JSX-like syntax extension for Rhai"
 license = "Apache-2.0"
 name = "rhai_components"
-version = "0.5.11"
+repository = "https://github.com/intentee/poet"
+version = "0.5.12"
 edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
 dashmap = { workspace = true }
-nanoid = { workspace = true }
 rhai = { workspace = true }
-tokio = { workspace = true }

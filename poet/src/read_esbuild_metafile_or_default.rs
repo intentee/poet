@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use esbuild_metafile::EsbuildMetaFile;
+use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use log::warn;
 
 use crate::filesystem::Filesystem as _;
@@ -13,7 +13,7 @@ use crate::filesystem::storage::Storage;
 
 pub async fn read_esbuild_metafile_or_default(
     source_filesystem: Arc<Storage>,
-) -> Result<Arc<EsbuildMetaFile>> {
+) -> Result<Arc<EsbuildMetafile>> {
     Ok(match source_filesystem
         .read_file_contents(&PathBuf::from("esbuild-meta.json"))
         .await?
@@ -23,11 +23,11 @@ pub async fn read_esbuild_metafile_or_default(
                 "esbuild metafile should be a file, not a directory"
             ));
         }
-        ReadFileContentsResult::Found { contents } => EsbuildMetaFile::from_str(&contents)?,
+        ReadFileContentsResult::Found { contents } => EsbuildMetafile::from_str(&contents)?,
         ReadFileContentsResult::NotFound => {
             warn!("esbuild metafile not found, proceeding without it");
 
-            EsbuildMetaFile::default()
+            EsbuildMetafile::default()
         }
     }
     .into())
@@ -53,7 +53,7 @@ mod tests {
         }
     "#};
 
-    fn asset_manager(metafile: Arc<EsbuildMetaFile>) -> AssetManager {
+    fn asset_manager(metafile: Arc<EsbuildMetafile>) -> AssetManager {
         AssetManager::from_esbuild_metafile(
             metafile,
             AssetPathRenderer {

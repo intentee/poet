@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use esbuild_metafile::EsbuildMetaFile;
+use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 use syntect::parsing::SyntaxSet;
 
@@ -21,7 +21,7 @@ pub struct ContentDocumentRenderingContext<'render> {
     pub content_document: &'render ContentDocument,
     pub content_document_collections_ranked: Arc<HashMap<String, ContentDocumentCollectionRanked>>,
     pub content_document_linker: ContentDocumentLinker,
-    pub esbuild_metafile: Arc<EsbuildMetaFile>,
+    pub esbuild_metafile: Arc<EsbuildMetafile>,
     pub is_watching: bool,
     pub rhai_template_renderer: &'render RhaiTemplateRenderer,
     pub syntax_set: &'render SyntaxSet,

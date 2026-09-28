@@ -34,7 +34,7 @@ impl ContentDocumentComponentContext {
     pub fn mock() -> Self {
         Self {
             asset_manager: AssetManager::from_esbuild_metafile(
-                Arc::new(esbuild_metafile::EsbuildMetaFile::default()),
+                Arc::new(esbuild_metafile::esbuild_metafile::EsbuildMetafile::default()),
                 crate::asset_path_renderer::AssetPathRenderer {
                     base_path: "/".to_string(),
                 },
@@ -197,7 +197,7 @@ impl CustomType for ContentDocumentComponentContext {
 
 #[cfg(test)]
 mod tests {
-    use esbuild_metafile::EsbuildMetaFile;
+    use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 
     use super::*;
     use crate::asset_path_renderer::AssetPathRenderer;
@@ -263,7 +263,7 @@ mod tests {
         ranked: HashMap<String, ContentDocumentCollectionRanked>,
     ) -> ContentDocumentComponentContext {
         let asset_manager = AssetManager::from_esbuild_metafile(
-            Arc::new(EsbuildMetaFile::default()),
+            Arc::new(EsbuildMetafile::default()),
             AssetPathRenderer {
                 base_path: "/".to_string(),
             },

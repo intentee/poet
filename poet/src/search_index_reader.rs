@@ -44,7 +44,12 @@ impl SearchIndexReader {
         let query = query_parser.parse_query(&query)?;
 
         let searcher = self.index_reader.searcher();
-        let results = searcher.search(&query, &TopDocs::with_limit(per_page).and_offset(offset))?;
+        let results = searcher.search(
+            &query,
+            &TopDocs::with_limit(per_page)
+                .and_offset(offset)
+                .order_by_score(),
+        )?;
 
         let mut ret = Vec::new();
 

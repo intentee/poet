@@ -2,7 +2,8 @@
 description = "Static site generator with optional MCP server and LLM SEO optimizations"
 license = "Apache-2.0"
 name = "poet"
-version = "0.7.0"
+repository = "https://github.com/intentee/poet"
+version = "0.8.0"
 edition = "2024"
 
 [dependencies]
@@ -11,7 +12,6 @@ actix-cors = { workspace = true }
 actix-files = { workspace = true }
 actix-rt = { workspace = true }
 actix-web = { workspace = true }
-actix-web-lab = { workspace = true }
 actix-ws = { workspace = true }
 anyhow = { workspace = true }
 async-stream = { workspace = true }
@@ -41,7 +41,7 @@ notify-debouncer-full = { workspace = true }
 petgraph = { workspace = true }
 rayon = { workspace = true }
 rhai = { workspace = true }
-rhai_components = { path = "../rhai_components", version = "0.5.11" }
+rhai_components = { path = "../rhai_components", version = "0.5" }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -57,4 +57,4 @@ url = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
-tempfile = "3.21.0"
+tempfile = "3.27"

@@ -2,7 +2,8 @@ use std::path::Path;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use chrono::Utc;
+use sitemap_rs::jiff::Timestamp;
+use sitemap_rs::jiff::tz::TimeZone;
 use sitemap_rs::url::Url;
 use sitemap_rs::url_set::UrlSet;
 
@@ -11,7 +12,7 @@ use crate::content_document_reference::ContentDocumentReference;
 pub fn create_sitemap<'a>(
     content_documents: impl Iterator<Item = &'a ContentDocumentReference>,
 ) -> Result<String> {
-    let last_modified = Utc::now().fixed_offset();
+    let last_modified = Timestamp::now().to_zoned(TimeZone::UTC);
     let mut urls: Vec<Url> = Vec::new();
 
     for reference in content_documents {
@@ -24,7 +25,8 @@ pub fn create_sitemap<'a>(
 
         urls.push(Url::new(
             url,
-            Some(last_modified),
+            Vec::new(),
+            Some(last_modified.clone()),
             None,
             Some(priority),
             None,

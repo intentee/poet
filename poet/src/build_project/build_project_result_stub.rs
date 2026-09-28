@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use esbuild_metafile::EsbuildMetaFile;
+use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use rayon::iter::ParallelBridge as _;
 use rayon::iter::ParallelIterator as _;
 
@@ -14,7 +14,7 @@ use crate::filesystem::memory::Memory;
 pub struct BuildProjectResultStub {
     pub content_document_linker: ContentDocumentLinker,
     pub content_document_sources: Arc<BTreeMap<ContentDocumentBasename, ContentDocumentSource>>,
-    pub esbuild_metafile: Arc<EsbuildMetaFile>,
+    pub esbuild_metafile: Arc<EsbuildMetafile>,
     pub memory_filesystem: Arc<Memory>,
 }
 

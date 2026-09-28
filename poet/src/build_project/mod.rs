@@ -102,7 +102,7 @@ fn render_document<'render>(
     rhai_template_renderer.render(
         &front_matter.layout,
         component_context_with_toc.clone(),
-        Dynamic::from_map(front_matter.props.clone()),
+        Dynamic::from_map(front_matter.props_map()),
         layout_content.into(),
     )
 }
@@ -545,6 +545,39 @@ fn template(context, props, content) {
 
         assert!(sitemap.contains("<urlset"));
         assert!(sitemap.contains("<loc>/</loc>"));
+
+        Ok(())
+    }
+
+    const LAYOUT_PROPS: &str = r#"
+fn template(context, props, content) {
+  component {
+    <div>
+      <p>{props.greeting}</p>
+      <span>{context.front_matter.props.greeting}</span>
+    </div>
+  }
+}
+"#;
+
+    #[tokio::test]
+    async fn passes_front_matter_props_to_layout() -> Result<()> {
+        let result = build(
+            &[
+                ("shortcodes/LayoutProps.rhai", LAYOUT_PROPS),
+                (
+                    "content/index.md",
+                    "+++\ndescription = \"Home\"\nlayout = \"LayoutProps\"\ntitle = \"Home\"\n\n[props]\ngreeting = \"Hello from props\"\n+++\n\nHome.\n",
+                ),
+            ],
+            false,
+        )
+        .await?;
+
+        let home = read(&result, "index.html").await?;
+
+        assert!(home.contains("<p>Hello from props</p>"));
+        assert!(home.contains("<span>Hello from props</span>"));
 
         Ok(())
     }

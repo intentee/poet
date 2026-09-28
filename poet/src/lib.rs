@@ -3,6 +3,8 @@ pub mod app_dir_desktop_entry;
 pub mod assert_valid_desktop_entry_string;
 pub mod asset_manager;
 pub mod asset_path_renderer;
+pub mod asset_preloader;
+pub mod asset_registration_result;
 pub mod author;
 pub mod author_basename;
 pub mod author_collection;

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use esbuild_metafile::EsbuildMetaFile;
+use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
 use markdown::mdast::Node;
 use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
 
@@ -24,7 +24,7 @@ use crate::prompt_document_front_matter::argument::Argument;
 pub struct PromptDocumentController {
     pub asset_path_renderer: AssetPathRenderer,
     pub content_document_linker: ContentDocumentLinker,
-    pub esbuild_metafile: Arc<EsbuildMetaFile>,
+    pub esbuild_metafile: Arc<EsbuildMetafile>,
     pub front_matter: PromptDocumentFrontMatter,
     pub name: String,
     pub mdast: Node,

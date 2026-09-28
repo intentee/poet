@@ -1,9 +1,12 @@
 pub mod collection_placement;
 pub mod collection_placement_list;
 
+use std::collections::BTreeMap;
+
 use chrono::DateTime;
 use chrono::Utc;
 use rhai::CustomType;
+use rhai::Dynamic;
 use rhai::Map;
 use rhai::TypeBuilder;
 use serde::Deserialize;
@@ -40,7 +43,7 @@ pub struct ContentDocumentFrontMatter {
     pub last_updated_at: Option<DateTime<Utc>>,
     pub primary_collection: Option<String>,
     #[serde(default)]
-    pub props: Map,
+    pub props: BTreeMap<String, Dynamic>,
     #[serde(default = "default_render")]
     pub render: bool,
     pub title: String,
@@ -65,12 +68,19 @@ impl ContentDocumentFrontMatter {
 }
 
 impl ContentDocumentFrontMatter {
+    pub fn props_map(&self) -> Map {
+        self.props
+            .iter()
+            .map(|(key, value)| (key.as_str().into(), value.clone()))
+            .collect()
+    }
+
     fn rhai_description(&mut self) -> String {
         self.description.clone()
     }
 
     fn rhai_props(&mut self) -> Map {
-        self.props.clone()
+        self.props_map()
     }
 
     fn rhai_render(&mut self) -> bool {

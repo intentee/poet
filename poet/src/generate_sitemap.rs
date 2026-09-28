@@ -2,20 +2,24 @@ use std::path::Path;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use chrono::Utc;
+use sitemap_rs::jiff::Timestamp;
+use sitemap_rs::jiff::tz::TimeZone;
 use sitemap_rs::url::Url;
 use sitemap_rs::url_set::UrlSet;
 
 use crate::content_document_reference::ContentDocumentReference;
 
-pub fn create_sitemap<'a>(
-    content_documents: impl Iterator<Item = &'a ContentDocumentReference>,
+pub fn create_sitemap<'reference>(
+    content_documents: impl Iterator<Item = &'reference ContentDocumentReference>,
 ) -> Result<String> {
-    let last_modified = Utc::now().fixed_offset();
+    let last_modified = Timestamp::now().to_zoned(TimeZone::UTC);
+    let mut references: Vec<&ContentDocumentReference> = content_documents.collect();
     let mut urls: Vec<Url> = Vec::new();
 
-    for reference in content_documents {
-        let url = reference.canonical_link().map_err(|e| anyhow!(e))?;
+    references.sort_by(|left, right| left.basename_path.cmp(&right.basename_path));
+
+    for reference in references {
+        let url = reference.canonical_link().map_err(|error| anyhow!(error))?;
         let priority = if reference.basename_path == Path::new("index") {
             0.8
         } else {
@@ -24,7 +28,8 @@ pub fn create_sitemap<'a>(
 
         urls.push(Url::new(
             url,
-            Some(last_modified),
+            Vec::new(),
+            Some(last_modified.clone()),
             None,
             Some(priority),
             None,
@@ -60,6 +65,22 @@ mod tests {
 
         assert!(sitemap.contains("https://example.com/"));
         assert!(sitemap.contains("<priority>0.8</priority>"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn lists_documents_in_basename_order() -> Result<()> {
+        let references = [reference("guide"), reference("index"), reference("about")];
+        let sitemap = create_sitemap(references.iter())?;
+
+        let about_position = sitemap.find("<loc>https://example.com/about/</loc>");
+        let guide_position = sitemap.find("<loc>https://example.com/guide/</loc>");
+        let index_position = sitemap.find("<loc>https://example.com/</loc>");
+
+        assert!(about_position.is_some());
+        assert!(about_position < guide_position);
+        assert!(guide_position < index_position);
 
         Ok(())
     }

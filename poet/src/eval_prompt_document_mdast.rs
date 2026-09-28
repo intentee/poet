@@ -358,7 +358,7 @@ mod test {
     use std::sync::Arc;
     use std::sync::RwLock;
 
-    use esbuild_metafile::EsbuildMetaFile;
+    use esbuild_metafile::esbuild_metafile::EsbuildMetafile;
     use rhai::Engine;
     use rhai_components::component_syntax::component_registry::ComponentRegistry;
     use rhai_components::rhai_template_renderer::RhaiTemplateRenderer;
@@ -389,7 +389,7 @@ mod test {
 
     fn asset_manager() -> Result<AssetManager> {
         Ok(AssetManager::from_esbuild_metafile(
-            Arc::new(EsbuildMetaFile::from_str(ASSET_METAFILE)?),
+            Arc::new(EsbuildMetafile::from_str(ASSET_METAFILE)?),
             AssetPathRenderer {
                 base_path: "/".to_string(),
             },

@@ -9,6 +9,7 @@ use crate::filesystem::storage::create_parent_directories::create_parent_directo
 
 pub async fn copy_esbuild_metafile_assets_to(
     esbuild_metafile: Arc<EsbuildMetafile>,
+    source_directory: &Path,
     output_directory: &Path,
 ) -> Result<()> {
     for asset_path in esbuild_metafile.get_output_paths().iter() {
@@ -16,7 +17,7 @@ pub async fn copy_esbuild_metafile_assets_to(
 
         create_parent_directories(&target_path).await?;
 
-        fs::copy(asset_path, target_path).await?;
+        fs::copy(source_directory.join(asset_path), target_path).await?;
     }
 
     Ok(())

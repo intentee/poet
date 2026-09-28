@@ -136,7 +136,8 @@ impl Handler for AppDir {
 
         let esbuild_metafile = read_esbuild_metafile_or_default(source_filesystem.clone()).await?;
 
-        copy_esbuild_metafile_assets_to(esbuild_metafile, &app_dir_path).await?;
+        copy_esbuild_metafile_assets_to(esbuild_metafile, &self.source_directory, &app_dir_path)
+            .await?;
 
         info!("Creating AppDir-specific metafiles...");
 

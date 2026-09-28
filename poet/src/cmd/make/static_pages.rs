@@ -76,7 +76,54 @@ impl Handler for StaticPages {
 
         info!("Copying assets into output directory...");
 
-        copy_esbuild_metafile_assets_to(esbuild_metafile, &self.output_directory).await?;
+        copy_esbuild_metafile_assets_to(
+            esbuild_metafile,
+            &self.source_directory,
+            &self.output_directory,
+        )
+        .await?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+    use tokio::fs;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn copies_esbuild_assets_from_source_directory() -> Result<()> {
+        let source_directory = tempdir()?;
+        let output_directory = tempdir()?;
+
+        fs::create_dir_all(source_directory.path().join("assets")).await?;
+        fs::write(
+            source_directory.path().join("assets/app_ABCDEF12.css"),
+            "body{}",
+        )
+        .await?;
+        fs::write(
+            source_directory.path().join("esbuild-meta.json"),
+            r#"{"outputs":{"assets/app_ABCDEF12.css":{"imports":[],"entryPoint":"resources/app.css","inputs":{}}}}"#,
+        )
+        .await?;
+
+        StaticPages {
+            output_directory: output_directory.path().to_path_buf(),
+            public_path: "/".to_string(),
+            sitemap: false,
+            source_directory: source_directory.path().to_path_buf(),
+        }
+        .handle()
+        .await?;
+
+        assert_eq!(
+            fs::read_to_string(output_directory.path().join("assets/app_ABCDEF12.css")).await?,
+            "body{}"
+        );
 
         Ok(())
     }

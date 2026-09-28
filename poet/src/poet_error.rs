@@ -44,7 +44,7 @@ pub enum PoetError {
         #[source]
         source: io::Error,
     },
-    #[error("unable to create output directory '{}'", path.display())]
+    #[error("unable to create output directory '{}': {source}", path.display())]
     CreateOutputDirectory {
         path: PathBuf,
         #[source]
@@ -52,7 +52,7 @@ pub enum PoetError {
     },
     #[error("unable to index content documents for search")]
     IndexSearch(#[source] SearchError),
-    #[error("unable to inspect path '{}'", path.display())]
+    #[error("unable to inspect path '{}': {source}", path.display())]
     InspectPath {
         path: PathBuf,
         #[source]
@@ -66,7 +66,7 @@ pub enum PoetError {
     PromptDocumentControllerCollectionNotReady,
     #[error("unable to read the esbuild metafile")]
     ReadEsbuildMetafile(#[source] AssetError),
-    #[error("unable to resolve socket address '{address}'")]
+    #[error("unable to resolve socket address '{address}': {source}")]
     ResolveSocketAddress {
         address: String,
         #[source]

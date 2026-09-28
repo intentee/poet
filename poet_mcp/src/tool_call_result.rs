@@ -9,17 +9,10 @@ use serde_json::Value;
 use serde_json::to_value;
 
 use crate::content_block::ContentBlock;
+use crate::flagged_tool_call_result::FlaggedToolCallResult;
 use crate::tool_call_error_message::ToolCallErrorMessage;
 use crate::tool_call_failure::ToolCallFailure;
 use crate::tool_call_success::ToolCallSuccess;
-
-#[derive(Deserialize, Serialize)]
-struct FlaggedToolCallResult<TResult> {
-    #[serde(flatten)]
-    result: TResult,
-    #[serde(rename = "isError")]
-    is_error: bool,
-}
 
 #[derive(Debug)]
 pub enum ToolCallResult<TStructuredContent: Serialize> {

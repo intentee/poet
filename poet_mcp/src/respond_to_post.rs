@@ -69,11 +69,11 @@ impl McpResponder for RespondToPost {
         self,
         McpResponderContext {
             mut payload,
-            req,
+            http_request,
             request_session,
         }: McpResponderContext,
     ) -> Result<HttpResponse<BoxBody>, McpError> {
-        let request_payload = String::from_request(&req, &mut payload)
+        let request_payload = String::from_request(&http_request, &mut payload)
             .await
             .map_err(|source| McpError::ReadPayload { source })?;
         let client_to_server_message: ClientToServerMessage =
@@ -83,7 +83,7 @@ impl McpResponder for RespondToPost {
             client_to_server_message,
             ClientToServerMessage::Initialize(_)
         ) {
-            assert_protocol_version_header(&req)?;
+            assert_protocol_version_header(&http_request)?;
         }
 
         let McpServer {

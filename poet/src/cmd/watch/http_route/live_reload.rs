@@ -18,10 +18,6 @@ use crate::cmd::watch::app_data::AppData;
 use crate::holder_state::HolderState;
 use crate::poet_error::PoetError;
 
-pub fn register(service_config: &mut web::ServiceConfig) {
-    service_config.service(respond);
-}
-
 #[get("/api/v1/live_reload/{path:.*}")]
 async fn respond(
     app_data: Data<AppData>,
@@ -77,4 +73,8 @@ async fn respond(
     });
 
     Ok(response)
+}
+
+pub fn register(service_config: &mut web::ServiceConfig) {
+    service_config.service(respond);
 }

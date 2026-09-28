@@ -26,7 +26,7 @@ fn responder_context(
             .session_manager
             .request_session(service_request.headers())?,
         payload: service_request.take_payload(),
-        req: service_request.request().clone(),
+        http_request: service_request.request().clone(),
     })
 }
 

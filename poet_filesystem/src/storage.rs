@@ -1,5 +1,4 @@
 use std::ffi::OsStr;
-use std::ffi::OsString;
 use std::fs::read_dir;
 use std::io;
 use std::io::ErrorKind;
@@ -12,6 +11,7 @@ use tokio::fs::read_to_string;
 use tokio::fs::write;
 
 use crate::create_parent_directories::create_parent_directories;
+use crate::directory_entry::DirectoryEntry;
 use crate::file_entry::FileEntry;
 use crate::file_entry_stub::FileEntryStub;
 use crate::filesystem::Filesystem;
@@ -19,11 +19,6 @@ use crate::filesystem_error::FilesystemError;
 use crate::read_file_contents_result::ReadFileContentsResult;
 use crate::source_directory::SourceDirectory;
 use crate::source_file::SourceFile;
-
-struct DirectoryEntry {
-    file_name: OsString,
-    is_directory: bool,
-}
 
 fn read_directory_entries(directory_path: &Path) -> io::Result<Vec<DirectoryEntry>> {
     read_dir(directory_path).and_then(|directory_entries| {

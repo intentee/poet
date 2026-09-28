@@ -22,12 +22,12 @@ impl McpResponder for RespondToDelete {
     async fn respond_to(
         self,
         McpResponderContext {
-            req,
+            http_request,
             request_session,
             ..
         }: McpResponderContext,
     ) -> Result<HttpResponse<BoxBody>, McpError> {
-        assert_protocol_version_header(&req)?;
+        assert_protocol_version_header(&http_request)?;
 
         self.session_manager
             .terminate_session(&request_session.established()?.id);

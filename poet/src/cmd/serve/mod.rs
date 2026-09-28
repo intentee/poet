@@ -44,8 +44,8 @@ use crate::poet_error::PoetError;
 
 #[derive(Parser)]
 pub struct Serve {
-    #[arg(long, default_value="127.0.0.1:8070", value_parser = parse_socket_addr)]
-    addr: SocketAddr,
+    #[arg(long = "addr", value_name = "ADDR", default_value = "127.0.0.1:8070", value_parser = parse_socket_addr)]
+    address: SocketAddr,
 
     #[arg(value_parser = validate_is_directory)]
     app_dir: PathBuf,
@@ -176,9 +176,9 @@ impl Handler for Serve {
                 })
                 .configure(http_route::generated_pages::register)
         })
-        .bind(self.addr)
+        .bind(self.address)
         .map_err(|source| PoetError::BindHttpServer {
-            address: self.addr,
+            address: self.address,
             source,
         })?;
 

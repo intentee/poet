@@ -5,6 +5,6 @@ use crate::request_session::RequestSession;
 
 pub struct McpResponderContext {
     pub payload: Payload,
-    pub req: HttpRequest,
+    pub http_request: HttpRequest,
     pub request_session: RequestSession,
 }

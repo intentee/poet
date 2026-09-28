@@ -36,8 +36,8 @@ use crate::poet_error::PoetError;
 
 #[derive(Parser)]
 pub struct Watch {
-    #[arg(long, default_value="127.0.0.1:8050", value_parser = parse_socket_addr)]
-    addr: SocketAddr,
+    #[arg(long = "addr", value_name = "ADDR", default_value = "127.0.0.1:8050", value_parser = parse_socket_addr)]
+    address: SocketAddr,
 
     #[arg(value_parser = validate_is_directory)]
     source_directory: PathBuf,
@@ -75,7 +75,7 @@ impl Handler for Watch {
                 },
         } = watch_project_files(&self.source_directory)?;
 
-        let generated_page_base_path = format!("http://{}/", self.addr);
+        let generated_page_base_path = format!("http://{}/", self.address);
         let asset_path_renderer = AssetPathRenderer {
             base_path: generated_page_base_path.clone(),
         };
@@ -116,7 +116,7 @@ impl Handler for Watch {
         }));
 
         service_manager.register_service(Arc::new(HttpServer {
-            addr: self.addr,
+            address: self.address,
             assets_directory: self.assets_directory(),
             ctrlc_notifier: ctrlc_notifier.clone(),
             filesystem_http_route_index_holder,

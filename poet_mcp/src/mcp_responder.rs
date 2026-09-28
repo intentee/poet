@@ -20,7 +20,7 @@ pub trait McpResponder: Sized {
         self,
         context: McpResponderContext,
     ) -> Result<HttpResponse<BoxBody>, McpError> {
-        accepts_all(&context.req, &Self::accepts())?;
+        accepts_all(&context.http_request, &Self::accepts())?;
 
         self.respond_to(context).await
     }

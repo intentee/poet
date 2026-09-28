@@ -14,8 +14,8 @@ fn accepts(accepted_mimes: &[Mime], required_mime: &Mime) -> bool {
     })
 }
 
-pub fn accepts_all(req: &HttpRequest, required_mimes: &[Mime]) -> Result<(), McpError> {
-    let accepted_mimes = Accept::parse(req)
+pub fn accepts_all(http_request: &HttpRequest, required_mimes: &[Mime]) -> Result<(), McpError> {
+    let accepted_mimes = Accept::parse(http_request)
         .map_err(|source| McpError::InvalidAcceptHeader { source })?
         .ranked();
 

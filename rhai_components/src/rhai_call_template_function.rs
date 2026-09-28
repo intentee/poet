@@ -12,7 +12,7 @@ pub fn rhai_call_template_function(
     engine: &Engine,
     component_name: &str,
     component_nesting_depth: ComponentNestingDepth,
-    args: impl FuncArgs,
+    template_arguments: impl FuncArgs,
 ) -> Result<String, RhaiComponentsError> {
     let module = engine
         .module_resolver()
@@ -28,7 +28,7 @@ pub fn rhai_call_template_function(
             &mut Scope::new(),
             &AST::new([], module),
             "template",
-            args,
+            template_arguments,
         )
         .map_err(|source| RhaiComponentsError::CallTemplateFunction {
             component_name: component_name.to_owned(),

@@ -21,9 +21,10 @@ fn merge_adjacent_symbols(state: &Dynamic) -> Result<Vec<OutputCombinedSymbol>, 
 
     let state_array = match state.as_array_ref() {
         Ok(array) => array,
-        Err(err) => {
+        Err(actual_type_name) => {
             return Err(
-                LexError::Runtime(format!("Invalid state array {err}")).into_err(Position::NONE)
+                LexError::Runtime(format!("Invalid state array {actual_type_name}"))
+                    .into_err(Position::NONE),
             );
         }
     };

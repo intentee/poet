@@ -14,24 +14,15 @@ use poet_mcp::tool_responder::ToolResponder;
 use poet_search::search_index_found_document::SearchIndexFoundDocument;
 use poet_search::search_index_query_params::SearchIndexQueryParams;
 use poet_search::search_index_reader::SearchIndexReader;
-use schemars::JsonSchema;
-use serde::Deserialize;
-use serde::Serialize;
 use tokio::task::spawn_blocking;
 
 use crate::holder::Holder;
 use crate::holder_state::HolderState;
 use crate::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
+use crate::search_tool_provider_input::SearchToolProviderInput;
+use crate::search_tool_provider_output::SearchToolProviderOutput;
 
 const SEARCH_RESULTS_PER_PAGE: usize = 20;
-
-#[derive(Deserialize, JsonSchema, Serialize)]
-pub struct SearchToolProviderInput {
-    pub query: String,
-}
-
-#[derive(Deserialize, JsonSchema, Serialize)]
-pub struct SearchToolProviderOutput {}
 
 pub struct SearchTool {
     pub mcp_resource_provider_content_documents: McpResourceProviderContentDocuments,

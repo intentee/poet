@@ -1,11 +1,16 @@
+pub mod cli;
+pub mod cli_command;
 pub mod cmd;
 pub mod compile_poet_shortcodes;
 pub mod filesystem_http_route_index;
 pub mod holder;
 pub mod holder_state;
+pub mod make_command;
 pub mod mcp_prompt_provider_prompt_documents;
 pub mod mcp_resource_provider_content_documents;
 pub mod mcp_server_factory;
 pub mod poet_error;
 pub mod register_poet_rhai_types;
 pub mod search_tool;
+pub mod search_tool_provider_input;
+pub mod search_tool_provider_output;

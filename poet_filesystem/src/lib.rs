@@ -1,4 +1,5 @@
 pub mod create_parent_directories;
+pub mod directory_entry;
 pub mod file_entry;
 pub mod file_entry_stub;
 pub mod filesystem;

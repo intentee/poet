@@ -23,7 +23,7 @@ use crate::holder::Holder;
 use crate::poet_error::PoetError;
 
 pub struct HttpServer {
-    pub addr: SocketAddr,
+    pub address: SocketAddr,
     pub assets_directory: PathBuf,
     pub ctrlc_notifier: CancellationToken,
     pub filesystem_http_route_index_holder: Holder<Arc<FilesystemHttpRouteIndex>>,
@@ -61,9 +61,9 @@ impl Service for HttpServer {
                 .configure(http_route::live_reload::register)
                 .configure(http_route::generated_pages::register)
         })
-        .bind(self.addr)
+        .bind(self.address)
         .map_err(|source| PoetError::BindHttpServer {
-            address: self.addr,
+            address: self.address,
             source,
         })?;
 

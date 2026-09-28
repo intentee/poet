@@ -8,13 +8,9 @@ use serde::de::Error as _;
 use serde_json::from_slice;
 use serde_json::json;
 
-const DEFAULT_PER_PAGE: usize = 20;
+use crate::list_resources_cursor_token::ListResourcesCursorToken;
 
-#[derive(Deserialize)]
-struct ListResourcesCursorToken {
-    offset: usize,
-    per_page: usize,
-}
+const DEFAULT_PER_PAGE: usize = 20;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ListResourcesCursor {

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use poet::holder::Holder;
 use poet::mcp_resource_provider_content_documents::McpResourceProviderContentDocuments;
 use poet::search_tool::SearchTool;
-use poet::search_tool::SearchToolProviderInput;
+use poet::search_tool_provider_input::SearchToolProviderInput;
 use poet_mcp::content_block::ContentBlock;
 use poet_mcp::provider_error::ProviderError;
 use poet_mcp::resource_link::ResourceLink;
